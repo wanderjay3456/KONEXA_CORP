@@ -5,7 +5,9 @@ import {
   addDoc, 
   setDoc, 
   getDoc,
-  doc 
+  doc,
+  query,
+  where,
 } from "firebase/firestore";
 import { 
   signInAnonymously, 
@@ -380,7 +382,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for Applications
     const applicationsCol = collection(db, "applications");
-    const unsubApplications = onSnapshot(applicationsCol, (snapshot) => {
+    const applicationsQuery = currentUser.role === UserRole.ADMIN
+      ? applicationsCol
+      : currentUser.role === UserRole.COMPANY
+        ? query(applicationsCol, where("companyId", "==", currentUser.uid))
+        : query(applicationsCol, where("studentId", "==", currentUser.uid));
+    const unsubApplications = onSnapshot(applicationsQuery, (snapshot) => {
       const items: Application[] = [];
       snapshot.forEach((doc) => {
         const d = doc.data();
@@ -394,7 +401,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for Logs
     const logsCol = collection(db, "logs");
-    const unsubLogs = onSnapshot(logsCol, (snapshot) => {
+    const logsQuery = currentUser.role === UserRole.ADMIN
+      ? logsCol
+      : query(logsCol, where("userId", "==", currentUser.uid));
+    const unsubLogs = onSnapshot(logsQuery, (snapshot) => {
       const items: SystemLog[] = [];
       snapshot.forEach((doc) => {
         const d = doc.data();
@@ -445,6 +455,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const appDocRef = await addDoc(applicationsCol, {
         projectId,
         projectTitle: proj.title,
+        companyId: proj.companyId,
         studentId: currentUser?.uid || "usr_fndtn_konexa_99",
         studentName: currentUser?.displayName || "Alex Rivera",
         codeSubmission,
@@ -453,6 +464,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         score: 0,
         createdAt: Date.now()
       });
+
+      try {
+        const emailResponse = await fetch("/api/email/notify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Idempotency-Key": appDocRef.id,
+          },
+          body: JSON.stringify({
+            template: "application_received",
+            data: { project: proj.title },
+          }),
+        });
+        if (!emailResponse.ok) console.warn("Application confirmation email was not accepted");
+      } catch (emailError) {
+        console.warn("Application confirmation email failed:", emailError);
+      }
 
       await logSystemAction(
         "PROJECT_APPLY",
@@ -463,7 +491,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       
       // Trigger AI evaluation immediately in background to demonstrate full-stack flow
       info("Triggering AI Copilot...", "AI Evaluator is reviewing your code submission in real-time.");
-      triggerEvaluation(appDocRef.id, codeSubmission, proj.requirements);
+      triggerEvaluation(appDocRef.id);
 
     } catch (err: any) {
       handleFirestoreError(err, OperationType.WRITE, "applications");
@@ -557,18 +585,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     password?: string
   ) => {
     try {
-      let authUid = "";
-      if (password) {
-        // Create real user in Firebase Authentication
-        const credential = await createUserWithEmailAndPassword(auth, email, password);
-        authUid = credential.user.uid;
-        
-        // Dispatch email verification to ensure validity of signup
-        await sendEmailVerification(credential.user);
-      } else {
-        // Fallback to anonymous uid
-        authUid = auth.currentUser?.uid || "usr_fndtn_konexa_" + Math.random().toString(36).substring(2, 11);
+      if (![UserRole.STUDENT, UserRole.COMPANY].includes(role)) {
+        throw new Error("Only student and company self-registration is supported.");
       }
+      if (!password) throw new Error("A password is required for registration.");
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      const authUid = credential.user.uid;
+      await sendEmailVerification(credential.user);
       
       const now = Date.now();
 
@@ -630,13 +653,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loginUser = async (email: string, role: UserRole, password?: string) => {
     try {
-      let authUid = "";
-      if (password) {
-        const credential = await signInWithEmailAndPassword(auth, email, password);
-        authUid = credential.user.uid;
-      } else {
-        authUid = auth.currentUser?.uid || "usr_fndtn_konexa_99";
+      if (![UserRole.STUDENT, UserRole.COMPANY].includes(role)) {
+        throw new Error("This account type cannot use self-service login.");
       }
+      if (!password) throw new Error("A password is required for login.");
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      const authUid = credential.user.uid;
 
       const now = Date.now();
 
@@ -647,7 +669,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       let profile: UserProfile;
       if (userSnapshot.exists()) {
         profile = userSnapshot.data() as UserProfile;
-        profile.role = role; // align active session role
       } else {
         profile = {
           uid: authUid,
@@ -660,9 +681,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       setCurrentUser(profile);
-      setActiveRole(role);
+      const effectiveRole = profile.role;
+      setActiveRole(effectiveRole);
 
-      if (role === UserRole.STUDENT) {
+      if (effectiveRole === UserRole.STUDENT) {
         const studentDocRef = doc(db, "student_profiles", authUid);
         const studentSnapshot = await getDoc(studentDocRef);
         let sProfile: StudentProfile;
@@ -683,7 +705,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         setStudentProfile(sProfile);
         setCompanyProfile(null);
-      } else if (role === UserRole.COMPANY) {
+      } else if (effectiveRole === UserRole.COMPANY) {
         const companyDocRef = doc(db, "company_profiles", authUid);
         const companySnapshot = await getDoc(companyDocRef);
         let cProfile: CompanyProfile;
@@ -707,7 +729,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       await logSystemAction(
         "AUTH_LOGIN",
-        `Authenticated user (${role}): ${profile.displayName} (${email})`
+        `Authenticated user (${effectiveRole}): ${profile.displayName} (${email})`
       );
       success("Welcome Back", `Successfully signed in to your dashboard.`);
     } catch (err: any) {
@@ -718,6 +740,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const googleLogin = async (role: UserRole) => {
     try {
+      if (![UserRole.STUDENT, UserRole.COMPANY].includes(role)) {
+        throw new Error("This account type cannot use self-service login.");
+      }
       const provider = new GoogleAuthProvider();
       const credential = await signInWithPopup(auth, provider);
       const user = credential.user;
@@ -733,7 +758,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       let profile: UserProfile;
       if (userSnapshot.exists()) {
         profile = userSnapshot.data() as UserProfile;
-        profile.role = role; // align active session role
       } else {
         profile = {
           uid: authUid,
@@ -746,9 +770,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       setCurrentUser(profile);
-      setActiveRole(role);
+      const effectiveRole = profile.role;
+      setActiveRole(effectiveRole);
 
-      if (role === UserRole.STUDENT) {
+      if (effectiveRole === UserRole.STUDENT) {
         const studentDocRef = doc(db, "student_profiles", authUid);
         const studentSnapshot = await getDoc(studentDocRef);
         let sProfile: StudentProfile;
@@ -769,7 +794,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         setStudentProfile(sProfile);
         setCompanyProfile(null);
-      } else if (role === UserRole.COMPANY) {
+      } else if (effectiveRole === UserRole.COMPANY) {
         const companyDocRef = doc(db, "company_profiles", authUid);
         const companySnapshot = await getDoc(companyDocRef);
         let cProfile: CompanyProfile;
@@ -793,9 +818,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       await logSystemAction(
         "AUTH_LOGIN_GOOGLE",
-        `Authenticated user via Google (${role}): ${profile.displayName} (${email})`
+        `Authenticated user via Google (${effectiveRole}): ${profile.displayName} (${email})`
       );
-      success("Welcome", `Successfully signed in via Google as ${role}.`);
+      success("Welcome", `Successfully signed in via Google as ${effectiveRole}.`);
     } catch (err: any) {
       error("Google Login failed", err.message);
       throw err;
@@ -851,17 +876,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const triggerEvaluation = async (
-    applicationId: string,
-    code: string,
-    requirements: string[]
-  ) => {
+  const triggerEvaluation = async (applicationId: string) => {
     try {
       // Make real-time POST call to Express Gemini Proxy
       const response = await fetch("/api/gemini/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, requirements })
+        body: JSON.stringify({ applicationId })
       });
 
       if (!response.ok) {
@@ -870,24 +891,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const evalData = await response.json();
       
-      // Update application doc in Firestore with evaluated feedback and score!
-      const appRef = doc(db, "applications", applicationId);
-      await setDoc(appRef, {
-        status: ApplicationStatus.REVIEWED,
-        score: evalData.score || 85,
-        feedback: `[KONEXA AI evaluation summary] ${evalData.feedback}\n\n**Strengths:**\n${(evalData.strengths || []).map((s: string) => `- ${s}`).join("\n")}\n\n**Recommended Improvements:**\n${(evalData.improvements || []).map((i: string) => `- ${i}`).join("\n")}`
-      }, { merge: true });
-
-      // Dynamically boost student Trust Score based on evaluation
-      if (studentProfile) {
-        const addedTrust = Math.round((evalData.score || 85) / 10);
-        setStudentProfile(prev => prev ? {
-          ...prev,
-          trustScore: Math.min(100, prev.trustScore + addedTrust),
-          completedProjects: prev.completedProjects + 1
-        } : null);
-      }
-
       await logSystemAction(
         "AI_EVALUATION_COMPLETED",
         `Gemini completed code analysis for Application ID ${applicationId}. Score: ${evalData.score}`
@@ -897,19 +900,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return evalData;
     } catch (err: any) {
       console.error("AI Evaluation error:", err);
-      // Fallback update so the loader clears in Firestore
-      try {
-        const appRef = doc(db, "applications", applicationId);
-        await setDoc(appRef, {
-          status: ApplicationStatus.REVIEWED,
-          score: 75,
-          feedback: "AI evaluator encountered a connection timeout, but human evaluators will review it soon! Default rating: 75."
-        }, { merge: true });
-      } catch (writeErr) {
-        handleFirestoreError(writeErr, OperationType.WRITE, `applications/${applicationId}`);
-      }
-      
-      error("AI Evaluator Offline", "Could not reach Gemini service. Reverted to pending manual review.");
+      error("AI Evaluator Offline", "Could not reach Gemini service. The application remains pending for manual review.");
     }
   };
 

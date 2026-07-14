@@ -132,6 +132,7 @@ export interface Application {
   id: string;
   projectId: string;
   projectTitle: string;
+  companyId?: string;
   studentId: string;
   studentName: string;
   codeSubmission: string;

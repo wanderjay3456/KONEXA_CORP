@@ -2,14 +2,20 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
-import Stripe from "stripe";
 import dotenv from "dotenv";
+import helmet from "helmet";
+import { rateLimit } from "express-rate-limit";
 import { registerAiWorkforceRoutes } from "./src/lib/aiServerBackend";
 import { registerIntelligenceRoutes } from "./src/lib/intelligenceBackend";
 import { registerAdminRoutes } from "./src/lib/adminBackend";
+import { registerBillingRoutes, registerStripeWebhook } from "./src/server/billing";
+import { registerEmailRoutes, registerResendWebhook } from "./src/server/email";
+import { requireAuth, requireRole, type AuthenticatedRequest } from "./src/server/security";
+import { adminDb } from "./src/server/firebaseAdmin";
+import { FieldValue } from "firebase-admin/firestore";
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: [".env.local", ".env"] });
 
 // Lazy initialize Google Gen AI
 let aiClient: GoogleGenAI | null = null;
@@ -25,26 +31,105 @@ function getAIClient(): GoogleGenAI {
   return aiClient;
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+function validateProductionConfiguration() {
+  if (process.env.NODE_ENV !== "production") return;
+  const required = [
+    "APP_URL",
+    "FIREBASE_PROJECT_ID",
+    "GEMINI_API_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_PRICE_PRO_MONTHLY",
+    "RESEND_API_KEY",
+    "RESEND_WEBHOOK_SECRET",
+    "EMAIL_FROM",
+  ];
+  const missing = required.filter((name) => !process.env[name]);
+  if (missing.length) throw new Error(`Missing production environment variables: ${missing.join(", ")}`);
+  if (!process.env.APP_URL?.startsWith("https://")) throw new Error("APP_URL must use HTTPS in production");
+  if (process.env.STRIPE_SECRET_KEY?.startsWith("sk_test_") && process.env.STRIPE_ALLOW_TEST_MODE !== "true") {
+    throw new Error("A live Stripe key is required in production");
+  }
+}
 
-  // Middleware
-  app.use(express.json({ limit: "50mb" }));
+async function startServer() {
+  validateProductionConfiguration();
+  const app = express();
+  const PORT = Number.parseInt(process.env.PORT || "3000", 10);
+
+  if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
+    throw new Error("PORT must be a valid TCP port number");
+  }
+
+  app.disable("x-powered-by");
+  app.set("trust proxy", 1);
+  app.use(helmet({ contentSecurityPolicy: false }));
+
+  // Signed webhooks must receive the unmodified raw request body.
+  registerStripeWebhook(app);
+  registerResendWebhook(app);
+
+  app.use(express.json({ limit: "12mb" }));
+  app.use("/api", rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 300,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+  }));
+
+  const aiRateLimit = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 40,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+  });
+
+  app.use("/api/gemini", requireAuth, aiRateLimit);
+  app.use("/api/ai", requireAuth, aiRateLimit);
+  app.use("/api/intelligence", requireAuth);
+  app.use("/api/billing", requireAuth, requireRole("company"));
+  app.use("/api/email", requireAuth);
+  app.use("/api/admin", requireAuth, requireRole("admin"));
 
   // API Route: Health check
   app.get("/api/health", (req, res) => {
-    res.json({ status: "healthy", timestamp: Date.now() });
+    res.json({
+      status: "healthy",
+      timestamp: Date.now(),
+      configuration: {
+        gemini: Boolean(process.env.GEMINI_API_KEY),
+        stripe: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET && process.env.STRIPE_PRICE_PRO_MONTHLY),
+        email: Boolean(process.env.RESEND_API_KEY && process.env.RESEND_WEBHOOK_SECRET && process.env.EMAIL_FROM),
+      },
+    });
   });
 
   // API Route: AI Code Evaluation
-  app.post("/api/gemini/evaluate", async (req, res) => {
+  app.post("/api/gemini/evaluate", async (req: AuthenticatedRequest, res) => {
     try {
-      const { code, requirements, projectTitle } = req.body;
-      if (!code) {
-        res.status(400).json({ error: "Code submission is required" });
+      const { applicationId } = req.body;
+      if (!applicationId || !req.user?.uid) {
+        res.status(400).json({ error: "Application ID is required" });
         return;
       }
+
+      const applicationRef = adminDb.collection("applications").doc(applicationId);
+      const applicationSnapshot = await applicationRef.get();
+      const application = applicationSnapshot.data();
+      if (!applicationSnapshot.exists) {
+        res.status(404).json({ error: "Application not found" });
+        return;
+      }
+      if (application?.studentId !== req.user.uid && req.user.role !== "admin") {
+        res.status(403).json({ error: "You cannot evaluate this application" });
+        return;
+      }
+
+      const projectSnapshot = await adminDb.collection("projects").doc(application?.projectId).get();
+      const requirements = projectSnapshot.data()?.requirements || ["Clean code", "Proper TypeScript types", "Scalable structure"];
+      const code = application?.codeSubmission;
+      const projectTitle = application?.projectTitle || projectSnapshot.data()?.title || "SaaS Component";
+      if (!code) throw new Error("The application has no code submission");
 
       const client = getAIClient();
       const prompt = `
@@ -84,6 +169,15 @@ async function startServer() {
       }
 
       const evaluation = JSON.parse(text);
+      const feedback = `[KONEXA AI evaluation summary] ${evaluation.feedback}\n\n**Strengths:**\n${(evaluation.strengths || []).map((item: string) => `- ${item}`).join("\n")}\n\n**Recommended Improvements:**\n${(evaluation.improvements || []).map((item: string) => `- ${item}`).join("\n")}`;
+      const score = Math.max(0, Math.min(100, Number(evaluation.score) || 0));
+      const batch = adminDb.batch();
+      batch.update(applicationRef, { status: "reviewed", score, feedback, evaluatedAt: FieldValue.serverTimestamp() });
+      batch.set(adminDb.collection("student_profiles").doc(application.studentId), {
+        trustScore: FieldValue.increment(Math.round(score / 10)),
+        completedProjects: FieldValue.increment(1),
+      }, { merge: true });
+      await batch.commit();
       res.json(evaluation);
     } catch (error: any) {
       console.error("Gemini Evaluation Error:", error);
@@ -220,33 +314,10 @@ async function startServer() {
     }
   });
 
+  registerBillingRoutes(app);
+  registerEmailRoutes(app);
 
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "sk_test_mock";
-  const stripe = new Stripe(stripeSecretKey);
-
-  app.post("/api/billing/checkout", async (req, res) => {
-    try {
-      const { plan, companyId } = req.body;
-      res.json({
-        url: "/?checkout_success=true&plan=" + plan,
-        sessionId: "mock_session_" + Date.now()
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/email/notify", async (req, res) => {
-    try {
-      const { to, subject, body } = req.body;
-      console.log("[MOCK EMAIL SENT] To:", to, "Subject:", subject);
-      res.json({ success: true, message: "Email dispatched successfully" });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/gemini/analyze-pdf", express.json({limit: '50mb'}), async (req, res) => {
+  app.post("/api/gemini/analyze-pdf", async (req, res) => {
     try {
       const { pdfBase64, role } = req.body;
       if (!pdfBase64) return res.status(400).json({ error: "PDF base64 required" });
@@ -294,12 +365,27 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`[KONEXA Core Server] Running on http://localhost:${PORT}`);
     console.log(`[KONEXA Core Server] Mode: ${process.env.NODE_ENV || "development"}`);
   });
+
+  const shutdown = (signal: string) => {
+    console.log(`[KONEXA Core Server] ${signal} received. Shutting down...`);
+    server.close((error) => {
+      if (error) {
+        console.error("Failed to close the HTTP server cleanly:", error);
+        process.exit(1);
+      }
+      process.exit(0);
+    });
+  };
+
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
 }
 
 startServer().catch((err) => {
   console.error("Failed to start server:", err);
+  process.exitCode = 1;
 });

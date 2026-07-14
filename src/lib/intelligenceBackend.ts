@@ -1,6 +1,4 @@
 import { GoogleGenAI } from "@google/genai";
-import { db } from "../config/firebase";
-import { collection, getDocs, addDoc, setDoc, doc, query, where, limit } from "firebase/firestore";
 
 // ==========================================
 // CORE DATA INTERFACES

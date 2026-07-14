@@ -1,0 +1,54 @@
+name: Deploy Cloud Run
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production-cloud-run
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Build container with Cloud Build
+        run: >-
+          gcloud builds submit
+          --project "${{ vars.GCP_PROJECT_ID }}"
+          --tag "${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_ARTIFACT_REPOSITORY }}/konexa:${{ github.sha }}"
+
+      - name: Deploy immutable revision
+        run: >-
+          gcloud run deploy konexa
+          --project "${{ vars.GCP_PROJECT_ID }}"
+          --region "${{ vars.GCP_REGION }}"
+          --image "${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_ARTIFACT_REPOSITORY }}/konexa:${{ github.sha }}"
+          --service-account "${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}"
+          --allow-unauthenticated
+          --min-instances 1
+          --max-instances 10
+          --concurrency 40
+          --cpu 1
+          --memory 1Gi
+          --timeout 60
+          --set-env-vars "NODE_ENV=production,APP_URL=${{ vars.APP_URL }},FIREBASE_PROJECT_ID=${{ vars.FIREBASE_PROJECT_ID }},FIRESTORE_DATABASE_ID=${{ vars.FIRESTORE_DATABASE_ID }},STRIPE_PRICE_PRO_MONTHLY=${{ vars.STRIPE_PRICE_PRO_MONTHLY }},EMAIL_FROM=${{ vars.EMAIL_FROM }},EMAIL_REPLY_TO=${{ vars.EMAIL_REPLY_TO }}"
+          --set-secrets "GEMINI_API_KEY=konexa-gemini-api-key:latest,STRIPE_SECRET_KEY=konexa-stripe-secret-key:latest,STRIPE_WEBHOOK_SECRET=konexa-stripe-webhook-secret:latest,RESEND_API_KEY=konexa-resend-api-key:latest,RESEND_WEBHOOK_SECRET=konexa-resend-webhook-secret:latest"
+
+      - name: Verify deployed health endpoint
+        run: |
+          URL="$(gcloud run services describe konexa --project "${{ vars.GCP_PROJECT_ID }}" --region "${{ vars.GCP_REGION }}" --format='value(status.url)')"
+          curl --fail --retry 8 --retry-all-errors --retry-delay 5 "$URL/api/health"

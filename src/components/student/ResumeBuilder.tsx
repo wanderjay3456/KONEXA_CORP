@@ -42,6 +42,12 @@ export default function ResumeBuilder() {
       return;
     }
 
+    if (file.size > 7.5 * 1024 * 1024) {
+      info("PDF Too Large", "Please upload a PDF smaller than 7.5 MB.");
+      e.target.value = "";
+      return;
+    }
+
     setIsUploadingPDF(true);
     const reader = new FileReader();
     reader.onload = async (event) => {

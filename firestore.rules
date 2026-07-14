@@ -1,79 +1,116 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Global Helper functions for zero-trust assertions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+    function signedIn() {
+      return request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
-    // 1. Users Security Gateways
+    function owns(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function role() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return signedIn() && role() == 'admin';
+    }
+
+    function isCompany() {
+      return signedIn() && role() == 'company';
+    }
+
+    function isStudent() {
+      return signedIn() && role() == 'student';
+    }
+
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+      allow read: if owns(userId) || isAdmin();
+      allow create: if owns(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role in ['student', 'company'];
+      allow update: if isAdmin() || (owns(userId)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.uid == resource.data.uid);
+      allow delete: if isAdmin();
     }
 
-    // 2. Student Profiles Security Rules
     match /student_profiles/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+      allow read: if signedIn();
+      allow create, update: if owns(userId) && request.resource.data.uid == request.auth.uid;
+      allow delete: if owns(userId) || isAdmin();
     }
 
-    // 3. Company Profiles Security Rules
     match /company_profiles/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+      allow read: if signedIn();
+      allow create, update: if owns(userId) && request.resource.data.uid == request.auth.uid;
+      allow delete: if owns(userId) || isAdmin();
     }
 
-    // 4. Active Device Sessions (Owner Access Assertions)
     match /sessions/{sessionId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      allow read: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
     }
 
-    // 5. Compliance Verification Requests
     match /verification_requests/{requestId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated(); // Compliance officers and user edits
-      allow delete: if isAuthenticated();
+      allow read: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
-    // 6. Security Logs (Immutable logs - Write-only, No deletes/updates)
-    match /security_logs/{logId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if false;
-    }
-
-    // 7. Projects collection (Public exploration permitted, creator-bound writes)
     match /projects/{projectId} {
-      allow read: if true; 
-      allow write: if isAuthenticated();
+      allow read: if true;
+      allow create: if isCompany() && request.resource.data.companyId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isCompany() && resource.data.companyId == request.auth.uid);
     }
 
-    // 8. Applications and code submissions
     match /applications/{applicationId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.companyId == get(/databases/$(database)/documents/projects/$(request.resource.data.projectId)).data.companyId;
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.studentId == request.auth.uid)
+        || (isCompany() && resource.data.companyId == request.auth.uid);
+      allow update: if isAdmin()
+        || (isCompany() && resource.data.companyId == request.auth.uid);
+      allow delete: if isAdmin();
     }
 
-    // 9. Global system audit logs
     match /logs/{logId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow read: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if false;
     }
 
-    // 10. RBAC Policies
+    match /security_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /subscriptions/{userId} {
+      allow read: if owns(userId) || isAdmin();
+      allow write: if false;
+    }
+
+    match /billing_customers/{userId} {
+      allow read: if owns(userId) || isAdmin();
+      allow write: if false;
+    }
+
+    match /email_deliveries/{emailId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow write: if false;
+    }
+
     match /rbac_policies/{policyId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read, write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
