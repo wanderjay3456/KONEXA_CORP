@@ -76,6 +76,8 @@ Email sends use deterministic idempotency keys. Signed delivery events are store
 
 The server uses Firebase Admin with Application Default Credentials. For Cloud Run, use a dedicated runtime service account with only the permissions required to verify Firebase users, access Firestore, and read the configured secrets. Do not export a long-lived service-account key.
 
+The frontend can also be published through OpenAI Sites. The Sites worker serves the React application and forwards same-origin `/api/*` requests to the secure Cloud Run backend configured as `BACKEND_ORIGIN`.
+
 Before launch:
 
 1. Add the final HTTPS hostname to Firebase Authentication authorized domains.
