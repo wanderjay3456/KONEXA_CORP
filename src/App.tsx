@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { Suspense, lazy, useState } from "react";
 import { ToastProvider, useToast } from "./components/ui/Toast";
 import { AppProvider, useApp } from "./context/AppContext";
 import { AiDataProvider } from "./context/AiContext";
@@ -6,15 +6,29 @@ import { UserRole } from "./types";
 import LandingHero from "./components/landing/LandingHero";
 import Navbar from "./components/layout/Navbar";
 import Sidebar from "./components/layout/Sidebar";
-import StudentDashboard from "./components/dashboard/StudentDashboard";
-import CompanyDashboard from "./components/dashboard/CompanyDashboard";
-import AdminDashboard from "./components/dashboard/AdminDashboard";
-import AiAgentWorkspace from "./components/dashboard/AiAgentWorkspace";
-import StudentOnboarding from "./components/onboarding/StudentOnboarding";
-import CompanyOnboarding from "./components/onboarding/CompanyOnboarding";
-import DesignSystemShowcase from "./components/dashboard/DesignSystemShowcase";
-import IdentityCenter from "./components/dashboard/IdentityCenter";
-import IntelligenceCenter from "./components/dashboard/IntelligenceCenter";
+
+const StudentDashboard = lazy(() => import("./components/dashboard/StudentDashboard"));
+const CompanyDashboard = lazy(() => import("./components/dashboard/CompanyDashboard"));
+const AdminDashboard = lazy(() => import("./components/dashboard/AdminDashboard"));
+const AiAgentWorkspace = lazy(() => import("./components/dashboard/AiAgentWorkspace"));
+const StudentOnboarding = lazy(() => import("./components/onboarding/StudentOnboarding"));
+const CompanyOnboarding = lazy(() => import("./components/onboarding/CompanyOnboarding"));
+const DesignSystemShowcase = lazy(() => import("./components/dashboard/DesignSystemShowcase"));
+const IdentityCenter = lazy(() => import("./components/dashboard/IdentityCenter"));
+const IntelligenceCenter = lazy(() => import("./components/dashboard/IntelligenceCenter"));
+
+function WorkspaceLoading() {
+  return (
+    <div className="flex min-h-[50dvh] flex-1 items-center justify-center" role="status" aria-live="polite">
+      <div className="w-full max-w-sm space-y-3 px-6">
+        <div className="h-3 w-24 animate-pulse rounded bg-neutral-200" />
+        <div className="h-8 w-full animate-pulse rounded bg-neutral-200" />
+        <div className="h-20 w-full animate-pulse rounded bg-neutral-100" />
+        <span className="sr-only">Loading workspace</span>
+      </div>
+    </div>
+  );
+}
 
 function AppContent() {
   const { activeRole, setActiveRole, studentProfile, companyProfile, updateStudentProfile, updateCompanyProfile, logoutUser } = useApp();
@@ -56,25 +70,29 @@ function AppContent() {
 
   if (showStudentOnboarding) {
     return (
-      <StudentOnboarding 
-        onComplete={async () => {
-          if (studentProfile) {
-            await updateStudentProfile({ onboardingCompleted: true } as any);
-          }
-        }} 
-      />
+      <Suspense fallback={<WorkspaceLoading />}>
+        <StudentOnboarding
+          onComplete={async () => {
+            if (studentProfile) {
+              await updateStudentProfile({ onboardingCompleted: true } as any);
+            }
+          }}
+        />
+      </Suspense>
     );
   }
 
   if (showCompanyOnboarding) {
     return (
-      <CompanyOnboarding 
-        onComplete={async () => {
-          if (companyProfile) {
-            await updateCompanyProfile({ onboardingCompleted: true } as any);
-          }
-        }} 
-      />
+      <Suspense fallback={<WorkspaceLoading />}>
+        <CompanyOnboarding
+          onComplete={async () => {
+            if (companyProfile) {
+              await updateCompanyProfile({ onboardingCompleted: true } as any);
+            }
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -90,6 +108,7 @@ function AppContent() {
 
         {/* Dynamic central workspace */}
         <main className="flex-1 flex flex-col min-w-0">
+          <Suspense fallback={<WorkspaceLoading />}>
           {activeTab === "design-system" ? (
             <DesignSystemShowcase />
           ) : activeTab === "identity-center" ? (
@@ -112,6 +131,7 @@ function AppContent() {
               )}
             </>
           )}
+          </Suspense>
         </main>
       </div>
     </div>

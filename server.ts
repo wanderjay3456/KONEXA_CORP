@@ -27,7 +27,11 @@ function getAIClient(): GoogleGenAI {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number.parseInt(process.env.PORT || "3000", 10);
+
+  if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
+    throw new Error("PORT must be a valid TCP port number");
+  }
 
   // Middleware
   app.use(express.json({ limit: "50mb" }));
@@ -294,10 +298,24 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`[KONEXA Core Server] Running on http://localhost:${PORT}`);
     console.log(`[KONEXA Core Server] Mode: ${process.env.NODE_ENV || "development"}`);
   });
+
+  const shutdown = (signal: string) => {
+    console.log(`[KONEXA Core Server] ${signal} received. Shutting down...`);
+    server.close((error) => {
+      if (error) {
+        console.error("Failed to close the HTTP server cleanly:", error);
+        process.exit(1);
+      }
+      process.exit(0);
+    });
+  };
+
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
 }
 
 startServer().catch((err) => {
