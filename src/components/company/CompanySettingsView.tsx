@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { 
   Building2, Sliders, MapPin, Key, CreditCard, ShieldCheck, 
-  RefreshCw, Check, Plus, Trash2, Globe, FileText, Sparkles
+  Check, Plus, Trash2, Globe, FileText, Sparkles
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
 
@@ -32,25 +32,70 @@ export default function CompanySettingsView() {
   const [newCity, setNewCity] = useState("");
   const [newAddr, setNewAddr] = useState("");
 
-  // Security tokens state
-  const [apiKey, setApiKey] = useState("konexa_live_sandbox_key_a88b90c1f2e3");
-
-  
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState("free");
+  const [planPrice, setPlanPrice] = useState<{ unitAmount: number; currency: string; interval: string | null } | null>(null);
+  const checkoutNoticeShown = useRef(false);
+
+  useEffect(() => {
+    if (checkoutNoticeShown.current) return;
+    checkoutNoticeShown.current = true;
+    const checkout = new URLSearchParams(window.location.search).get("checkout");
+    if (checkout === "success") success("Subscription activated", "Stripe confirmed your checkout. Access will update after webhook verification.");
+    if (checkout === "cancelled") info("Checkout cancelled", "No payment was made.");
+  }, [info, success]);
+
+  useEffect(() => {
+    if (activeTab !== "billing") return;
+    const controller = new AbortController();
+    fetch("/api/billing/status", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Unable to load billing status");
+        return res.json();
+      })
+      .then((data) => {
+        setSubscriptionStatus(data.subscription?.status || "free");
+        if (typeof data.plan?.unitAmount === "number") setPlanPrice(data.plan);
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") info("Billing status unavailable", error.message);
+      });
+    return () => controller.abort();
+  }, [activeTab, info]);
 
   const handleUpgradePlan = async () => {
     setIsCheckingOut(true);
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: "premium", companyId: companyProfile?.uid || "mock" })
+        headers: {
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": crypto.randomUUID(),
+        },
+        body: JSON.stringify({ plan: "pro" })
       });
-      if (!res.ok) throw new Error("Checkout failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Checkout failed");
+      }
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.url; // Redirect to checkout
+        window.location.assign(data.url);
       }
+    } catch (err: any) {
+      info("Billing Error", err.message);
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
+
+  const handleManageBilling = async () => {
+    setIsCheckingOut(true);
+    try {
+      const res = await fetch("/api/billing/portal", { method: "POST" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.url) throw new Error(data?.error || "Billing portal failed");
+      window.location.assign(data.url);
     } catch (err: any) {
       info("Billing Error", err.message);
     } finally {
@@ -83,12 +128,6 @@ export default function CompanySettingsView() {
   const handleRemoveOffice = (id: string, city: string) => {
     setOffices(prev => prev.filter(o => o.id !== id));
     success("Office Removed", `Archived office records for: ${city}`);
-  };
-
-  const handleRotateKey = () => {
-    const randomizedKey = `konexa_live_sandbox_key_${Math.random().toString(16).substring(2, 14)}`;
-    setApiKey(randomizedKey);
-    success("Sandbox API Token Rotated", "Dispatched updated token. Re-configure local compilers immediately.");
   };
 
   return (
@@ -317,21 +356,9 @@ export default function CompanySettingsView() {
             </div>
 
             <div className="space-y-2">
-              <label className="font-bold text-neutral-700 block">Sandbox Developer API Key</label>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  readOnly 
-                  value={apiKey}
-                  className="flex-1 h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-mono select-all focus:outline-hidden text-neutral-500"
-                />
-                <button 
-                  onClick={handleRotateKey}
-                  className="h-11 px-4 bg-black text-white rounded-xl font-semibold hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 cursor-pointer text-xs"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Rotate key</span>
-                </button>
+              <label className="font-bold text-neutral-700 block">Developer API access</label>
+              <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-neutral-600">
+                Production API credentials are issued and rotated by an administrator. Secret values are never displayed in the browser.
               </div>
             </div>
           </div>
@@ -342,9 +369,9 @@ export default function CompanySettingsView() {
           <div className="space-y-6 text-xs font-sans">
             <div className="p-5 border border-neutral-200 rounded-2xl bg-neutral-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="space-y-1">
-                <span className="text-[9px] font-mono font-bold bg-teal-50 border border-teal-100 text-teal-600 px-2 py-0.5 rounded uppercase">Basic Plan</span>
-                <h4 className="text-sm font-bold text-neutral-900 pt-1">Free Tier</h4>
-                <p className="text-[10px] text-neutral-400 font-light leading-normal">Limited candidate profiles and basic matching algorithms.</p>
+                <span className="text-[9px] font-mono font-bold bg-teal-50 border border-teal-100 text-teal-600 px-2 py-0.5 rounded uppercase">Current subscription</span>
+                <h4 className="text-sm font-bold text-neutral-900 pt-1 capitalize">{subscriptionStatus}</h4>
+                <p className="text-[10px] text-neutral-400 font-light leading-normal">Subscription access is synchronized from signed Stripe webhooks.</p>
               </div>
               <div className="text-right">
                 <strong className="text-lg font-display font-black text-neutral-900">Free</strong>
@@ -361,14 +388,19 @@ export default function CompanySettingsView() {
                 <p className="text-xs text-emerald-700 font-light leading-relaxed max-w-md">Unlock full access to unlimited candidate contacts, premium AI-driven matching reports, and verified sandbox evaluation grids.</p>
               </div>
               <div className="text-right z-10 relative flex flex-col items-end">
-                <strong className="text-xl font-display font-black text-emerald-900">$299<span className="text-sm font-sans text-emerald-700 font-normal">/month</span></strong>
-                <button 
-                  onClick={handleUpgradePlan}
+                <strong className="text-xl font-display font-black text-emerald-900">
+                  {planPrice
+                    ? new Intl.NumberFormat(undefined, { style: "currency", currency: planPrice.currency.toUpperCase() }).format(planPrice.unitAmount / 100)
+                    : "Pricing unavailable"}
+                  {planPrice?.interval && <span className="text-sm font-sans text-emerald-700 font-normal">/{planPrice.interval}</span>}
+                </strong>
+                <button
+                  onClick={["active", "trialing", "past_due"].includes(subscriptionStatus) ? handleManageBilling : handleUpgradePlan}
                   disabled={isCheckingOut}
                   className="mt-3 px-6 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <CreditCard className="w-3.5 h-3.5" />
-                  {isCheckingOut ? "Connecting Stripe..." : "Upgrade to Pro"}
+                  {isCheckingOut ? "Connecting Stripe..." : ["active", "trialing", "past_due"].includes(subscriptionStatus) ? "Manage billing" : "Upgrade to Pro"}
                 </button>
               </div>
             </div>

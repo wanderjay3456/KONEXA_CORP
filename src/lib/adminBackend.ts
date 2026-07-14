@@ -1,6 +1,4 @@
 import { GoogleGenAI } from "@google/genai";
-import { db } from "../config/firebase";
-import { collection, getDocs, addDoc, setDoc, doc, updateDoc, deleteDoc, query, where, orderBy, limit } from "firebase/firestore";
 
 // ==========================================
 // IN-MEMORY DATA STORES & FAILSAFES
