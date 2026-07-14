@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-950: #042f2e;
+  
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f4f4f5;
+  --color-neutral-200: #e4e4e7;
+  --color-neutral-800: #27272a;
+  --color-neutral-900: #18181b;
+  --color-neutral-950: #09090b;
+}
+
+@layer base {
+  body {
+    @apply bg-neutral-50 text-neutral-900 antialiased font-sans selection:bg-neutral-200 selection:text-neutral-900;
+  }
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+@utility text-pretty {
+  text-wrap: pretty;
+}
+@utility readable-prose {
+  max-width: 68ch;
+  line-height: 1.625;
+  @apply text-pretty text-neutral-600;
+}
+@utility focus-ring {
+  @apply focus:outline-hidden focus:ring-2 focus:ring-neutral-900 focus:ring-offset-2 transition-all;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-neutral-200 rounded-full hover:bg-neutral-300 transition-colors;
+}
+
+@utility shadow-premium {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+@utility shadow-card-hover {
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.08), 0 1px 4px 0 rgba(0, 0, 0, 0.02);
+}
+@utility glow-teal {
+  box-shadow: 0 0 30px -10px rgba(20, 184, 166, 0.1);
+}
+@utility glass-panel {
+  @apply bg-white/70 backdrop-blur-md border border-neutral-200/50 shadow-premium;
+}
+@utility glass-panel-dark {
+  @apply bg-neutral-900/80 backdrop-blur-md border border-neutral-800 shadow-premium;
+}

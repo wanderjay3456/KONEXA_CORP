@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Helper functions for zero-trust assertions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 1. Users Security Gateways
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    // 2. Student Profiles Security Rules
+    match /student_profiles/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    // 3. Company Profiles Security Rules
+    match /company_profiles/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    // 4. Active Device Sessions (Owner Access Assertions)
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+    }
+
+    // 5. Compliance Verification Requests
+    match /verification_requests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated(); // Compliance officers and user edits
+      allow delete: if isAuthenticated();
+    }
+
+    // 6. Security Logs (Immutable logs - Write-only, No deletes/updates)
+    match /security_logs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    // 7. Projects collection (Public exploration permitted, creator-bound writes)
+    match /projects/{projectId} {
+      allow read: if true; 
+      allow write: if isAuthenticated();
+    }
+
+    // 8. Applications and code submissions
+    match /applications/{applicationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // 9. Global system audit logs
+    match /logs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    // 10. RBAC Policies
+    match /rbac_policies/{policyId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "KONEXA",
+  "description": "The world's most advanced AI-powered project-first hiring platform. Experience collaboration over recruitment by completing real company projects.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
