@@ -141,7 +141,7 @@ export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGen
       const { projectId } = req.query;
       
       // We will perform smart live candidate matching against a preset student profile list.
-      // In a real database we would load the project and students from Firestore, but since we are dynamic,
+      // In a real database we would load the project and students from Supabase, but since we are dynamic,
       // we generate extremely customized matching indexes using the Gemini SDK!
       
       const client = getAIClient();

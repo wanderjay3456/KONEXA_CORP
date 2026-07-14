@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
 import { eventSystem } from "../../lib/eventSystem";
-import { db, auth } from "../../config/firebase";
+import { db, auth } from "../../lib/supabaseAuth";
 import { 
   collection, 
   onSnapshot, 
@@ -54,7 +54,7 @@ import {
   getDocs,
   query,
   where
-} from "firebase/firestore";
+} from "../../lib/supabaseStore";
 
 export default function IdentityCenter() {
   const { 
@@ -71,7 +71,7 @@ export default function IdentityCenter() {
 
   const [activeTab, setActiveTab] = useState<"auth" | "registration" | "verification" | "rbac" | "security" | "sync">("auth");
   
-  // Real-time Firestore or memory states
+  // Real-time Supabase or memory states
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [verifications, setVerifications] = useState<VerificationRequest[]>([]);
   const [securityLogs, setSecurityLogs] = useState<SecurityActivity[]>([]);
@@ -417,7 +417,7 @@ export default function IdentityCenter() {
           onboardingCompleted: true
         };
 
-        // Save student profile to state & firestore
+        // Save student profile to state & Supabase
         setStudentProfile(sProfileData as any);
 
         // Add to users and student_profiles collections
@@ -747,7 +747,7 @@ export default function IdentityCenter() {
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           <div className="text-[10px] font-sans">
             <span className="font-bold block text-neutral-800">RBAC Gateways: Active</span>
-            <span className="text-neutral-400 font-light block">Mode: Firestore-Backed</span>
+            <span className="text-neutral-400 font-light block">Mode: Supabase RLS</span>
           </div>
         </div>
       </div>
@@ -1605,7 +1605,7 @@ export default function IdentityCenter() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {sessions.length === 0 ? (
                       <div className="p-8 text-center text-xs font-sans text-neutral-400 border border-neutral-200 rounded-2xl col-span-2">
-                        No active sessions registered in Firestore. Run "Complete & Sync" to start one.
+                        No active sessions registered in Supabase. Run "Complete & Sync" to start one.
                       </div>
                     ) : (
                       sessions.map(s => (
@@ -1718,7 +1718,7 @@ export default function IdentityCenter() {
             <div className="divide-y divide-neutral-100 max-h-[300px] overflow-y-auto scrollbar space-y-2">
               {securityLogs.length === 0 ? (
                 <div className="py-8 text-center text-xs font-sans text-neutral-400">
-                  No compliance security logs registered in Firestore.
+                  No compliance security logs registered in Supabase.
                 </div>
               ) : (
                 securityLogs.map(log => (
@@ -1763,7 +1763,7 @@ export default function IdentityCenter() {
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-400">Audit Storage</span>
-                <span className="font-bold font-mono text-neutral-900">Firestore v1 Nodes</span>
+                <span className="font-bold font-mono text-neutral-900">Supabase v1 Nodes</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-400">RBAC Enforcement</span>

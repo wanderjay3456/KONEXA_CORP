@@ -103,9 +103,9 @@ export default function Navbar({ onLogout }: NavbarProps) {
                 />
                 <div className="absolute left-0 mt-2 w-56 rounded-xl border border-neutral-200 bg-white shadow-lg py-1.5 z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
                   <div className="px-3 py-1 text-[10px] font-sans font-bold text-neutral-400 uppercase tracking-widest">
-                    Switch Sandbox View
+                    Account Role
                   </div>
-                  {Object.values(UserRole).map((role) => (
+                  {([currentUser?.role || activeRole] as UserRole[]).map((role) => (
                     <button
                       key={role}
                       onClick={() => {
@@ -156,11 +156,11 @@ export default function Navbar({ onLogout }: NavbarProps) {
             <Search className="w-4 h-4" />
           </button>
 
-          {/* Firestore connection status indicator */}
+          {/* Supabase connection status indicator */}
           <div className="hidden sm:flex items-center gap-1.5 bg-neutral-50 border border-neutral-200 px-3 py-1.5 rounded-xl text-neutral-700 font-mono">
             <Database className="w-3.5 h-3.5 text-black" />
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span>Firestore Live Sync</span>
+            <span>Supabase Live Sync</span>
           </div>
 
           {/* Clock */}

@@ -62,7 +62,7 @@ export default function DesignSystemShowcase() {
   const triggerToastTest = (type: "success" | "error" | "info" | "warning") => {
     switch (type) {
       case "success":
-        success("System Sync Success", "Authored database fields successfully synchronized to Firestore cluster.");
+        success("System Sync Success", "Authored database fields successfully synchronized to Supabase cluster.");
         break;
       case "error":
         error("Action Aborted", "Security constraints rejected candidate code submission. Code contains unverified symbols.");

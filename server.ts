@@ -11,8 +11,7 @@ import { registerAdminRoutes } from "./src/lib/adminBackend";
 import { registerBillingRoutes, registerStripeWebhook } from "./src/server/billing";
 import { registerEmailRoutes, registerResendWebhook } from "./src/server/email";
 import { requireAuth, requireRole, type AuthenticatedRequest } from "./src/server/security";
-import { adminDb } from "./src/server/firebaseAdmin";
-import { FieldValue } from "firebase-admin/firestore";
+import { adminDb, FieldValue } from "./src/server/supabaseAdmin";
 
 // Load environment variables
 dotenv.config({ path: [".env.local", ".env"] });
@@ -35,7 +34,8 @@ function validateProductionConfiguration() {
   if (process.env.NODE_ENV !== "production") return;
   const required = [
     "APP_URL",
-    "FIREBASE_PROJECT_ID",
+    "SUPABASE_URL",
+    "SUPABASE_SECRET_KEY",
     "GEMINI_API_KEY",
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",

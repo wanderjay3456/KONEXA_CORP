@@ -883,7 +883,7 @@ export default function AiAgentWorkspace({ activeTab }: AiAgentWorkspaceProps) {
                   {devManualTab === "prompts" && (
                     <div className="space-y-2">
                       <p className="font-bold text-neutral-900">Prompt management registry</p>
-                      <p>Role templates and system instructions are fully versioned in Firestore. Direct schema mapping prevents unauthorized instruction overrides.</p>
+                      <p>Role templates and system instructions are fully versioned in Supabase. Direct schema mapping prevents unauthorized instruction overrides.</p>
                     </div>
                   )}
                   {devManualTab === "routing" && (

@@ -8,7 +8,7 @@ import {
   doc,
   query,
   where,
-} from "firebase/firestore";
+} from "../lib/supabaseStore";
 import { 
   signInAnonymously, 
   createUserWithEmailAndPassword, 
@@ -16,10 +16,9 @@ import {
   signOut,
   signInWithPopup,
   GoogleAuthProvider,
-  sendPasswordResetEmail,
-  sendEmailVerification
-} from "firebase/auth";
-import { db, auth } from "../config/firebase";
+  sendPasswordResetEmail
+} from "../lib/supabaseAuth";
+import { db, auth } from "../lib/supabaseAuth";
 import { 
   UserRole, 
   UserProfile, 
@@ -44,7 +43,7 @@ enum OperationType {
   WRITE = 'write',
 }
 
-interface FirestoreErrorInfo {
+interface SupabaseErrorInfo {
   error: string;
   operationType: OperationType;
   path: string | null;
@@ -61,8 +60,8 @@ interface FirestoreErrorInfo {
   };
 }
 
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
+function handleSupabaseError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: SupabaseErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
       userId: auth.currentUser?.uid,
@@ -78,7 +77,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     operationType,
     path
   };
-  console.warn('[KONEXA] Firestore operation warning (degrading gracefully to secure client-side sandbox states):', JSON.stringify(errInfo));
+  console.warn('[KONEXA] Supabase operation warning (degrading gracefully to secure client-side sandbox states):', JSON.stringify(errInfo));
 }
 // --- END FIRESTORE ERROR HANDLING PROTOCOL ---
 
@@ -98,8 +97,8 @@ interface AppContextType {
   createProject: (title: string, description: string, requirements: string[], difficulty: ProjectDifficulty, reward: string, tags: string[]) => Promise<void>;
   updateStudentProfile: (profile: Partial<StudentProfile>) => Promise<void>;
   updateCompanyProfile: (profile: Partial<CompanyProfile>) => Promise<void>;
-  registerUser: (email: string, displayName: string, role: UserRole, studentData?: Partial<StudentProfile>, companyData?: Partial<CompanyProfile>, password?: string) => Promise<void>;
-  loginUser: (email: string, role: UserRole, password?: string) => Promise<void>;
+  registerUser: (email: string, displayName: string, role: UserRole, studentData?: Partial<StudentProfile>, companyData?: Partial<CompanyProfile>, password?: string) => Promise<{ emailConfirmationRequired: boolean }>;
+  loginUser: (email: string, role: UserRole, password?: string) => Promise<{ emailConfirmationRequired: boolean }>;
   googleLogin: (role: UserRole) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   logoutUser: () => Promise<void>;
@@ -224,7 +223,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ]);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
-  // 1 & 2. Persistent Firebase Authentication Synchronization Hook
+  // 1 & 2. Persistent Supabase Authentication Synchronization Hook
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
@@ -266,7 +265,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setIsAuthReady(true);
         } else {
           // Real Registered User:
-          // Fetch user doc and profile from Firestore!
+          // Fetch user doc and profile from Supabase!
           try {
             const userDocRef = doc(db, "users", user.uid);
             const userSnapshot = await getDoc(userDocRef);
@@ -312,7 +311,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setStudentProfile(null);
               }
             } else {
-              // User has an auth account but no firestore users document yet
+              // User has an auth account but no Supabase users document yet
               const fallbackProfile: UserProfile = {
                 uid: user.uid,
                 email: user.email || "wanderjay3456@gmail.com",
@@ -323,7 +322,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setCurrentUser(fallbackProfile);
             }
           } catch (err) {
-            console.error("Error loading user firestore data:", err);
+            console.error("Error loading user Supabase data:", err);
           } finally {
             setIsAuthReady(true);
           }
@@ -343,7 +342,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [activeRole]);
 
-  // 3. Real-time Firestore Listeners and Seeding
+  // 3. Real-time Supabase Listeners and Seeding
   useEffect(() => {
     // Only subscribe to listeners when authentication is fully loaded
     if (!isAuthReady || !currentUser) return;
@@ -357,9 +356,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         items.push({ id: doc.id, ...d } as Project);
       });
 
-      // Seeding: If Firestore is empty, auto-seed with standard projects
+      // Seeding: If Supabase is empty, auto-seed with standard projects
       if (snapshot.empty) {
-        console.log("[KONEXA Core] Pre-seeding projects collection in Firestore...");
+        console.log("[KONEXA Core] Pre-seeding projects collection in Supabase...");
         try {
           for (const sp of SEED_PROJECTS) {
             await addDoc(projectsCol, {
@@ -377,7 +376,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setProjects(items);
       }
     }, (err) => {
-      handleFirestoreError(err, OperationType.GET, "projects");
+      handleSupabaseError(err, OperationType.GET, "projects");
     });
 
     // Listen for Applications
@@ -396,7 +395,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       items.sort((a, b) => b.createdAt - a.createdAt);
       setApplications(items);
     }, (err) => {
-      handleFirestoreError(err, OperationType.GET, "applications");
+      handleSupabaseError(err, OperationType.GET, "applications");
     });
 
     // Listen for Logs
@@ -414,7 +413,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Keep only last 50 logs for UI efficiency
       setLogs(items.slice(0, 50));
     }, (err) => {
-      handleFirestoreError(err, OperationType.GET, "logs");
+      handleSupabaseError(err, OperationType.GET, "logs");
     });
 
     return () => {
@@ -438,7 +437,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error("Failed to write system log:", err);
       try {
-        handleFirestoreError(err, OperationType.WRITE, "logs");
+        handleSupabaseError(err, OperationType.WRITE, "logs");
       } catch (logErr) {
         // Keep logs robust so they don't break the parent flow if logs fail
       }
@@ -487,14 +486,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         `Submitted code application for project "${proj.title}"`
       );
 
-      success("Application Submitted!", "Your solution was successfully saved to Firestore.");
+      success("Application Submitted!", "Your solution was successfully saved to Supabase.");
       
       // Trigger AI evaluation immediately in background to demonstrate full-stack flow
       info("Triggering AI Copilot...", "AI Evaluator is reviewing your code submission in real-time.");
       triggerEvaluation(appDocRef.id);
 
     } catch (err: any) {
-      handleFirestoreError(err, OperationType.WRITE, "applications");
+      handleSupabaseError(err, OperationType.WRITE, "applications");
     }
   };
 
@@ -528,7 +527,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       success("Project Created!", "Your project challenge is now live on the platform.");
     } catch (err: any) {
-      handleFirestoreError(err, OperationType.WRITE, "projects");
+      handleSupabaseError(err, OperationType.WRITE, "projects");
     }
   };
 
@@ -542,6 +541,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...profile
       };
       setStudentProfile(updated);
+      await setDoc(doc(db, "student_profiles", updated.uid), updated, { merge: true });
       
       await logSystemAction(
         "STUDENT_PROFILE_UPDATE",
@@ -564,6 +564,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...profile
       };
       setCompanyProfile(updated);
+      await setDoc(doc(db, "company_profiles", updated.uid), updated, { merge: true });
 
       await logSystemAction(
         "COMPANY_PROFILE_UPDATE",
@@ -589,9 +590,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Only student and company self-registration is supported.");
       }
       if (!password) throw new Error("A password is required for registration.");
-      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      const credential = await createUserWithEmailAndPassword(auth, email, password, {
+        display_name: displayName,
+        role,
+        student_profile: studentData || undefined,
+        company_profile: companyData || undefined,
+      });
       const authUid = credential.user.uid;
-      await sendEmailVerification(credential.user);
       
       const now = Date.now();
 
@@ -603,7 +608,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         createdAt: now
       };
 
-      // Store in Firestore users collection
+      if (!credential.session) {
+        success("Verify your email", "Your account is ready. Open the confirmation link sent to your email, then sign in.");
+        return { emailConfirmationRequired: true };
+      }
+
       await setDoc(doc(db, "users", authUid), profile);
 
       setCurrentUser(profile);
@@ -645,6 +654,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         `Registered new user (${role}): ${displayName} (${email})`
       );
       success("Welcome to KONEXA!", `Account created successfully as a ${role}.`);
+      return { emailConfirmationRequired: false };
     } catch (err: any) {
       error("Registration failed", err.message);
       throw err;
@@ -662,7 +672,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const now = Date.now();
 
-      // Check if user profile exists in Firestore
+      // Check if user profile exists in Supabase
       const userDocRef = doc(db, "users", authUid);
       const userSnapshot = await getDoc(userDocRef);
       
@@ -745,13 +755,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       const provider = new GoogleAuthProvider();
       const credential = await signInWithPopup(auth, provider);
+      if (!credential.user) return;
       const user = credential.user;
       const authUid = user.uid;
       const email = user.email || "";
       const displayName = user.displayName || email.split("@")[0];
       const now = Date.now();
 
-      // Check if user profile exists in Firestore
+      // Check if user profile exists in Supabase
       const userDocRef = doc(db, "users", authUid);
       const userSnapshot = await getDoc(userDocRef);
       
@@ -860,7 +871,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     score: number
   ) => {
     try {
-      // Find and update document in Firestore
+      // Find and update document in Supabase
       const appRef = doc(db, "applications", applicationId);
       await setDoc(appRef, { status, feedback, score }, { merge: true });
 
@@ -872,7 +883,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       success("Review Completed", `Application status set to ${status}.`);
     } catch (err: any) {
-      handleFirestoreError(err, OperationType.WRITE, `applications/${applicationId}`);
+      handleSupabaseError(err, OperationType.WRITE, `applications/${applicationId}`);
     }
   };
 

@@ -609,7 +609,7 @@ export default function ProfileSettingsView() {
               <div className="p-4 border border-rose-200 bg-rose-50 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-rose-800">
                 <div className="text-xs">
                   <span className="font-bold block text-rose-950">Erase Profile Metadata (Danger Zone)</span>
-                  <p className="leading-relaxed font-light text-rose-900 mt-0.5">Permanently remove all linked resume files, portfolios, and sandbox scores from our Firestore.</p>
+                  <p className="leading-relaxed font-light text-rose-900 mt-0.5">Permanently remove all linked resume files, portfolios, and sandbox scores from our Supabase.</p>
                 </div>
                 <button
                   onClick={() => {

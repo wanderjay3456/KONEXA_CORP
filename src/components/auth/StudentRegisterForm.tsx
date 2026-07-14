@@ -80,6 +80,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
   const [resumeName, setResumeName] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
 
   // AI Generated Insights State (Step 6)
   const [aiReport, setAiReport] = useState<{
@@ -201,7 +202,8 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     if (!validateStep()) return;
 
     try {
-      await registerUser(email, formData.name || "Global Student", UserRole.STUDENT, formData, undefined, password);
+      const result = await registerUser(email, formData.name || "Global Student", UserRole.STUDENT, formData, undefined, password);
+      setEmailConfirmationRequired(result.emailConfirmationRequired);
       
       // Jump to Step 6 (AI evaluation onboarding recommendations screen!)
       setStep(6);
@@ -212,7 +214,8 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
   };
 
   const handleFinishOnboarding = () => {
-    onSuccess();
+    if (emailConfirmationRequired) onCancel();
+    else onSuccess();
   };
 
   return (
@@ -800,7 +803,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                   <div className="py-12 flex flex-col items-center justify-center space-y-4">
                     <Cpu className="w-10 h-10 text-neutral-300 animate-spin" />
                     <span className="text-xs font-sans text-neutral-500 font-bold">Scanning GitHub, Resume, and Degree portfolios...</span>
-                    <span className="text-[10px] font-mono text-neutral-400">Verifying security records through Firestore indexers</span>
+                    <span className="text-[10px] font-mono text-neutral-400">Verifying security records through Supabase indexers</span>
                   </div>
                 ) : (
                   aiReport && (
@@ -874,7 +877,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                         onClick={handleFinishOnboarding}
                         className="w-full h-12 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-colors"
                       >
-                        <span>Claim Recommended Challenge & Enter Dashboard</span>
+                        <span>{emailConfirmationRequired ? "Confirm Email, Then Sign In" : "Claim Recommended Challenge & Enter Dashboard"}</span>
                         <ChevronRight className="w-4 h-4" />
                       </button>
                     </motion.div>

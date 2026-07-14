@@ -1,7 +1,6 @@
 import express, { type Express, type Response } from "express";
-import { FieldValue } from "firebase-admin/firestore";
 import { Resend } from "resend";
-import { adminDb } from "./firebaseAdmin";
+import { adminDb, FieldValue } from "./supabaseAdmin";
 import type { AuthenticatedRequest } from "./security";
 
 export type EmailTemplate =
