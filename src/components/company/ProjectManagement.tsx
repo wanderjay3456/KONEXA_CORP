@@ -49,7 +49,7 @@ export default function ProjectManagement({ onNavigate }: ProjectManagementProps
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
   // Managing local copies/state of projects to demonstrate Pause, Archive, Delete, and Visibility toggles
-  // Since firebase database is listening to global, we can support visual updates in state
+  // Since supabase database is listening to global, we can support visual updates in state
   const [managedProjects, setManagedProjects] = useState<any[]>([]);
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);

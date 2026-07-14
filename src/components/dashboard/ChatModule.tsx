@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { collection, query, where, orderBy, addDoc, onSnapshot, Timestamp } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { collection, query, where, orderBy, addDoc, onSnapshot, Timestamp } from "../../lib/supabaseStore";
+import { db } from "../../config/supabase";
 import { useApp } from "../../context/AppContext";
 import { Send, UserCircle2, Building2 } from "lucide-react";
 import { UserRole } from "../../types";

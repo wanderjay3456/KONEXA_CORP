@@ -175,7 +175,7 @@ export default function IntelligenceCenter() {
         setRecalculateToken(prev => prev + 1);
       }
     } catch (err: any) {
-      error("Write Restitution Failed", "Could not commit evidence node to Firestore.");
+      error("Write Restitution Failed", "Could not commit evidence node to Supabase.");
     }
   };
 

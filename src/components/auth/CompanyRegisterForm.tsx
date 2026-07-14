@@ -70,6 +70,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
   const [isSaving, setIsSaving] = useState(false);
   const [termsAgreement, setTermsAgreement] = useState(false);
   const [password, setPassword] = useState("");
+  const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
 
   // Custom skills or benefits inputs helpers
   const [skillInput, setSkillInput] = useState("");
@@ -203,7 +204,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
     // description field fallback
     const desc = formData.companyIntroduction || "Corporate software matching partner.";
     try {
-      await registerUser(
+      const result = await registerUser(
         formData.corporateEmail || "partner@company.com",
         formData.companyName || "Horizon Partner",
         UserRole.COMPANY,
@@ -214,6 +215,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
         },
         password
       );
+      setEmailConfirmationRequired(result.emailConfirmationRequired);
 
       setStep(4);
       triggerAiMatching();
@@ -686,10 +688,10 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                       </div>
 
                       <button
-                        onClick={() => onSuccess()}
+                        onClick={() => emailConfirmationRequired ? onCancel() : onSuccess()}
                         className="w-full h-12 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-colors"
                       >
-                        <span>Launch First Code Challenge & Enter Workspace</span>
+                        <span>{emailConfirmationRequired ? "Confirm Email, Then Sign In" : "Launch First Code Challenge & Enter Workspace"}</span>
                         <ChevronRight className="w-4 h-4" />
                       </button>
                     </motion.div>

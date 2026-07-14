@@ -1,11 +1,18 @@
 import type { NextFunction, Request, Response } from "express";
-import type { DecodedIdToken } from "firebase-admin/auth";
-import { adminAuth, adminDb } from "./firebaseAdmin";
+import { getSupabaseAuthClient } from "./supabaseAdmin";
 
 export type AppRole = "student" | "company" | "admin" | "ai";
 
+export interface AuthenticatedUser {
+  uid: string;
+  email?: string;
+  name?: string;
+  email_verified: boolean;
+  role?: AppRole;
+}
+
 export interface AuthenticatedRequest extends Request {
-  user?: DecodedIdToken & { role?: AppRole };
+  user?: AuthenticatedUser;
 }
 
 function sendAuthError(res: Response, status: number, message: string) {
@@ -15,35 +22,42 @@ function sendAuthError(res: Response, status: number, message: string) {
 export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authorization = req.header("authorization");
   if (!authorization?.startsWith("Bearer ")) {
-    sendAuthError(res, 401, "A Firebase ID token is required.");
+    sendAuthError(res, 401, "A Supabase access token is required.");
     return;
   }
 
   try {
     const token = authorization.slice("Bearer ".length).trim();
-    const decoded = await adminAuth.verifyIdToken(token, true);
-    const signInProvider = decoded.firebase?.sign_in_provider;
+    const client = getSupabaseAuthClient(token);
+    const { data: userResult, error: userError } = await client.auth.getUser(token);
+    if (userError || !userResult.user) throw userError || new Error("User not found");
 
-    if (signInProvider === "anonymous") {
-      sendAuthError(res, 403, "A verified user account is required for this operation.");
-      return;
-    }
-    if (decoded.email && !decoded.email_verified) {
+    const user = userResult.user;
+    if (!user.email_confirmed_at) {
       sendAuthError(res, 403, "Verify your email address before using protected services.");
       return;
     }
 
-    let role = decoded.role as AppRole | undefined;
-    if (!role) {
-      const userSnapshot = await adminDb.collection("users").doc(decoded.uid).get();
-      role = userSnapshot.data()?.role as AppRole | undefined;
-    }
+    const { data: profileRecord, error: profileError } = await client
+      .from("app_records")
+      .select("data")
+      .eq("collection_name", "users")
+      .eq("record_id", user.id)
+      .single();
+    if (profileError) throw profileError;
 
-    req.user = { ...decoded, role };
+    const profile = profileRecord.data as Record<string, any>;
+    req.user = {
+      uid: user.id,
+      email: user.email,
+      name: profile.displayName || user.user_metadata?.display_name,
+      email_verified: Boolean(user.email_confirmed_at),
+      role: profile.role as AppRole,
+    };
     next();
   } catch (error) {
     console.warn("Rejected API authentication:", error instanceof Error ? error.message : error);
-    sendAuthError(res, 401, "The Firebase ID token is invalid or expired.");
+    sendAuthError(res, 401, "The Supabase access token is invalid or expired.");
   }
 }
 

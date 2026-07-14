@@ -31,11 +31,15 @@ function WorkspaceLoading() {
 }
 
 function AppContent() {
-  const { activeRole, setActiveRole, studentProfile, companyProfile, updateStudentProfile, updateCompanyProfile, logoutUser } = useApp();
+  const { activeRole, setActiveRole, currentUser, studentProfile, companyProfile, updateStudentProfile, updateCompanyProfile, logoutUser } = useApp();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   // Track active tab within each dashboard role
   const [activeTab, setActiveTab] = useState("challenges");
+
+  React.useEffect(() => {
+    if (currentUser) setIsLoggedIn(true);
+  }, [currentUser]);
 
   const handleEnterApp = (role: UserRole) => {
     setActiveRole(role);

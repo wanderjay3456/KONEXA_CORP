@@ -24,8 +24,8 @@ import { UserRole } from "../../types";
 import AuthModal from "../auth/AuthModal";
 import StudentRegisterForm from "../auth/StudentRegisterForm";
 import CompanyRegisterForm from "../auth/CompanyRegisterForm";
-import { db } from "../../config/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { db } from "../../config/supabase";
+import { collection, addDoc } from "../../lib/supabaseStore";
 import { useToast } from "../ui/Toast";
 
 interface LandingHeroProps {
@@ -34,7 +34,7 @@ interface LandingHeroProps {
 
 export default function LandingHero({ onEnterApp }: LandingHeroProps) {
   // Navigation states
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(() => typeof window !== "undefined" && (window.location.hash.includes("type=recovery") || window.location.search.includes("type=recovery")));
   const [activeRegisterRole, setActiveRegisterRole] = useState<UserRole | null>(null);
   const [faqOpen, setFaqOpen] = useState<{ [key: number]: boolean }>({ 0: true });
 
@@ -539,7 +539,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
         <div className="space-y-2">
           <span className="text-[10px] font-mono font-bold text-neutral-900 uppercase tracking-widest block">Security Protocol</span>
           <span className="block font-light">Gemini AI Sandbox Shield</span>
-          <span className="block font-light">Firestore Live Sync</span>
+          <span className="block font-light">Supabase Live Sync</span>
           <div className="flex items-center gap-1.5 text-[10px] text-teal-600 bg-teal-50 border border-teal-100/50 px-2 py-0.5 rounded-md w-fit font-bold">
             <CheckCircle className="w-3.5 h-3.5" />
             <span>Sandbox safe</span>

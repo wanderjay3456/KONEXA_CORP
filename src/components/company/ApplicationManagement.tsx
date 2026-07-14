@@ -61,7 +61,7 @@ export default function ApplicationManagement({ onNavigate, onSelectStudent, onS
         const authStatus = action === "Accepted" ? ApplicationStatus.APPROVED : 
                            action === "Rejected" ? ApplicationStatus.REJECTED : ApplicationStatus.REVIEWED;
         
-        // Sync to global Firestore
+        // Sync to global Supabase
         reviewApplication(app.id, authStatus, `Bulk action review: ${action}`, app.score || 85);
         
         return {

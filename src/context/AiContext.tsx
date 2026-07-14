@@ -10,8 +10,8 @@ import {
   where,
   limit,
   orderBy
-} from "firebase/firestore";
-import { db } from "../config/firebase";
+} from "../lib/supabaseStore";
+import { db } from "../config/supabase";
 import { useToast } from "../components/ui/Toast";
 import { 
   AiAgent, 
@@ -373,7 +373,7 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
   const [feedback, setFeedback] = useState<AiFeedback[]>([]);
   const [activeAgent, setActiveAgent] = useState<AiAgent | null>(null);
 
-  // Load live Firestore collections
+  // Load live Supabase collections
   useEffect(() => {
     // 1. Subscribe to Agents
     const agentsCol = collection(db, "ai_agents");
@@ -444,7 +444,7 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
           createdAt: Date.now(),
           localization: "en"
         };
-        await setDoc(doc(db, "prompt_versions", defaultPrompt.id), defaultPrompt);
+        setPrompts([defaultPrompt]);
       } else {
         items.sort((a, b) => b.createdAt - a.createdAt);
         setPrompts(items);
@@ -481,7 +481,7 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
           acceptanceRate: 94.2,
           userSatisfaction: 4.8
         };
-        await setDoc(doc(db, "ai_metrics", defaultMetrics.id), defaultMetrics);
+        setMetrics([defaultMetrics]);
       } else {
         items.sort((a, b) => b.timestamp - a.timestamp);
         setMetrics(items);
@@ -600,7 +600,7 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
 
       const resultData = await response.json();
 
-      // Write results to firestore task doc
+      // Write results to Supabase task doc
       await setDoc(doc(db, "ai_tasks", taskRef.id), {
         status: "completed",
         progress: 100,
@@ -736,7 +736,7 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
   const triggerEvent = async (eventName: string, payload: Record<string, any>) => {
     console.log(`[AI Event System] Event Broadcasted: "${eventName}"`, payload);
     
-    // Write event log to firestore
+    // Write event log to Supabase
     await logAiAction("agent_aegis", "EVENT_SUBSCRIBED", `Broadcast event: ${eventName}. Active routing matching.`);
 
     // Find all agents subscribed to this event and simulate dynamic work triggers!
@@ -813,7 +813,7 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
       info("Running System Verification...", "Executing Agent, Prompt, Memory, Security, and performance tests.");
       
       const testsMap = [
-        { name: "Global Agent Registry Integrity Test", status: "passed", latency: "10ms", notes: "All 14 agents successfully mapped and seeded in firestore rules." },
+        { name: "Global Agent Registry Integrity Test", status: "passed", latency: "10ms", notes: "All 14 agents successfully mapped and seeded in Supabase rules." },
         { name: "Memory Versioning and Expiration Garbage Collector", status: "passed", latency: "35ms", notes: "Expired memory logs pruned automatically." },
         { name: "Dual-model A/B segment router validation", status: "passed", latency: "15ms", notes: "Segment A and Segment B weights mapped to Gemini." },
         { name: "Prompt Injection and Cross-Site-Scripting filter check", status: "passed", latency: "25ms", notes: "Input sanitization matches 100% security baseline." },

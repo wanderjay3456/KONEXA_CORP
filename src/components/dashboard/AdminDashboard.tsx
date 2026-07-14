@@ -329,7 +329,7 @@ export default function AdminDashboard() {
       <div className="flex-1 flex flex-col items-center justify-center bg-neutral-50 h-full p-8 text-center">
         <RefreshCw className="w-8 h-8 text-black animate-spin mb-3" />
         <p className="font-sans text-sm text-neutral-500 font-medium">Booting Global Operations Center...</p>
-        <p className="font-mono text-[10px] text-neutral-400 mt-1">Acquiring cloud shards & Firestore live listeners...</p>
+        <p className="font-mono text-[10px] text-neutral-400 mt-1">Acquiring cloud shards & Supabase live listeners...</p>
       </div>
     );
   }

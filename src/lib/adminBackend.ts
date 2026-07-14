@@ -171,7 +171,7 @@ let localSystemSettings: any = {
   },
   integrations: {
     geminiApiKey: "••••••••••••••••••••",
-    firebaseAppId: "konexa-enterprise-prod"
+    supabaseAppId: "konexa-enterprise-prod"
   }
 };
 

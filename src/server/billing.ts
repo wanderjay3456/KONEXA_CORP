@@ -1,7 +1,6 @@
 import express, { type Express, type Response } from "express";
-import { FieldValue } from "firebase-admin/firestore";
 import Stripe from "stripe";
-import { adminAuth, adminDb } from "./firebaseAdmin";
+import { adminAuth, adminDb, FieldValue } from "./supabaseAdmin";
 import { sendTransactionalEmail } from "./email";
 import type { AuthenticatedRequest } from "./security";
 
@@ -35,7 +34,7 @@ async function getOrCreateCustomer(user: NonNullable<AuthenticatedRequest["user"
   const customer = await getStripe().customers.create({
     email: user.email,
     name: user.name,
-    metadata: { firebaseUid: user.uid },
+    metadata: { supabaseUid: user.uid },
   }, { idempotencyKey: `customer/${user.uid}` });
 
   await customerRef.set({
@@ -47,16 +46,16 @@ async function getOrCreateCustomer(user: NonNullable<AuthenticatedRequest["user"
 }
 
 async function syncSubscription(subscription: any) {
-  const firebaseUid = subscription.metadata?.firebaseUid;
-  if (!firebaseUid) {
+  const supabaseUid = subscription.metadata?.supabaseUid;
+  if (!supabaseUid) {
     console.info(`Ignoring Stripe subscription without KONEXA metadata: ${subscription.id}`);
     return null;
   }
 
   const periodEnd = subscription.items?.data?.[0]?.current_period_end || subscription.current_period_end;
   const active = ["active", "trialing"].includes(subscription.status);
-  await adminDb.collection("subscriptions").doc(firebaseUid).set({
-    firebaseUid,
+  await adminDb.collection("subscriptions").doc(supabaseUid).set({
+    supabaseUid,
     stripeSubscriptionId: subscription.id,
     stripeCustomerId: typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id,
     status: subscription.status,
@@ -66,12 +65,12 @@ async function syncSubscription(subscription: any) {
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
 
-  const userRecord = await adminAuth.getUser(firebaseUid);
-  await adminAuth.setCustomUserClaims(firebaseUid, {
+  const userRecord = await adminAuth.getUser(supabaseUid);
+  await adminAuth.setCustomUserClaims(supabaseUid, {
     ...userRecord.customClaims,
     plan: active ? "pro" : "free",
   });
-  return firebaseUid as string;
+  return supabaseUid as string;
 }
 
 async function customerEmail(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null) {
@@ -115,16 +114,16 @@ export function registerStripeWebhook(app: Express) {
       switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
-          const firebaseUid = session.metadata?.firebaseUid || session.client_reference_id;
-          if (firebaseUid && session.subscription) {
+          const supabaseUid = session.metadata?.supabaseUid || session.client_reference_id;
+          if (supabaseUid && session.subscription) {
             const subscription = await getStripe().subscriptions.retrieve(String(session.subscription));
             await syncSubscription(subscription);
           }
           const email = session.customer_details?.email;
-          if (email && firebaseUid) {
+          if (email && supabaseUid) {
             await sendTransactionalEmail({
               to: email,
-              userId: firebaseUid,
+              userId: supabaseUid,
               template: "subscription_activated",
               data: { plan: "Pro AI Matchmaker" },
               idempotencyKey: `stripe-checkout/${event.id}`,
@@ -142,13 +141,13 @@ export function registerStripeWebhook(app: Express) {
           const subscriptionId = invoice.subscription || invoice.parent?.subscription_details?.subscription;
           if (!subscriptionId) break;
           const subscription = await getStripe().subscriptions.retrieve(String(subscriptionId));
-          const firebaseUid = await syncSubscription(subscription);
-          if (!firebaseUid) break;
+          const supabaseUid = await syncSubscription(subscription);
+          if (!supabaseUid) break;
           const email = invoice.customer_email || await customerEmail(invoice.customer);
           if (email) {
             await sendTransactionalEmail({
               to: email,
-              userId: firebaseUid,
+              userId: supabaseUid,
               template: "payment_failed",
               idempotencyKey: `stripe-payment-failed/${event.id}`,
             });
@@ -205,8 +204,8 @@ export function registerBillingRoutes(app: Express) {
         billing_address_collection: "auto",
         success_url: `${appUrl}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${appUrl}/?checkout=cancelled`,
-        metadata: { firebaseUid: req.user.uid, plan: "pro" },
-        subscription_data: { metadata: { firebaseUid: req.user.uid, plan: "pro" } },
+        metadata: { supabaseUid: req.user.uid, plan: "pro" },
+        subscription_data: { metadata: { supabaseUid: req.user.uid, plan: "pro" } },
       }, { idempotencyKey: `checkout/${req.user.uid}/${idempotencyKey}` });
 
       if (!session.url) throw new Error("Stripe did not return a Checkout URL");
