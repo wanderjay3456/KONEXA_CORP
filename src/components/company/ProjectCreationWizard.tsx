@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useApp } from "../../context/AppContext";
-import { ProjectDifficulty, ProjectStatus } from "../../types";
+import { ProjectDifficulty } from "../../types";
 import { 
   Sparkles, ChevronLeft, ChevronRight, Check, RefreshCw, 
   HelpCircle, Info, Paperclip, GraduationCap, ShieldAlert,
@@ -33,14 +33,14 @@ export default function ProjectCreationWizard({ onNavigate }: ProjectCreationWiz
   const [targetUniversities, setTargetUniversities] = useState("All Partnerships");
   const [targetCountries, setTargetCountries] = useState("Global");
   const [projectType, setProjectType] = useState<"Remote" | "Hybrid" | "Onsite">("Remote");
-  const [compensation, setCompensation] = useState("$2,000 + Token incentives");
-  const [workingHours, setWorkingHours] = useState("Flexible (approx. 15 hrs/week)");
-  const [mentors, setMentors] = useState("Staff Platform Architect");
+  const [compensation, setCompensation] = useState("");
+  const [workingHours, setWorkingHours] = useState("");
+  const [mentors, setMentors] = useState("");
   const [attachments, setAttachments] = useState("");
   const [evaluationCriteria, setEvaluationCriteria] = useState("");
-  const [trustRequirements, setTrustRequirements] = useState("Minimum Trust Score of 75");
-  const [performanceRequirements, setPerformanceRequirements] = useState("Demonstrated competence in React hook lifecycle structures");
-  const [futureHiringOpportunity, setFutureHiringOpportunity] = useState("Full-time junior platform engineer conversion upon approved completion");
+  const [trustRequirements, setTrustRequirements] = useState("");
+  const [performanceRequirements, setPerformanceRequirements] = useState("");
+  const [futureHiringOpportunity, setFutureHiringOpportunity] = useState("");
 
   // Call server-side Gemini API proxy to suggest content for any specific field!
   const handleGetAiSuggestion = async (fieldName: string, fieldSetter: (val: string) => void) => {
@@ -64,30 +64,15 @@ export default function ProjectCreationWizard({ onNavigate }: ProjectCreationWiz
       fieldSetter(cleanedText);
       success("AI Suggestion Applied", `Populated "${fieldName}" with Gemini recommendation.`);
     } catch (err) {
-      // Fallback generator based on fields
-      const fallbacks: { [key: string]: string } = {
-        title: "SVG Canvas State Syncer and Profiler Engine",
-        description: "Implement a highly performant drawing state machine capable of recording and playing back client clicks with sub-millisecond lag.",
-        objectives: "Verify structural alignment with React 19 concurrent features and web vital profiling APIs.",
-        expectedOutcomes: "A secure, tested rendering canvas with a customized audit panel.",
-        deliverables: "1. Core state profiling React hook\n2. SVG vector drawing viewport component\n3. High-quality Jest test suite",
-        evaluationCriteria: "Adherence to zero heavy external libraries, render benchmark metrics, and clean TypeScript type parameters.",
-        trustRequirements: "Applicant must possess an active, verified KONEXA Trust Score of 80+.",
-        performanceRequirements: "Excellent understanding of React profiling hooks, requestAnimationFrame, and SVG canvas trees.",
-        futureHiringOpportunity: "Fast-track onboarding and standard developer interview conversion upon successful verification."
-      };
-      
-      const val = fallbacks[fieldName.toLowerCase()] || "Highly optimized technical criteria based on standard enterprise best practices.";
-      fieldSetter(val);
-      info("Offline Suggestion Applied", "Applied standard fallback recommendation.");
+      error("AI suggestion unavailable", "No generated text was inserted. Please write this field manually or try again later.");
     } finally {
       setIsAiLoading(null);
     }
   };
 
   const handleSubmit = async () => {
-    if (!title.trim() || !description.trim() || !deliverables.trim()) {
-      error("Verification Error", "Title, description, and deliverables are required to publish the challenge.");
+    if (!title.trim() || !description.trim() || !deliverables.trim() || !compensation.trim()) {
+      error("Verification Error", "Title, description, deliverables, and weekly pay are required to publish the project.");
       return;
     }
 
@@ -109,14 +94,14 @@ export default function ProjectCreationWizard({ onNavigate }: ProjectCreationWiz
     await createProject(
       title,
       `${description}\n\nObjectives:\n${objectives}\n\nExpected Outcomes:\n${expectedOutcomes}\n\nFuture Hiring Option: ${futureHiringOpportunity}`,
-      combinedReqs.length > 0 ? combinedReqs : ["Submit clean, modular types", "Pass automatic sandbox performance linting"],
+      combinedReqs,
       difficulty,
       compensation,
-      tagsList.length > 0 ? tagsList : ["React", "TypeScript", "Onboarding"]
+      tagsList
     );
 
     success("Challenge Published!", "Your verified technical challenge is now active in the Student Marketplace!");
-    onNavigate("company-projects");
+    onNavigate("company-applications");
   };
 
   return (
@@ -133,7 +118,7 @@ export default function ProjectCreationWizard({ onNavigate }: ProjectCreationWiz
           <p className="text-xs text-neutral-400 mt-0.5">Collect granular specs for sandbox tests. Tap Sparkles next to any field for AI suggestions.</p>
         </div>
         <button 
-          onClick={() => onNavigate("company-projects")}
+          onClick={() => onNavigate("company-applications")}
           className="text-xs font-semibold text-neutral-500 hover:text-neutral-900 cursor-pointer"
         >
           Cancel
@@ -302,12 +287,13 @@ export default function ProjectCreationWizard({ onNavigate }: ProjectCreationWiz
 
             {/* Compensation */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-neutral-700">Compensation & Reward Structure *</label>
+              <label className="text-xs font-bold text-neutral-700">주급 (KRW) *</label>
               <input 
                 type="text" 
                 value={compensation}
                 onChange={(e) => setCompensation(e.target.value)}
-                placeholder="e.g. $1,500 + Retainer Options"
+                inputMode="numeric"
+                placeholder="주급을 원화로 입력"
                 className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs focus:outline-hidden"
               />
             </div>

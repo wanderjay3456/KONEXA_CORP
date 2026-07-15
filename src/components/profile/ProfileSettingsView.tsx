@@ -22,7 +22,6 @@ import {
   FileCheck2
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
-import { eventSystem } from "../../lib/eventSystem";
 
 export default function ProfileSettingsView() {
   const { studentProfile, updateStudentProfile, companyProfile, updateCompanyProfile, logoutUser } = useApp();
@@ -38,13 +37,13 @@ export default function ProfileSettingsView() {
     nationality: studentProfile?.nationality || "South Korea",
     currentCountry: studentProfile?.currentCountry || "South Korea",
     university: studentProfile?.university || "",
-    degree: studentProfile?.degree || "Bachelor of Science",
+    degree: studentProfile?.degree || "",
     major: studentProfile?.major || "",
-    graduationYear: studentProfile?.graduationYear || "2026",
+    graduationYear: studentProfile?.graduationYear || "",
     studentId: studentProfile?.studentId || "",
-    languages: studentProfile?.languages || ["English", "Korean"],
-    englishLevel: studentProfile?.englishLevel || "Fluent",
-    koreanLevel: studentProfile?.koreanLevel || "Native",
+    languages: studentProfile?.languages || [],
+    englishLevel: studentProfile?.englishLevel || "",
+    koreanLevel: studentProfile?.koreanLevel || "",
     skills: studentProfile?.skills || [],
     github: studentProfile?.github || "",
     portfolio: studentProfile?.portfolio || "",
@@ -57,40 +56,17 @@ export default function ProfileSettingsView() {
     privacySettings: studentProfile?.privacySettings || { publicProfile: true, showResume: true }
   });
 
-  // Simulator Logs for Security Tab
-  const [accessLogs] = useState([
-    { id: 1, action: "Authorized API Session", ip: "125.131.22.84", date: "Just Now", status: "Secure" },
-    { id: 2, action: "GitHub Webhook Handshake", ip: "140.82.115.10", date: "2 hours ago", status: "Verified" },
-    { id: 3, action: "Gemini Vector Pipeline Sync", ip: "34.120.98.54", date: "4 hours ago", status: "Success" }
-  ]);
-
-  const [sandboxApiKey] = useState("knxa_test_9fa2bc837e2a4d9bb102cf9592738b");
-
   const handleSaveStudent = async () => {
     setIsSaving(true);
     try {
       await updateStudentProfile(studentForm as any);
       
-      // Emit events to synchronize with all backend engines
-      eventSystem.publish("StudentUpdated", studentForm);
-      eventSystem.publish("LanguageUpdated", { languages: studentForm.languages });
-      eventSystem.publish("SkillUpdated", { skills: studentForm.skills });
-      
-      // Show elegant toast representing world-class engine coordination
-      success("Profile Synchronized", "Core updates applied. Submissions successfully re-indexed.");
-      
-      // Visual notification log mock
-      info("Engine Sync Triggered", "Matching, Recommendation, Trust, and AI Recruiter Engines have completed live syncing.");
+      success("프로필 저장 완료", "Supabase 프로필 정보가 업데이트되었습니다.");
     } catch (err: any) {
       error("Synchronization Failed", err.message || "Failed to sync updates.");
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const clearBrowserCache = () => {
-    localStorage.clear();
-    success("Cache Purged", "Simulated browser storage sandbox reset completed.");
   };
 
   return (
@@ -280,74 +256,13 @@ export default function ProfileSettingsView() {
         {activeSubTab === "security" && (
           <div className="space-y-6">
             <div className="border-b border-neutral-100 pb-4">
-              <h4 className="font-display font-bold text-lg text-neutral-900">Platform Security & Scopes</h4>
-              <p className="text-neutral-400 text-xs mt-0.5">Inspect verified API scopes, access log history records, and sandbox API tokens.</p>
+              <h4 className="font-display font-bold text-lg text-neutral-900">Account Security</h4>
+              <p className="text-neutral-400 text-xs mt-0.5">KONEXA never exposes service API keys or fabricated activity records in your browser.</p>
             </div>
 
-            <div className="space-y-4">
-              {/* API Access Key Panel */}
-              <div className="p-4 rounded-xl border border-neutral-200 bg-neutral-50 space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-wider block">Sandbox API Keys</span>
-                  <span className="text-[10px] font-mono text-emerald-600 uppercase tracking-widest font-bold">Active Scope</span>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="password"
-                    readOnly
-                    value={sandboxApiKey}
-                    className="flex-1 h-10 bg-white border border-neutral-200 rounded-xl px-3 font-mono text-xs text-neutral-500"
-                  />
-                  <button 
-                    onClick={() => {
-                      navigator.clipboard.writeText(sandboxApiKey);
-                      success("Copied to Clipboard", "Sandbox auth key token cloned securely.");
-                    }}
-                    className="px-4 h-10 bg-white border border-neutral-200 hover:border-neutral-300 rounded-xl text-xs font-bold"
-                  >
-                    Copy Token
-                  </button>
-                </div>
-              </div>
-
-              {/* Scopes indicators */}
-              <div className="p-4 rounded-xl border border-neutral-200 bg-neutral-50 space-y-3">
-                <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase block">Approved API Verification Scopes</span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                    <span>read:student_profiles (Authorized)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                    <span>write:sandbox_submissions (Authorized)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                    <span>eval:gemini_proxy_routes (Authorized)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                    <span>sync:matching_engines (Authorized)</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Access Logs */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase block">Recent API Session Activity Logs</span>
-                <div className="divide-y divide-neutral-100 border border-neutral-200 rounded-2xl overflow-hidden text-xs">
-                  {accessLogs.map(log => (
-                    <div key={log.id} className="p-3 bg-white flex justify-between items-center">
-                      <div>
-                        <p className="font-bold text-neutral-800">{log.action}</p>
-                        <p className="text-[10px] text-neutral-400 font-mono">IP: {log.ip} • {log.date}</p>
-                      </div>
-                      <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">{log.status}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5 text-xs leading-6 text-emerald-900">
+              <div className="flex items-center gap-2 font-bold"><Shield className="h-4 w-4" />Supabase authenticated session</div>
+              <p className="mt-2 text-emerald-800">Password changes use a verified recovery email. Sign out below if this is a shared device.</p>
             </div>
           </div>
         )}
@@ -567,31 +482,16 @@ export default function ProfileSettingsView() {
         {activeSubTab === "account" && (
           <div className="space-y-6">
             <div className="border-b border-neutral-100 pb-4">
-              <h4 className="font-display font-bold text-lg text-neutral-900">Account Actions & System Cache</h4>
-              <p className="text-neutral-400 text-xs mt-0.5">Purge locally cached profiles, initiate secure logs, or delete sandbox settings permanently.</p>
+              <h4 className="font-display font-bold text-lg text-neutral-900">Account Actions</h4>
+              <p className="text-neutral-400 text-xs mt-0.5">Manage this authenticated session and account requests.</p>
             </div>
 
             <div className="space-y-4">
-              {/* Purge Cache Row */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-neutral-200 rounded-2xl gap-4">
-                <div className="text-xs">
-                  <span className="font-bold text-neutral-800 block">Clear Browser LocalStorage Cache</span>
-                  <p className="text-neutral-400 mt-0.5">Flush draft data models and trigger sandbox state recalibrations.</p>
-                </div>
-                <button
-                  onClick={clearBrowserCache}
-                  className="px-4 h-10 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Flush Local cache</span>
-                </button>
-              </div>
-
               {/* Logout Row */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border border-neutral-200 rounded-2xl gap-4">
                 <div className="text-xs">
                   <span className="font-bold text-neutral-800 block">Terminate Active Session</span>
-                  <p className="text-neutral-400 mt-0.5">Securely log out of this browser sandbox terminal.</p>
+                  <p className="text-neutral-400 mt-0.5">Securely end the current browser session.</p>
                 </div>
                 <button
                   onClick={() => {
@@ -608,21 +508,15 @@ export default function ProfileSettingsView() {
               {/* Reset Account Data */}
               <div className="p-4 border border-rose-200 bg-rose-50 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-rose-800">
                 <div className="text-xs">
-                  <span className="font-bold block text-rose-950">Erase Profile Metadata (Danger Zone)</span>
-                  <p className="leading-relaxed font-light text-rose-900 mt-0.5">Permanently remove all linked resume files, portfolios, and sandbox scores from our Supabase.</p>
+                  <span className="font-bold block text-rose-950">Request account deletion</span>
+                  <p className="leading-relaxed font-light text-rose-900 mt-0.5">Automated deletion is not enabled yet. Contact KONEXA support so identity and settlement records can be handled safely.</p>
                 </div>
                 <button
-                  onClick={() => {
-                    if (confirm("Are you absolutely sure you want to purge all your developer metadata?")) {
-                      localStorage.clear();
-                      logoutUser();
-                      success("Metadata Purged", "Your developer credentials have been erased.");
-                    }
-                  }}
-                  className="px-4 h-10 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shrink-0"
+                  onClick={() => info("Deletion request", "Please contact KONEXA support from your registered email. No account data was deleted.")}
+                  className="px-4 h-10 bg-white border border-rose-200 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shrink-0"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Purge Developer Data</span>
+                  <span>View instructions</span>
                 </button>
               </div>
             </div>

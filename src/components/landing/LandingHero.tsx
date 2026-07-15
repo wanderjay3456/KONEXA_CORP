@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion, useScroll, useSpring, useTransform } from "motion/react";
 import {
   ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, Check, ChevronDown,
   CircleDollarSign, FileSignature, Globe2, LockKeyhole, LogIn, ShieldCheck,
@@ -129,6 +129,15 @@ function Wordmark() {
 
 export default function LandingHero({ onEnterApp }: LandingHeroProps) {
   const reduced = useReducedMotion();
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll();
+  const pageProgress = useSpring(scrollYProgress, { stiffness: 140, damping: 30, mass: 0.25 });
+  const { scrollYProgress: heroProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const heroCopyY = useTransform(heroProgress, [0, 1], [0, reduced ? 0 : 110]);
+  const heroCopyOpacity = useTransform(heroProgress, [0, 0.74], [1, reduced ? 1 : 0.2]);
+  const heroVisualY = useTransform(heroProgress, [0, 1], [0, reduced ? 0 : -80]);
+  const heroVisualRotate = useTransform(heroProgress, [0, 1], [0, reduced ? 0 : -4]);
+  const heroVisualScale = useTransform(heroProgress, [0, 1], [1, reduced ? 1 : 0.92]);
   const [locale, setLocale] = useState<Locale>(() => {
     if (typeof window === "undefined") return "ko";
     const saved = localStorage.getItem("konexa_locale") as Locale | null;
@@ -181,13 +190,14 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
               <button onClick={() => setActiveRegisterRole(UserRole.STUDENT)} className="rounded-full bg-[#17342d] px-3.5 py-2.5 text-[11px] font-black text-white transition hover:-translate-y-0.5 hover:bg-[#284e44] sm:px-5">{t.start}</button>
             </div>
           </nav>
+          <motion.div className="mx-auto mt-2 h-px max-w-7xl origin-left bg-[#4361ee]" style={{ scaleX: pageProgress }} aria-hidden="true" />
         </header>
 
         <main>
-          <section className="relative flex min-h-[880px] items-center px-5 pb-24 pt-32 sm:px-8 lg:min-h-screen">
+          <section ref={heroRef} className="relative flex min-h-[880px] items-center px-5 pb-24 pt-32 sm:px-8 lg:min-h-screen">
             <div className="kinetic-wash" aria-hidden="true" />
             <div className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-14 lg:grid-cols-[1.08fr_.92fr]">
-              <div>
+              <motion.div style={{ y: heroCopyY, opacity: heroCopyOpacity }}>
                 <motion.div initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#17342d]/10 bg-white/65 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.12em] text-[#365b51]"><Sparkles className="h-3.5 w-3.5 text-[#4361ee]" />{t.badge}</motion.div>
                 <motion.h1 initial={reduced ? false : { opacity: 0, y: 25 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .85, ease: [.22, 1, .36, 1] }} className="max-w-4xl font-display text-[clamp(3.35rem,7.2vw,7.3rem)] font-bold leading-[.91] tracking-[-.072em] text-[#17342d] [&_em]:font-normal [&_em]:not-italic [&_em]:text-[#4361ee]">{t.title}</motion.h1>
                 <motion.p initial={reduced ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .16 }} className="mt-8 max-w-xl text-base leading-8 text-[#557069] sm:text-lg">{t.lead}</motion.p>
@@ -196,9 +206,9 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
                   <button onClick={() => setActiveRegisterRole(UserRole.COMPANY)} className="inline-flex min-h-14 items-center justify-center gap-3 rounded-full border border-[#17342d]/14 bg-white/65 px-6 text-sm font-black transition hover:-translate-y-1 hover:bg-white"><Building2 className="h-4 w-4 text-[#4361ee]" />{t.companyCta}</button>
                 </motion.div>
                 <p className="mt-5 flex max-w-xl items-start gap-2 text-xs leading-5 text-[#718780]"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#2d8c69]" />{t.note}</p>
-              </div>
+              </motion.div>
 
-              <motion.div initial={reduced ? false : { opacity: 0, y: 30, rotate: 2 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ duration: 1, delay: .18, ease: [.22, 1, .36, 1] }} className="relative mx-auto w-full max-w-[560px]">
+              <motion.div initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: .18, ease: [.22, 1, .36, 1] }} style={{ y: heroVisualY, rotate: heroVisualRotate, scale: heroVisualScale }} className="relative mx-auto w-full max-w-[560px] will-change-transform">
                 <div className="absolute -inset-10 rounded-full bg-[#b9f4d0]/40 blur-3xl" />
                 <div className="proof-sheet relative overflow-hidden rounded-[2.2rem] border border-[#17342d]/10 bg-[#fffefb]/92 p-5 shadow-[0_35px_100px_rgba(23,52,45,.16)] sm:p-7">
                   <div className="flex items-center justify-between border-b border-[#17342d]/10 pb-5"><div><div className="font-mono text-[9px] font-bold tracking-[.18em] text-[#6f847f]">{t.ledger}</div><div className="mt-2 font-display text-xl font-bold tracking-[-.03em]">{t.candidate}</div></div><span className="rounded-full bg-[#dff8ea] px-3 py-1.5 text-[9px] font-black text-[#23644e]">{t.live}</span></div>

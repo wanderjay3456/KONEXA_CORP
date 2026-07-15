@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useApp } from "../../context/AppContext";
 import { CompanyProfile } from "../../types";
@@ -16,7 +16,6 @@ import {
   ArrowRight, 
   Sparkles, 
   Cpu, 
-  Clock, 
   CheckCircle,
   Plus,
   Trash2,
@@ -46,30 +45,29 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
     companyName: companyProfile?.companyName || "",
     businessRegistrationNumber: companyProfile?.businessRegistrationNumber || "",
     country: companyProfile?.country || "South Korea",
-    industry: companyProfile?.industry || "AI & SaaS",
-    companySize: companyProfile?.companySize || "10-50 employees",
+    industry: companyProfile?.industry || "",
+    companySize: companyProfile?.companySize || "",
     website: companyProfile?.website || "",
     linkedin: companyProfile?.linkedin || "",
     contactPerson: companyProfile?.contactPerson || "",
-    position: companyProfile?.position || "VP of Engineering",
+    position: companyProfile?.position || "",
     corporateEmail: companyProfile?.corporateEmail || "",
     phoneNumber: companyProfile?.phoneNumber || "",
     companyIntroduction: companyProfile?.companyIntroduction || "",
-    hiringIndustry: companyProfile?.hiringIndustry || "Computer Science",
-    preferredMajors: companyProfile?.preferredMajors || ["Computer Science", "Information Technology"],
-    requiredSkills: companyProfile?.requiredSkills || ["React", "TypeScript", "Node.js"],
-    preferredLanguages: companyProfile?.preferredLanguages || ["English"],
-    companyBenefits: companyProfile?.companyBenefits || ["Stock options", "Flexible hours", "Lunch allowance"],
-    remotePolicy: companyProfile?.remotePolicy || "Flexible (Hybrid model)",
+    hiringIndustry: companyProfile?.hiringIndustry || "",
+    preferredMajors: companyProfile?.preferredMajors || [],
+    requiredSkills: companyProfile?.requiredSkills || [],
+    preferredLanguages: companyProfile?.preferredLanguages || [],
+    companyBenefits: companyProfile?.companyBenefits || [],
+    remotePolicy: companyProfile?.remotePolicy || "",
     recruitmentStatus: companyProfile?.recruitmentStatus || "Open",
-    officeLocation: companyProfile?.officeLocation || "Teheran-ro, Gangnam, Seoul",
+    officeLocation: companyProfile?.officeLocation || "",
     notificationPreferences: companyProfile?.notificationPreferences || { email: true, system: true },
     verified: companyProfile?.verified || false,
     verifiedStatus: companyProfile?.verifiedStatus || "Pending",
     description: companyProfile?.description || ""
   });
 
-  const [autosaving, setAutosaving] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [termsAgreement, setTermsAgreement] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -84,16 +82,6 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
   // Custom skills or benefits inputs helpers
   const [skillInput, setSkillInput] = useState("");
   const [benefitInput, setBenefitInput] = useState("");
-
-  useEffect(() => {
-    if (step > 1 && step <= totalSteps) {
-      setAutosaving(true);
-      const timer = setTimeout(() => {
-        setAutosaving(false);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [formData, step]);
 
   const updateField = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -274,8 +262,8 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
             </div>
 
             <div className="flex items-center gap-2 text-xs text-neutral-400 font-mono bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
-              <Clock className={`w-3.5 h-3.5 ${autosaving ? "animate-spin text-teal-400" : "text-neutral-500"}`} />
-              <span>{autosaving ? "Draft Syncing..." : "Saved securely"}</span>
+              <ShieldCheck className="h-3.5 w-3.5 text-neutral-500" />
+              <span>마지막 단계에서 저장됩니다</span>
             </div>
           </div>
 
@@ -692,7 +680,7 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
                       <ShieldCheck className="w-4 h-4" />
                       <span>Gemini AI Talent Acquisition Strategy</span>
                     </span>
-                    <span className="text-[9px] font-mono text-neutral-500">model ID: gemini-3.5-flash</span>
+                    <span className="text-[9px] font-mono text-neutral-500">Server-side Gemini analysis</span>
                   </div>
 
                   <div className="space-y-3 text-xs leading-relaxed font-light text-neutral-300">

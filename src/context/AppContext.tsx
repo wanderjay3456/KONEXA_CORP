@@ -10,7 +10,6 @@ import {
   where,
 } from "../lib/supabaseStore";
 import { 
-  signInAnonymously, 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut,
@@ -81,7 +80,7 @@ function handleSupabaseError(error: unknown, operationType: OperationType, path:
     operationType,
     path
   };
-  console.warn('[KONEXA] Supabase operation warning (degrading gracefully to secure client-side sandbox states):', JSON.stringify(errInfo));
+  console.warn('[KONEXA] Supabase operation failed. No fallback records were generated:', JSON.stringify(errInfo));
 }
 // --- END FIRESTORE ERROR HANDLING PROTOCOL ---
 
@@ -126,50 +125,6 @@ export function useApp() {
   return context;
 }
 
-// Seed Data helper
-const SEED_PROJECTS = [
-  {
-    title: "Vite + React Core Performance Optimizer",
-    description: "Build an elegant, lightweight profiling hook for Vite-based SPAs to measure and record component rendering metrics directly to a diagnostic panel.",
-    requirements: ["Implement a custom React hook `usePerformanceProfiler`", "Generate beautiful visual SVG rendering trees", "Zero bundle overhead in production environments"],
-    companyName: "Vercel Core Technologies",
-    difficulty: ProjectDifficulty.HARD,
-    reward: "$2,800 + Fast-Track Offer",
-    tags: ["React 19", "Vite", "SVG Canvas", "Web Vitals"],
-    status: ProjectStatus.OPEN
-  },
-  {
-    title: "Google Workspace Sidebar Add-on Extension",
-    description: "Implement a Google Chat and Calendar companion component that analyzes text contexts dynamically and suggests smart action items directly in the sidebar.",
-    requirements: ["Design smooth collaborative viewports", "Implement strict Google OAuth credentials handling", "Write modular, responsive list components"],
-    companyName: "Google Cloud Platform Group",
-    difficulty: ProjectDifficulty.MEDIUM,
-    reward: "$1,500 + Internship Interview",
-    tags: ["OAuth 2.0", "Google Workspace", "Typescript", "SaaS Layer"],
-    status: ProjectStatus.OPEN
-  },
-  {
-    title: "Sub-millisecond State Syncer for Collaborative Canvas",
-    description: "Architect a custom React state synchronization manager utilizing lightweight frames and a localized WebSocket simulation engine to sync graphic vectors.",
-    requirements: ["Implement fluid drag-and-drop vector math", "Handle multi-client collision resolutions gracefully", "Design a timeline-based undo/redo ring buffer"],
-    companyName: "Framer Design Engine Team",
-    difficulty: ProjectDifficulty.HARD,
-    reward: "$3,200 Contract + Full-time Hiring Option",
-    tags: ["Framer Motion", "WebSockets", "Data Structures", "Canvas API"],
-    status: ProjectStatus.OPEN
-  },
-  {
-    title: "Lightweight Markdown Parser and Code Renderer",
-    description: "Build a modular markdown content preview component with fully reactive code syntax highlighting and quick-copy tabs.",
-    requirements: ["No external heavy library dependencies", "Implement safe HTML sanitization guards", "Responsive, typography-optimized margins"],
-    companyName: "Linear Inc.",
-    difficulty: ProjectDifficulty.EASY,
-    reward: "$800 Task Reward",
-    tags: ["TailwindCSS", "Markdown", "TS Core", "Refactoring"],
-    status: ProjectStatus.OPEN
-  }
-];
-
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { success, error, info } = useToast();
   
@@ -179,58 +134,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
   const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
   
-  const [projects, setProjects] = useState<Project[]>(() => 
-    SEED_PROJECTS.map((p, idx) => ({
-      id: `proj_seed_${idx}`,
-      companyId: "comp_seed_vercel_88",
-      createdAt: Date.now() - idx * 86400000,
-      ...p
-    }))
-  );
-  const [applications, setApplications] = useState<Application[]>(() => [
-    {
-      id: "app_seed_1",
-      projectId: "proj_seed_0",
-      projectTitle: "Vite + React Core Performance Optimizer",
-      studentId: "usr_fndtn_konexa_99",
-      studentName: "Alex Rivera",
-      codeSubmission: `// usePerformanceProfiler.ts\nimport { useEffect, useRef } from 'react';\n\nexport function usePerformanceProfiler(componentName: string) {\n  const renderCount = useRef(0);\n  const startTime = useRef(performance.now());\n\n  useEffect(() => {\n    renderCount.current += 1;\n    const duration = performance.now() - startTime.current;\n    console.log(\`[Profiler] \${componentName} render #\${renderCount.current} took \${duration.toFixed(2)}ms\`);\n    startTime.current = performance.now();\n  });\n}`,
-      feedback: "Exceptional custom profiling hook. Low-overhead, well-commented and clean TS type structures.",
-      status: ApplicationStatus.APPROVED,
-      score: 95,
-      createdAt: Date.now() - 172800000
-    },
-    {
-      id: "app_seed_2",
-      projectId: "proj_seed_3",
-      projectTitle: "Lightweight Markdown Parser and Code Renderer",
-      studentId: "usr_fndtn_konexa_99",
-      studentName: "Alex Rivera",
-      codeSubmission: `// markdownParser.ts\nexport function parseMarkdown(text: string): string {\n  // Safe, fast sanitization and basic regex conversion\n  return text\n    .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')\n    .replace(/\\*(.*?)\\*/g, '<em>$1</em>')\n    .replace(/\\\`(.*?)\\\`/g, '<code class="bg-neutral-100 p-1 rounded font-mono">$1</code>');\n}`,
-      feedback: "",
-      status: ApplicationStatus.SUBMITTED,
-      score: 0,
-      createdAt: Date.now() - 86400000
-    }
-  ]);
-  const [logs, setLogs] = useState<SystemLog[]>(() => [
-    {
-      id: "log_seed_1",
-      userId: "usr_fndtn_konexa_99",
-      userName: "Alex Rivera",
-      action: "Code Verification",
-      details: "Performance Optimizer challenge compiled with 100% test coverage.",
-      timestamp: Date.now() - 3600000
-    },
-    {
-      id: "log_seed_2",
-      userId: "system",
-      userName: "Gemini Sandbox Supervisor",
-      action: "Inference Engine",
-      details: "Matched student profile Rivera to Horizon Labs requirements.",
-      timestamp: Date.now() - 7200000
-    }
-  ]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [logs, setLogs] = useState<SystemLog[]>([]);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   // 1 & 2. Persistent Supabase Authentication Synchronization Hook
@@ -245,38 +151,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         console.log("[KONEXA] Active Auth State Detected. UID:", user.uid, "Anonymous:", user.isAnonymous);
         
         if (user.isAnonymous) {
-          // Anonymous visitor session:
-          // We set the default simulated profiles so they can explore immediately
-          const now = Date.now();
-          const profile: UserProfile = {
-            uid: user.uid,
-            email: "guest@konexa.dev",
-            displayName: "Guest Explorer",
-            role: activeRole,
-            createdAt: now
-          };
-          setCurrentUser(profile);
-
-          setStudentProfile({
-            uid: user.uid,
-            name: "Alex Rivera",
-            skills: ["React", "TypeScript", "TailwindCSS", "Framer Motion", "Node.js"],
-            github: "https://github.com/alexrivera-dev",
-            bio: "Full-stack enthusiast focused on building high-performance interactive interfaces and clean software architectures.",
-            trustScore: 82,
-            completedProjects: 3,
-            createdAt: now
-          });
-
-          setCompanyProfile({
-            uid: user.uid,
-            companyName: "Horizon Labs",
-            website: "https://horizonlabs.io",
-            description: "Horizon Labs designs the future of software infrastructure, high-fidelity design tools, and AI systems.",
-            verified: true,
-            verifiedStatus: "Verified",
-            createdAt: now
-          });
+          await signOut(auth);
+          setCurrentUser(null);
+          setStudentProfile(null);
+          setCompanyProfile(null);
           setIsAuthReady(true);
         } else {
           // Real Registered User:
@@ -339,10 +217,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   setStudentProfile({
                     uid: user.uid,
                     name: uProfile.displayName,
-                    skills: ["React", "TypeScript", "TailwindCSS"],
-                    github: "https://github.com",
-                    bio: "New registered student profile. Click Edit to customize.",
-                    trustScore: 80,
+                    skills: [],
+                    github: "",
+                    bio: "",
+                    trustScore: 0,
                     completedProjects: 0,
                     createdAt: Date.now()
                   });
@@ -356,9 +234,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 } else {
                   setCompanyProfile({
                     uid: user.uid,
-                    companyName: "Corporate Partner",
-                    website: "https://company.com",
-                    description: "Partner company workspace.",
+                    companyName: uProfile.displayName,
+                    website: "",
+                    description: "",
                     verified: false,
                     verifiedStatus: "Pending",
                     createdAt: Date.now()
@@ -367,15 +245,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setStudentProfile(null);
               }
             } else {
-              // User has an auth account but no Supabase users document yet
-              const fallbackProfile: UserProfile = {
-                uid: user.uid,
-                email: user.email || "wanderjay3456@gmail.com",
-                displayName: user.displayName || user.email?.split("@")[0] || "Student Builder",
-                role: activeRole,
-                createdAt: Date.now()
-              };
-              setCurrentUser(fallbackProfile);
+              setCurrentUser(null);
+              setStudentProfile(null);
+              setCompanyProfile(null);
+              await signOut(auth);
+              error("계정 설정을 완료할 수 없습니다", "인증 계정과 KONEXA 회원 기록이 일치하지 않습니다. 회원가입을 다시 진행하거나 관리자에게 문의해 주세요.");
             }
           } catch (err) {
             console.error("Error loading user Supabase data:", err);
@@ -385,14 +259,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         rejectedGoogleUid = null;
-        // No user found, sign in anonymously to keep database rules happy!
-        console.log("[KONEXA] No user session. Signing in anonymously...");
-        try {
-          await signInAnonymously(auth);
-        } catch (err: any) {
-          console.warn("[KONEXA] Failed anonymous authentication fallback", err.message);
-          setIsAuthReady(true);
-        }
+        setCurrentUser(null);
+        setStudentProfile(null);
+        setCompanyProfile(null);
+        setProjects([]);
+        setApplications([]);
+        setLogs([]);
+        setIsAuthReady(true);
       }
       } finally {
         authCallbackInFlight = false;
@@ -402,39 +275,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [activeRole]);
 
-  // 3. Real-time Supabase Listeners and Seeding
+  // 3. Real-time Supabase listeners
   useEffect(() => {
     // Only subscribe to listeners when authentication is fully loaded
     if (!isAuthReady || !currentUser) return;
 
     // Listen for Projects
     const projectsCol = collection(db, "projects");
-    const unsubProjects = onSnapshot(projectsCol, async (snapshot) => {
+    const unsubProjects = onSnapshot(projectsCol, (snapshot) => {
       const items: Project[] = [];
       snapshot.forEach((doc) => {
         const d = doc.data();
         items.push({ id: doc.id, ...d } as Project);
       });
 
-      // Seeding: If Supabase is empty, auto-seed with standard projects
-      if (snapshot.empty) {
-        console.log("[KONEXA Core] Pre-seeding projects collection in Supabase...");
-        try {
-          for (const sp of SEED_PROJECTS) {
-            await addDoc(projectsCol, {
-              ...sp,
-              companyId: "comp_seed_vercel_88",
-              createdAt: Date.now()
-            });
-          }
-        } catch (err) {
-          console.error("Failed to seed projects:", err);
-        }
-      } else {
-        // Sort projects by newest first
-        items.sort((a, b) => b.createdAt - a.createdAt);
-        setProjects(items);
-      }
+      items.sort((a, b) => b.createdAt - a.createdAt);
+      setProjects(items);
     }, (err) => {
       handleSupabaseError(err, OperationType.GET, "projects");
     });
@@ -507,6 +363,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // 4. User operations
   const applyToProject = async (projectId: string, codeSubmission: string) => {
     try {
+      if (!currentUser || !studentProfile) throw new Error("학생 계정으로 로그인한 뒤 지원해 주세요.");
       const proj = projects.find((p) => p.id === projectId);
       if (!proj) throw new Error("Project not found");
 
@@ -515,8 +372,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         projectId,
         projectTitle: proj.title,
         companyId: proj.companyId,
-        studentId: currentUser?.uid || "usr_fndtn_konexa_99",
-        studentName: currentUser?.displayName || "Alex Rivera",
+        studentId: currentUser.uid,
+        studentName: studentProfile.name || currentUser.displayName,
         codeSubmission,
         feedback: "Pending AI analysis...",
         status: ApplicationStatus.SUBMITTED,
@@ -543,13 +400,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       await logSystemAction(
         "PROJECT_APPLY",
-        `Submitted code application for project "${proj.title}"`
+        `Submitted application for project "${proj.title}"`
       );
 
-      success("Application Submitted!", "Your solution was successfully saved to Supabase.");
+      success("지원서가 제출되었습니다", "프로젝트 수행 계획이 안전하게 저장되었습니다.");
       
-      // Trigger AI evaluation immediately in background to demonstrate full-stack flow
-      info("Triggering AI Copilot...", "AI Evaluator is reviewing your code submission in real-time.");
+      info("검토를 시작합니다", "AI 분석을 사용할 수 있으면 보조 검토를 진행하며, 실패 시 수동 검토 대기 상태를 유지합니다.");
       triggerEvaluation(appDocRef.id);
 
     } catch (err: any) {
@@ -566,13 +422,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     tags: string[]
   ) => {
     try {
+      if (!currentUser || !companyProfile) throw new Error("기업 계정으로 로그인한 뒤 프로젝트를 등록해 주세요.");
       const projectsCol = collection(db, "projects");
       await addDoc(projectsCol, {
         title,
         description,
         requirements,
-        companyId: currentUser?.uid || "usr_fndtn_konexa_99",
-        companyName: companyProfile?.companyName || "Horizon Labs",
+        companyId: currentUser.uid,
+        companyName: companyProfile.companyName,
         difficulty,
         reward,
         status: ProjectStatus.OPEN,
@@ -862,9 +719,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(null);
       setStudentProfile(null);
       setCompanyProfile(null);
-      
-      console.log("[KONEXA] Signed out of corporate session. Reloading guest...");
-      await signInAnonymously(auth);
       
       success("Signed Out", "You have successfully exited your authenticated session.");
     } catch (err: any) {

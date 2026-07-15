@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useApp } from "../../context/AppContext";
 import { UserRole, CompanyProfile } from "../../types";
@@ -16,7 +16,6 @@ import {
   ArrowRight, 
   Sparkles, 
   Cpu, 
-  Clock, 
   CheckCircle,
   ToggleRight,
   Plus,
@@ -42,23 +41,23 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
     companyName: "",
     businessRegistrationNumber: "",
     country: "South Korea",
-    industry: "AI & Deep Learning",
-    companySize: "10-50 employees",
+    industry: "",
+    companySize: "",
     website: "",
     linkedin: "",
     contactPerson: "",
-    position: "VP of Engineering",
+    position: "",
     corporateEmail: "",
     phoneNumber: "",
     companyIntroduction: "",
-    hiringIndustry: "Computer Science",
-    preferredMajors: ["Computer Science", "Information Technology"],
-    requiredSkills: ["React", "TypeScript", "Node.js"],
-    preferredLanguages: ["English"],
-    companyBenefits: ["Stock options", "Flexible hours", "Lunch allowance"],
-    remotePolicy: "Flexible (Hybrid model)",
+    hiringIndustry: "",
+    preferredMajors: [],
+    requiredSkills: [],
+    preferredLanguages: [],
+    companyBenefits: [],
+    remotePolicy: "",
     recruitmentStatus: "Open",
-    officeLocation: "Teheran-ro, Gangnam, Seoul",
+    officeLocation: "",
     notificationPreferences: { email: true, system: true },
     verified: false,
     verifiedStatus: "Pending",
@@ -67,7 +66,6 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
 
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [isSaving, setIsSaving] = useState(false);
   const [termsAgreement, setTermsAgreement] = useState(false);
   const [nonCircumventionAgreement, setNonCircumventionAgreement] = useState(false);
   const [privacyTransferConsent, setPrivacyTransferConsent] = useState(false);
@@ -89,14 +87,6 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
   } | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  useEffect(() => {
-    if (step > 1 && step < 4) {
-      setIsSaving(true);
-      const timer = setTimeout(() => setIsSaving(false), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [formData, step]);
-
   const updateField = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
     if (errors[key]) {
@@ -117,7 +107,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
           const res = ev.target.result as string;
           setLogoPreview(res);
           updateField("companyLogo", res);
-          success("Logo attached", "Organization avatar loaded.");
+          success("Logo selected", "The organization logo preview is ready for profile submission.");
         }
       };
       reader.readAsDataURL(file);
@@ -264,9 +254,8 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
         </div>
         
         {/* Save status */}
-        <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-mono bg-neutral-100/50 px-3 py-1.5 rounded-xl border border-neutral-200/50">
-          <Clock className={`w-3.5 h-3.5 ${isSaving ? "animate-spin text-black" : ""}`} />
-          <span>{isSaving ? "Syncing draft..." : "Draft secured"}</span>
+        <div className="max-w-[220px] text-right text-[10px] leading-relaxed text-neutral-400">
+          입력 내용은 제출 전까지 이 브라우저 탭에만 유지됩니다.
         </div>
       </div>
 

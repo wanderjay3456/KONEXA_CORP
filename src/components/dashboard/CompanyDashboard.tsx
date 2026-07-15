@@ -1,19 +1,9 @@
 import React, { useState } from "react";
-import { useApp } from "../../context/AppContext";
-import CompanyHome from "../company/CompanyHome";
-import ProjectManagement from "../company/ProjectManagement";
+import { ShieldCheck } from "lucide-react";
 import ProjectCreationWizard from "../company/ProjectCreationWizard";
 import ApplicationManagement from "../company/ApplicationManagement";
-import StudentProfileReview from "../company/StudentProfileReview";
-import AiRecruitmentCenter from "../company/AiRecruitmentCenter";
-import CompanyProjectWorkspace from "../company/CompanyProjectWorkspace";
 import EmployeeConversion from "../company/EmployeeConversion";
-import CompanyAnalytics from "../company/CompanyAnalytics";
-import UniversityManagement from "../company/UniversityManagement";
-import CompanyBookmarks from "../company/CompanyBookmarks";
-import CompanyMessaging from "../company/CompanyMessaging";
-import RoleManagement from "../company/RoleManagement";
-import CompanySettingsView from "../company/CompanySettingsView";
+import type { Application } from "../../types";
 
 interface CompanyDashboardProps {
   activeTab: string;
@@ -21,95 +11,27 @@ interface CompanyDashboardProps {
 }
 
 export default function CompanyDashboard({ activeTab, onNavigate }: CompanyDashboardProps) {
-  // Central student tracking for deep vetting review
-  const [selectedStudentId, setSelectedStudentId] = useState<string>("usr_fndtn_konexa_99");
-  const [selectedApp, setSelectedApp] = useState<any>(null);
+  const [, setSelectedStudentId] = useState("");
+  const [, setSelectedApplication] = useState<Application | null>(null);
 
-  const handleSelectStudent = (studentId: string) => {
-    setSelectedStudentId(studentId);
-  };
+  if (activeTab === "create-challenge") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><ProjectCreationWizard onNavigate={onNavigate} /></div>;
+  if (activeTab === "company-applications") {
+    return (
+      <div className="flex-1 overflow-y-auto bg-neutral-50 p-6">
+        <ApplicationManagement onNavigate={onNavigate} onSelectStudent={setSelectedStudentId} onSelectApplication={setSelectedApplication} />
+      </div>
+    );
+  }
+  if (activeTab === "employee-conversions") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><EmployeeConversion onNavigate={onNavigate} /></div>;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-neutral-50 p-6 space-y-6">
-      {/* 1. ENTERPRISE HOME */}
-      {activeTab === "company-home" && (
-        <CompanyHome onNavigate={onNavigate} onSelectStudent={handleSelectStudent} />
-      )}
-
-      {/* 2. CHALLENGE MANAGEMENT */}
-      {activeTab === "company-projects" && (
-        <ProjectManagement onNavigate={onNavigate} />
-      )}
-
-      {/* 3. MULTI-STEP CREATION WIZARD */}
-      {activeTab === "create-challenge" && (
-        <ProjectCreationWizard onNavigate={onNavigate} />
-      )}
-
-      {/* 4. PIPELINE & SUBMISSIONS */}
-      {activeTab === "company-applications" && (
-        <ApplicationManagement 
-          onNavigate={onNavigate} 
-          onSelectStudent={handleSelectStudent} 
-          onSelectApplication={setSelectedApp}
-        />
-      )}
-
-      {/* 5. AI RECRUITMENT CO-PILOT */}
-      {activeTab === "ai-recruiter" && (
-        <AiRecruitmentCenter onNavigate={onNavigate} />
-      )}
-
-      {/* 6. SANDBOX PROJECT WORKSPACE */}
-      {activeTab === "project-workspace" && (
-        <CompanyProjectWorkspace onNavigate={onNavigate} />
-      )}
-
-      {/* 7. EMPLOYEE CONVERSIONS */}
-      {activeTab === "employee-conversions" && (
-        <EmployeeConversion onNavigate={onNavigate} />
-      )}
-
-      {/* 8. TALENT ANALYTICS */}
-      {activeTab === "company-analytics" && (
-        <CompanyAnalytics />
-      )}
-
-      {/* 9. ACADEMIC NETWORKS */}
-      {activeTab === "university-management" && (
-        <UniversityManagement />
-      )}
-
-      {/* 10. CENTRAL BOOKMARKS */}
-      {activeTab === "company-bookmarks" && (
-        <CompanyBookmarks 
-          onNavigate={onNavigate} 
-          onSelectStudent={handleSelectStudent} 
-        />
-      )}
-
-      {/* 11. COMMUNICATIONS FEED */}
-      {activeTab === "company-messaging" && (
-        <CompanyMessaging onNavigate={onNavigate} />
-      )}
-
-      {/* 12. ROLE & RBAC GOVERNANCE */}
-      {activeTab === "role-management" && (
-        <RoleManagement />
-      )}
-
-      {/* 13. SETTINGS REGISTRY */}
-      {activeTab === "company-settings" && (
-        <CompanySettingsView />
-      )}
-
-      {/* 14. STUDENT REVIEW POPUP (DRILLDOWN TARGET) */}
-      {activeTab === "student-review" && (
-        <StudentProfileReview 
-          studentId={selectedStudentId} 
-          onNavigate={onNavigate} 
-        />
-      )}
+    <div className="flex-1 overflow-y-auto bg-neutral-50 p-6">
+      <div className="mx-auto max-w-3xl rounded-3xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
+        <ShieldCheck className="mx-auto h-7 w-7 text-neutral-500" />
+        <h1 className="mt-4 text-xl font-black">운영 검증 중인 기능입니다</h1>
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-neutral-500">실제 기업·인재 데이터와 권한이 확인된 기능만 공개하며, 가상 후보나 모의 분석은 제공하지 않습니다.</p>
+        <button onClick={() => onNavigate("create-challenge")} className="mt-6 rounded-xl bg-neutral-950 px-5 py-3 text-xs font-bold text-white">프로젝트 등록</button>
+      </div>
     </div>
   );
 }
