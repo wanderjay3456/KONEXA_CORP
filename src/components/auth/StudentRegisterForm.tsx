@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useApp } from "../../context/AppContext";
 import { UserRole, StudentProfile } from "../../types";
@@ -19,7 +19,6 @@ import {
   UploadCloud, 
   Sparkles, 
   Cpu, 
-  Clock, 
   ShieldCheck, 
   ToggleLeft,
   ChevronRight
@@ -45,25 +44,25 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     nationality: "South Korea",
     currentCountry: "South Korea",
     university: "",
-    degree: "Bachelor of Science",
+    degree: "",
     major: "",
-    graduationYear: "2026",
+    graduationYear: "",
     studentId: "",
-    languages: ["English", "Korean"],
-    englishLevel: "Fluent",
-    koreanLevel: "Native",
-    skills: ["React", "TypeScript", "TailwindCSS"],
+    languages: [],
+    englishLevel: "",
+    koreanLevel: "",
+    skills: [],
     certificates: [],
     github: "",
     portfolio: "",
     linkedin: "",
     resumeUrl: "",
-    careerInterests: ["Frontend Engineering", "Fullstack Engineering"],
-    preferredIndustry: "AI & SaaS",
-    preferredJob: "Software Engineer",
+    careerInterests: [],
+    preferredIndustry: "",
+    preferredJob: "",
     preferredCountry: "South Korea",
     preferredWeeklyPayKrw: undefined,
-    availability: "Immediate (Full-time)",
+    availability: "",
     workPreference: "Remote",
     timezone: "GMT+9 (Seoul)",
     bio: "",
@@ -82,7 +81,6 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [resumeName, setResumeName] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [isSaving, setIsSaving] = useState(false);
   const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
 
   // AI Generated Insights State (Step 6)
@@ -94,17 +92,6 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     recommendedProjectId: string;
   } | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
-
-  // Auto-Save simulation to showcase premium local persistence
-  useEffect(() => {
-    if (step > 1 && step < 6) {
-      setIsSaving(true);
-      const timer = setTimeout(() => {
-        setIsSaving(false);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [formData, step]);
 
   const updateField = (key: string, value: any) => {
     setFormData(prev => ({
@@ -130,7 +117,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
           const resultStr = uploadEvent.target.result as string;
           setProfilePhotoPreview(resultStr);
           updateField("profilePhoto", resultStr);
-          success("Photo uploaded successfully", "Your avatar preview was created locally.");
+          success("Photo selected", "Your avatar preview is ready. It will be saved with your verified profile.");
         }
       };
       reader.readAsDataURL(file);
@@ -141,8 +128,8 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setResumeName(file.name);
-      updateField("resumeUrl", "https://konexa.storage/resumes/" + file.name);
-      success("Resume attached", `Attached file "${file.name}" for AI indexing.`);
+      updateField("resumeUrl", "");
+      info("Resume selected", `"${file.name}" will be uploaded from your profile after email verification.`);
     }
   };
 
@@ -252,10 +239,8 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
           </h2>
         </div>
         
-        {/* Autosave status indicator */}
-        <div className="flex items-center gap-1.5 text-xs text-neutral-400 font-mono bg-neutral-100/50 px-3 py-1.5 rounded-xl border border-neutral-200/50">
-          <Clock className={`w-3.5 h-3.5 ${isSaving ? "animate-spin text-black" : ""}`} />
-          <span>{isSaving ? "Autosaving state..." : "Draft secured"}</span>
+        <div className="max-w-[220px] text-right text-[10px] leading-relaxed text-neutral-400">
+          입력 내용은 제출 전까지 이 브라우저 탭에만 유지됩니다.
         </div>
       </div>
 
@@ -609,7 +594,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                     </div>
                   </div>
 
-                  {/* Resume Simulated upload */}
+                  {/* Resume selection; authenticated upload is completed from profile onboarding. */}
                   <div className="pt-2">
                     <label className="text-xs font-bold text-neutral-700 font-sans block mb-1.5">Official Professional Resume (PDF format)</label>
                     <div className="border border-dashed border-neutral-200 rounded-2xl p-6 text-center bg-neutral-50 hover:bg-neutral-100/50 transition-colors relative flex flex-col items-center justify-center">

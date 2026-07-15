@@ -1,7 +1,6 @@
 import React, { Suspense, lazy, useState } from "react";
 import { ToastProvider, useToast } from "./components/ui/Toast";
 import { AppProvider, useApp } from "./context/AppContext";
-import { AiDataProvider } from "./context/AiContext";
 import { UserRole } from "./types";
 import LandingHero from "./components/landing/LandingHero";
 import Navbar from "./components/layout/Navbar";
@@ -9,13 +8,8 @@ import Sidebar from "./components/layout/Sidebar";
 
 const StudentDashboard = lazy(() => import("./components/dashboard/StudentDashboard"));
 const CompanyDashboard = lazy(() => import("./components/dashboard/CompanyDashboard"));
-const AdminDashboard = lazy(() => import("./components/dashboard/AdminDashboard"));
-const AiAgentWorkspace = lazy(() => import("./components/dashboard/AiAgentWorkspace"));
 const StudentOnboarding = lazy(() => import("./components/onboarding/StudentOnboarding"));
 const CompanyOnboarding = lazy(() => import("./components/onboarding/CompanyOnboarding"));
-const DesignSystemShowcase = lazy(() => import("./components/dashboard/DesignSystemShowcase"));
-const IdentityCenter = lazy(() => import("./components/dashboard/IdentityCenter"));
-const IntelligenceCenter = lazy(() => import("./components/dashboard/IntelligenceCenter"));
 const TrustOperationsCenter = lazy(() => import("./components/trust/TrustOperationsCenter"));
 
 function WorkspaceLoading() {
@@ -36,7 +30,7 @@ function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   // Track active tab within each dashboard role
-  const [activeTab, setActiveTab] = useState("challenges");
+  const [activeTab, setActiveTab] = useState("project-marketplace");
 
   React.useEffect(() => {
     if (currentUser) setIsLoggedIn(true);
@@ -45,8 +39,8 @@ function AppContent() {
   const handleEnterApp = (role: UserRole) => {
     setActiveRole(role);
     // Set matching default tabs
-    if (role === UserRole.STUDENT) setActiveTab("challenges");
-    else if (role === UserRole.COMPANY) setActiveTab("company-home");
+    if (role === UserRole.STUDENT) setActiveTab("project-marketplace");
+    else if (role === UserRole.COMPANY) setActiveTab("create-challenge");
     else if (role === UserRole.ADMIN) setActiveTab("admin-logs");
     else if (role === UserRole.AI) setActiveTab("ai-overview");
     setIsLoggedIn(true);
@@ -59,8 +53,8 @@ function AppContent() {
 
   // Sync default tabs when role is switched from Navbar dropdown
   React.useEffect(() => {
-    if (activeRole === UserRole.STUDENT) setActiveTab("challenges");
-    else if (activeRole === UserRole.COMPANY) setActiveTab("company-home");
+    if (activeRole === UserRole.STUDENT) setActiveTab("project-marketplace");
+    else if (activeRole === UserRole.COMPANY) setActiveTab("create-challenge");
     else if (activeRole === UserRole.ADMIN) setActiveTab("admin-logs");
     else if (activeRole === UserRole.AI) setActiveTab("ai-overview");
   }, [activeRole]);
@@ -112,16 +106,10 @@ function AppContent() {
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {/* Dynamic central workspace */}
-        <main className="flex-1 flex flex-col min-w-0">
+        <main className="flex min-w-0 flex-1 flex-col pb-24 md:pb-0">
           <Suspense fallback={<WorkspaceLoading />}>
           {activeTab === "trust-operations" ? (
             <TrustOperationsCenter />
-          ) : activeTab === "design-system" ? (
-            <DesignSystemShowcase />
-          ) : activeTab === "identity-center" ? (
-            <IdentityCenter />
-          ) : activeTab === "intelligence-center" ? (
-            <IntelligenceCenter />
           ) : (
             <>
               {activeRole === UserRole.STUDENT && (
@@ -130,12 +118,7 @@ function AppContent() {
               {activeRole === UserRole.COMPANY && (
                 <CompanyDashboard activeTab={activeTab} onNavigate={setActiveTab} />
               )}
-              {activeRole === UserRole.ADMIN && (
-                <AdminDashboard activeTab={activeTab} />
-              )}
-              {activeRole === UserRole.AI && (
-                <AiAgentWorkspace activeTab={activeTab} />
-              )}
+              {activeRole !== UserRole.STUDENT && activeRole !== UserRole.COMPANY && <TrustOperationsCenter />}
             </>
           )}
           </Suspense>
@@ -149,9 +132,7 @@ export default function App() {
   return (
     <ToastProvider>
       <AppProvider>
-        <AiDataProvider>
-          <AppContent />
-        </AiDataProvider>
+        <AppContent />
       </AppProvider>
     </ToastProvider>
   );

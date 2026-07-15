@@ -6,14 +6,7 @@ import {
   Mail, 
   Lock, 
   ArrowRight, 
-  Sparkles, 
-  Shield, 
-  Clock, 
-  History, 
-  Check, 
-  Smartphone, 
-  X,
-  AlertCircle
+  X
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
 import { updatePassword } from "../../lib/supabaseAuth";
@@ -37,22 +30,13 @@ export default function AuthModal({
   const { success, info, error } = useToast();
   
   const recoveryLink = typeof window !== "undefined" && (window.location.hash.includes("type=recovery") || window.location.search.includes("type=recovery"));
-  const [activeTab, setActiveTab] = useState<"login" | "forgot" | "verify" | "recovery">(recoveryLink ? "recovery" : initialTab === "forgot" ? "forgot" : "login");
+  const [activeTab, setActiveTab] = useState<"login" | "forgot" | "recovery">(recoveryLink ? "recovery" : initialTab === "forgot" ? "forgot" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [role, setRole] = useState<UserRole>(UserRole.STUDENT);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
-  const [showHistory, setShowHistory] = useState(false);
-
-  // Simulated Login History for premium transparency
-  const loginHistory = [
-    { device: "Chrome (macOS)", location: "Seoul, KR", time: "Just now (Active)", ip: "210.123.45.67", current: true },
-    { device: "Safari (iPhone 15)", location: "San Francisco, US", time: "2 hours ago", ip: "172.56.99.12" },
-    { device: "Vercel Build Agent", location: "Tokyo, JP", time: "Yesterday", ip: "13.102.14.250" },
-  ];
 
   if (!isOpen) return null;
 
@@ -124,25 +108,6 @@ export default function AuthModal({
     }
   };
 
-  const handleSendVerificationCode = () => {
-    if (!email.trim()) {
-      error("Email required", "Please enter your email address first.");
-      return;
-    }
-    info("Verification Sent", "A 6-digit confirmation code was sent to your email.");
-    setActiveTab("verify");
-  };
-
-  const handleVerifyCodeSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (verificationCode.length !== 6) {
-      error("Invalid code", "Verification code must be exactly 6 digits.");
-      return;
-    }
-    success("Email Verified", "Your corporate email status is now verified.");
-    setActiveTab("login");
-  };
-
   return (
     <div id="auth-modal-overlay" className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Dark overlay with premium blur */}
@@ -180,13 +145,11 @@ export default function AuthModal({
               {activeTab === "login" && "Welcome back to KONEXA"}
               {activeTab === "forgot" && "Reset your password"}
               {activeTab === "recovery" && "Choose a new password"}
-              {activeTab === "verify" && "Verify email address"}
             </h3>
             <p className="font-sans text-xs text-neutral-400 mt-1 max-w-[280px]">
               {activeTab === "login" && "The secure standard for global technical talent and corporate matching."}
               {activeTab === "forgot" && "We will email you a secure recovery link."}
               {activeTab === "recovery" && "Set a new password for your verified KONEXA account."}
-              {activeTab === "verify" && "Input the security verification token dispatched to your address."}
             </p>
           </div>
 
@@ -287,7 +250,7 @@ export default function AuthModal({
                   </div>
 
                   {/* Remember Me */}
-                  <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center pt-1">
                     <label className="flex items-center gap-2 text-xs font-sans text-neutral-500 select-none cursor-pointer">
                       <input
                         type="checkbox"
@@ -297,15 +260,6 @@ export default function AuthModal({
                       />
                       <span>Keep me authenticated</span>
                     </label>
-                    
-                    <button
-                      type="button"
-                      onClick={() => setShowHistory(!showHistory)}
-                      className="text-[10px] font-sans font-bold text-neutral-400 hover:text-black flex items-center gap-1 transition-colors cursor-pointer"
-                    >
-                      <History className="w-3.5 h-3.5" />
-                      <span>Security Log</span>
-                    </button>
                   </div>
 
                   {/* Submit Button */}
@@ -314,7 +268,7 @@ export default function AuthModal({
                     disabled={isSubmitting}
                     className="w-full h-11 rounded-xl bg-black hover:bg-neutral-800 disabled:bg-neutral-200 text-white font-sans text-xs font-semibold flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer mt-4"
                   >
-                    <span>{isSubmitting ? "Decrypting Session..." : "Authorize Sandbox Entry"}</span>
+                    <span>{isSubmitting ? "Signing in..." : "Sign in securely"}</span>
                     {!isSubmitting && <ArrowRight className="w-4 h-4" />}
                   </button>
                 </form>
@@ -400,89 +354,8 @@ export default function AuthModal({
                 </button>
               </motion.form>
             )}
-            {activeTab === "verify" && (
-              <motion.form
-                key="verify-view"
-                onSubmit={handleVerifyCodeSubmit}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-4"
-              >
-                <div className="bg-amber-50 border border-amber-200/50 p-4 rounded-2xl flex gap-3 text-amber-800 text-xs">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold">Email Verification Required</span>
-                    <p className="font-light text-amber-900/80 mt-0.5">Please check your inbox. Corporate verification requires safe validation of credentials.</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block text-center">6-Digit Security Token</label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
-                    placeholder="0 0 0 0 0 0"
-                    className="w-full h-12 bg-neutral-50 border border-neutral-200 rounded-xl text-center font-mono text-xl font-extrabold tracking-[0.5em] focus:outline-hidden focus:border-black"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("login")}
-                    className="flex-1 h-11 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600 font-sans text-xs font-semibold cursor-pointer transition-colors"
-                  >
-                    Return
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={verificationCode.length !== 6}
-                    className="flex-1 h-11 rounded-xl bg-black hover:bg-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-300 text-white font-sans text-xs font-semibold cursor-pointer transition-colors"
-                  >
-                    Verify & Validate
-                  </button>
-                </div>
-              </motion.form>
-            )}
           </AnimatePresence>
 
-          {/* Diagnostics Session Log drawer */}
-          <AnimatePresence>
-            {showHistory && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="border-t border-neutral-100 mt-6 pt-4 overflow-hidden"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-widest">Active Device Sessions</span>
-                  <span className="flex items-center gap-1 text-[9px] font-sans font-bold text-green-600">
-                    <Shield className="w-3 h-3" />
-                    <span>Rate-limit secure</span>
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {loginHistory.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center p-2 rounded-xl bg-neutral-50 border border-neutral-200/50 text-[10px] font-sans text-neutral-500">
-                      <div>
-                        <div className="font-bold text-neutral-700 flex items-center gap-1">
-                          <span>{item.device}</span>
-                          {item.current && <span className="w-1.5 h-1.5 rounded-full bg-green-500" />}
-                        </div>
-                        <div className="text-[9px] font-mono text-neutral-400 font-light">{item.location} • {item.ip}</div>
-                      </div>
-                      <span className="text-[9px] font-mono font-light text-neutral-400">{item.time}</span>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </motion.div>
     </div>

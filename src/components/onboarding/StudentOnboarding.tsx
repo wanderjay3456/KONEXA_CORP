@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useApp } from "../../context/AppContext";
 import { StudentProfile } from "../../types";
@@ -19,7 +19,6 @@ import {
   UploadCloud, 
   Sparkles, 
   Cpu, 
-  Clock, 
   ShieldCheck, 
   Lock, 
   Mail, 
@@ -51,25 +50,25 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
     nationality: studentProfile?.nationality || "South Korea",
     currentCountry: studentProfile?.currentCountry || "South Korea",
     university: studentProfile?.university || "",
-    degree: studentProfile?.degree || "Bachelor of Science",
+    degree: studentProfile?.degree || "",
     major: studentProfile?.major || "",
-    graduationYear: studentProfile?.graduationYear || "2026",
+    graduationYear: studentProfile?.graduationYear || "",
     studentId: studentProfile?.studentId || "",
-    languages: studentProfile?.languages || ["English", "Korean"],
-    englishLevel: studentProfile?.englishLevel || "Fluent",
-    koreanLevel: studentProfile?.koreanLevel || "Native",
-    skills: studentProfile?.skills || ["React", "TypeScript", "TailwindCSS"],
+    languages: studentProfile?.languages || [],
+    englishLevel: studentProfile?.englishLevel || "",
+    koreanLevel: studentProfile?.koreanLevel || "",
+    skills: studentProfile?.skills || [],
     certificates: studentProfile?.certificates || [],
-    github: studentProfile?.github || "https://github.com",
+    github: studentProfile?.github || "",
     portfolio: studentProfile?.portfolio || "",
     linkedin: studentProfile?.linkedin || "",
     resumeUrl: studentProfile?.resumeUrl || "",
-    careerInterests: studentProfile?.careerInterests || ["Frontend Engineering", "Fullstack Engineering"],
-    preferredIndustry: studentProfile?.preferredIndustry || "AI & SaaS",
-    preferredJob: studentProfile?.preferredJob || "Software Engineer",
+    careerInterests: studentProfile?.careerInterests || [],
+    preferredIndustry: studentProfile?.preferredIndustry || "",
+    preferredJob: studentProfile?.preferredJob || "",
     preferredCountry: studentProfile?.preferredCountry || "South Korea",
     preferredWeeklyPayKrw: studentProfile?.preferredWeeklyPayKrw,
-    availability: studentProfile?.availability || "Immediate (Full-time)",
+    availability: studentProfile?.availability || "",
     workPreference: studentProfile?.workPreference || "Remote",
     timezone: studentProfile?.timezone || "GMT+9 (Seoul)",
     bio: studentProfile?.bio || "",
@@ -78,7 +77,6 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
     privacySettings: studentProfile?.privacySettings || { publicProfile: true, showResume: true }
   });
 
-  const [autosaving, setAutosaving] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [termsAgreement, setTermsAgreement] = useState(false);
   const [proofFile, setProofFile] = useState<File | null>(null);
@@ -88,17 +86,6 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
   const [aiReport, setAiReport] = useState<any>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiStep, setAiStep] = useState(false);
-
-  // Auto-save simulations to represent Stripe/Linear aesthetics
-  useEffect(() => {
-    if (step > 1 && step <= totalSteps) {
-      setAutosaving(true);
-      const timer = setTimeout(() => {
-        setAutosaving(false);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [formData, step]);
 
   const updateField = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -188,7 +175,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
         ...uploadedFields,
         // Mark onboarding completed!
         onboardingCompleted: true,
-        trustScore: studentProfile?.trustScore ?? 80
+        trustScore: studentProfile?.trustScore ?? 0
       } as any;
 
       await updateStudentProfile(updatedProfile);
@@ -253,8 +240,8 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
             </div>
             
             <div className="flex items-center gap-2 text-xs text-neutral-400 font-mono bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl">
-              <Clock className={`w-3.5 h-3.5 ${autosaving ? "animate-spin text-teal-400" : "text-neutral-500"}`} />
-              <span>{autosaving ? "Syncing..." : "Saved securely"}</span>
+              <ShieldCheck className="h-3.5 w-3.5 text-neutral-500" />
+              <span>마지막 단계에서 저장됩니다</span>
             </div>
           </div>
 
@@ -950,7 +937,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                       <ShieldCheck className="w-4 h-4" />
                       <span>Gemini Technical Profile Audit</span>
                     </span>
-                    <span className="text-[9px] font-mono text-neutral-500">model ID: gemini-3.5-flash</span>
+                    <span className="text-[9px] font-mono text-neutral-500">Server-side Gemini analysis</span>
                   </div>
 
                   <div className="space-y-3 text-xs leading-relaxed font-light text-neutral-300">
