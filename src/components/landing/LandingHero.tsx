@@ -1,25 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
-  ArrowRight,
-  BadgeCheck,
-  BriefcaseBusiness,
-  Building2,
-  Check,
-  ChevronDown,
-  CircleDollarSign,
-  FileSignature,
-  Fingerprint,
-  Globe2,
-  LockKeyhole,
-  LogIn,
-  MessagesSquare,
-  Orbit,
-  ScanSearch,
-  ShieldCheck,
-  Sparkles,
-  UserRoundCheck,
-  Workflow,
+  ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, Check, ChevronDown,
+  CircleDollarSign, FileSignature, Globe2, LockKeyhole, LogIn, ShieldCheck,
+  Sparkles, Star, UserRoundCheck,
 } from "lucide-react";
 import { UserRole } from "../../types";
 import AuthModal from "../auth/AuthModal";
@@ -29,338 +13,229 @@ import { db } from "../../config/supabase";
 import { addDoc, collection } from "../../lib/supabaseStore";
 import { useToast } from "../ui/Toast";
 
-interface LandingHeroProps {
-  onEnterApp: (role: UserRole) => void;
-}
+interface LandingHeroProps { onEnterApp: (role: UserRole) => void }
+type Locale = "ko" | "en" | "vi";
 
-const TRUST_MODULES = [
-  {
-    icon: LockKeyhole,
-    eyebrow: "CONTROLLED DISCLOSURE",
-    title: "계약 전 연락처 보호",
-    description: "프로젝트 신청과 기본계약이 완료되기 전까지 직접 식별 가능한 연락처를 단계적으로 가립니다.",
+const copy = {
+  ko: {
+    nav: ["운영 구조", "진행 방식", "상호 리뷰"], login: "로그인", start: "시작하기",
+    badge: "한국 기업 × 글로벌 인재를 위한 신뢰 인프라",
+    title: <>실제 프로젝트가<br/><em>다음 커리어를 증명합니다.</em></>,
+    lead: "KONEXA는 기업과 글로벌 학생이 실제 결과물을 함께 만들고, 계약·결제·평가 기록을 검증 가능한 경력으로 연결하는 프로젝트 플랫폼입니다.",
+    studentCta: "학생으로 프로젝트 시작", companyCta: "기업 프로젝트 등록",
+    note: "연락처는 계약·양측 서명·PG 대금 확보 전까지 보호됩니다.",
+    ledger: "PROJECT TRUST TRAIL", live: "VERIFIED FLOW", candidate: "글로벌 제품 디자이너",
+    stages: [["프로필", "보호됨"], ["계약", "양측 서명"], ["결제", "PG 검증"], ["리뷰", "상호 봉인"]],
+    ribbon: ["검증된 업무 범위", "연락처 보호", "상호 봉인 리뷰", "공식 채용 전환"],
+    systemEyebrow: "TRUST, BY DESIGN", systemTitle: "좋은 매칭보다 중요한 건,\n좋은 협업이 남는 방식입니다.",
+    systemLead: "누구를 만났는지만 보여주지 않습니다. 무엇에 합의했고, 어떻게 일했고, 어떤 결과를 만들었는지 거래의 전 과정을 기록합니다.",
+    modules: [
+      ["01", "연락처 단계별 공개", "기본계약과 결제 검증 전에는 개인 이메일·전화번호·SNS를 숨겨 무단 접촉을 줄입니다."],
+      ["02", "명확한 범위와 계약", "결과물·수정 횟수·검수 기간·추가 업무를 계약 전에 고정하고 전자서명 이력을 남깁니다."],
+      ["03", "국내 PG 결제 검증", "KONEXA가 자금을 직접 보관하지 않고 등록 PG·에스크로의 결제 상태를 기준으로 진행합니다."],
+      ["04", "경력과 채용 전환", "완료 프로젝트는 Work Passport에 반영되고, 기업은 플랫폼 안에서 공식 채용을 제안할 수 있습니다."],
+    ],
+    flowEyebrow: "A CLEAR WAY TO WORK", flowTitle: "복잡한 국경 간 협업을\n네 단계로 단순하게.",
+    flow: [["01", "찾기", "검증된 기술·전공·언어·수행평가로 후보를 탐색합니다."], ["02", "합의하기", "업무 범위와 주급, 결과물, 검수 기준을 계약에 담습니다."], ["03", "안전하게 실행", "PG 결제 확인 후 협업을 시작하고 마일스톤을 기록합니다."], ["04", "증명하기", "양측 리뷰와 결과물이 경력 및 채용 전환의 근거가 됩니다."]],
+    reviewEyebrow: "MUTUAL REVIEW", reviewTitle: "먼저 쓴 사람이\n불리하지 않은 리뷰.",
+    reviewLead: "기업과 학생의 평가는 서로 봉인됩니다. 양쪽이 모두 제출한 뒤 동시에 공개되며, 검증된 결제 관계에서만 작성할 수 있습니다.",
+    companyReview: "업무 범위가 명확했고 피드백이 빨랐어요.", studentReview: "기대보다 완성도가 높고 소통이 안정적이었어요.", sealed: "상대방 제출 전까지 봉인", revealed: "양측 제출 후 동시 공개",
+    safeguards: ["검증 거래만 작성", "종료 전 상대 평가 비공개", "관리자 이의신청", "차별·보복 리뷰 제한"],
+    ctaTitle: "국경이 아니라, 실력으로 연결하세요.", ctaLead: "기업에는 검증된 실행력을, 학생에게는 증명 가능한 첫 경력을 만듭니다.",
+    email: "업데이트를 받을 이메일", join: "소식 받기", success: "등록되었습니다", successBody: "KONEXA 공개 소식을 이메일로 알려드릴게요.", error: "등록하지 못했습니다",
+    faqTitle: "자주 묻는 질문", faq: [
+      ["실제 결제와 정산이 가능한가요?", "국내 PG·에스크로 연동을 기준으로 준비 중입니다. 가맹점 계약과 운영 요건이 완료된 기능만 실결제로 활성화합니다."],
+      ["연락처는 언제 공개되나요?", "기본계약, 양측 서명, 등록 PG의 대금 확보가 확인된 관계에서 필요한 범위만 공개됩니다."],
+      ["리뷰는 서로 볼 수 있나요?", "한쪽이 먼저 제출해도 상대에게 보이지 않습니다. 양측 제출이 끝나면 동시에 공개되며 이의신청 절차를 제공합니다."],
+    ],
+    footer: "검증된 프로젝트가 국경을 넘어 커리어가 되는 곳.", rights: "KONEXA. All rights reserved.",
   },
-  {
-    icon: FileSignature,
-    eyebrow: "VERIFIED AGREEMENT",
-    title: "전자계약과 동의 기록",
-    description: "회원가입, 소개 요청, 프로젝트 계약의 동의를 분리해 남기고 계약 이력을 관계 단위로 관리합니다.",
+  en: {
+    nav: ["Trust system", "How it works", "Mutual reviews"], login: "Log in", start: "Get started",
+    badge: "Trust infrastructure for Korean teams and global talent",
+    title: <>Real work proves<br/><em>what comes next.</em></>,
+    lead: "KONEXA connects Korean companies with global students through real projects—and turns contracts, payments and outcomes into verified career evidence.",
+    studentCta: "Start as talent", companyCta: "Post a company project",
+    note: "Contact details stay protected until contract, signatures and PG payment verification are complete.",
+    ledger: "PROJECT TRUST TRAIL", live: "VERIFIED FLOW", candidate: "Global product designer",
+    stages: [["Profile", "Protected"], ["Contract", "Two-signed"], ["Payment", "PG verified"], ["Review", "Double-blind"]],
+    ribbon: ["Verified scope", "Protected contact", "Mutual reviews", "Direct hiring path"],
+    systemEyebrow: "TRUST, BY DESIGN", systemTitle: "A great match matters.\nA trustworthy trail matters more.",
+    systemLead: "We go beyond introductions. Every agreement, milestone, payment and outcome becomes part of a clear operating record.",
+    modules: [
+      ["01", "Progressive contact access", "Personal email, phone and social details stay hidden until the contract and payment gates are met."],
+      ["02", "Scope before work", "Deliverables, revisions, review periods and change requests are fixed before execution and signed electronically."],
+      ["03", "Domestic PG verification", "Funds are handled through a registered Korean PG or escrow provider—not held directly by KONEXA."],
+      ["04", "From proof to hiring", "Completed work builds a Work Passport and gives companies a compliant path to make a direct offer."],
+    ],
+    flowEyebrow: "A CLEAR WAY TO WORK", flowTitle: "Cross-border collaboration,\nmade clear in four steps.",
+    flow: [["01", "Discover", "Search by verified skills, study, language and performance."], ["02", "Agree", "Set weekly pay, scope, deliverables and review terms."], ["03", "Work safely", "Begin after payment verification and trace every milestone."], ["04", "Prove it", "Mutual reviews and outcomes become evidence for the next role."]],
+    reviewEyebrow: "MUTUAL REVIEW", reviewTitle: "A review system that\ndoesn't punish honesty.",
+    reviewLead: "Company and talent reviews stay sealed. They are revealed simultaneously only after both sides submit, and only for verified paid relationships.",
+    companyReview: "The scope was clear and feedback arrived quickly.", studentReview: "The quality exceeded expectations and communication stayed reliable.", sealed: "Sealed until the other side submits", revealed: "Revealed together after both submit",
+    safeguards: ["Verified transactions only", "Hidden before both submit", "Admin appeal route", "Anti-bias moderation"],
+    ctaTitle: "Connect by capability, not borders.", ctaLead: "Verified execution for companies. Career proof for global talent.",
+    email: "Email for launch updates", join: "Keep me posted", success: "You're on the list", successBody: "We'll send KONEXA launch updates to your inbox.", error: "Could not subscribe",
+    faqTitle: "Common questions", faq: [
+      ["Are real payments supported?", "The product is being prepared around a registered Korean PG and escrow provider. Real payments activate only after merchant and operational requirements are complete."],
+      ["When are contact details revealed?", "Only the necessary details are revealed after the base contract, both signatures and verified payment protection are complete."],
+      ["Can the other side see my review?", "Not before they submit theirs. Both reviews are revealed at the same time, with an appeal path for contested content."],
+    ],
+    footer: "Where verified projects become borderless careers.", rights: "KONEXA. All rights reserved.",
   },
-  {
-    icon: CircleDollarSign,
-    eyebrow: "PAYMENT EVIDENCE",
-    title: "PG 기반 결제 검증",
-    description: "국내 PG·에스크로 계약 완료 후 결제기관의 검증 결과를 기준으로 정산 상태를 전환합니다.",
+  vi: {
+    nav: ["Cơ chế tin cậy", "Quy trình", "Đánh giá hai chiều"], login: "Đăng nhập", start: "Bắt đầu",
+    badge: "Hạ tầng tin cậy cho doanh nghiệp Hàn Quốc và nhân tài toàn cầu",
+    title: <>Dự án thực chứng minh<br/><em>bước tiến tiếp theo.</em></>,
+    lead: "KONEXA kết nối doanh nghiệp Hàn Quốc với sinh viên quốc tế qua dự án thật, biến hợp đồng, thanh toán và kết quả thành hồ sơ nghề nghiệp được xác minh.",
+    studentCta: "Bắt đầu với vai trò sinh viên", companyCta: "Đăng dự án doanh nghiệp",
+    note: "Thông tin liên hệ được bảo vệ cho đến khi hoàn tất hợp đồng, chữ ký hai bên và xác minh thanh toán PG.",
+    ledger: "HỒ SƠ TIN CẬY DỰ ÁN", live: "QUY TRÌNH XÁC MINH", candidate: "Nhà thiết kế sản phẩm toàn cầu",
+    stages: [["Hồ sơ", "Được bảo vệ"], ["Hợp đồng", "Hai bên ký"], ["Thanh toán", "PG xác minh"], ["Đánh giá", "Niêm phong hai chiều"]],
+    ribbon: ["Phạm vi xác minh", "Bảo vệ liên hệ", "Đánh giá hai chiều", "Lộ trình tuyển dụng"],
+    systemEyebrow: "TIN CẬY TỪ THIẾT KẾ", systemTitle: "Ghép đúng người là quan trọng.\nDấu vết hợp tác còn quan trọng hơn.",
+    systemLead: "Không chỉ giới thiệu. Mọi thỏa thuận, cột mốc, thanh toán và kết quả đều được lưu thành hồ sơ vận hành rõ ràng.",
+    modules: [
+      ["01", "Mở liên hệ theo từng bước", "Email, số điện thoại và mạng xã hội được ẩn đến khi đủ điều kiện hợp đồng và thanh toán."],
+      ["02", "Chốt phạm vi trước", "Sản phẩm bàn giao, số lần sửa, thời gian duyệt và yêu cầu phát sinh được ký trước khi làm."],
+      ["03", "Xác minh PG tại Hàn Quốc", "Tiền đi qua nhà cung cấp PG hoặc ký quỹ được cấp phép, không do KONEXA trực tiếp giữ."],
+      ["04", "Từ minh chứng đến tuyển dụng", "Dự án hoàn thành xây dựng Work Passport và mở lộ trình đề nghị tuyển dụng chính thức."],
+    ],
+    flowEyebrow: "QUY TRÌNH RÕ RÀNG", flowTitle: "Hợp tác xuyên biên giới,\nrõ ràng trong bốn bước.",
+    flow: [["01", "Khám phá", "Tìm theo kỹ năng, ngành học, ngôn ngữ và kết quả đã xác minh."], ["02", "Thỏa thuận", "Chốt thù lao tuần, phạm vi, sản phẩm và tiêu chí duyệt."], ["03", "Làm việc an toàn", "Bắt đầu sau xác minh thanh toán và ghi lại từng cột mốc."], ["04", "Chứng minh", "Đánh giá hai chiều và kết quả tạo bằng chứng cho cơ hội tiếp theo."]],
+    reviewEyebrow: "ĐÁNH GIÁ HAI CHIỀU", reviewTitle: "Trung thực mà không\nsợ bất lợi.",
+    reviewLead: "Đánh giá của doanh nghiệp và sinh viên được niêm phong, chỉ mở đồng thời sau khi cả hai bên gửi và chỉ áp dụng cho giao dịch đã xác minh.",
+    companyReview: "Phạm vi rõ ràng và phản hồi rất nhanh.", studentReview: "Chất lượng vượt kỳ vọng, giao tiếp ổn định.", sealed: "Niêm phong đến khi bên kia gửi", revealed: "Mở đồng thời sau khi cả hai gửi",
+    safeguards: ["Chỉ giao dịch xác minh", "Ẩn trước khi đủ hai bên", "Có quy trình khiếu nại", "Kiểm duyệt chống thiên vị"],
+    ctaTitle: "Kết nối bằng năng lực, không phải biên giới.", ctaLead: "Năng lực đã xác minh cho doanh nghiệp. Minh chứng nghề nghiệp cho sinh viên.",
+    email: "Email nhận tin ra mắt", join: "Nhận thông tin", success: "Đã đăng ký", successBody: "Chúng tôi sẽ gửi tin ra mắt KONEXA qua email.", error: "Không thể đăng ký",
+    faqTitle: "Câu hỏi thường gặp", faq: [
+      ["Có hỗ trợ thanh toán thật không?", "Sản phẩm đang được chuẩn bị với PG và dịch vụ ký quỹ được cấp phép tại Hàn Quốc. Chỉ kích hoạt sau khi hoàn tất yêu cầu vận hành."],
+      ["Khi nào thông tin liên hệ được mở?", "Chỉ thông tin cần thiết được mở sau hợp đồng cơ bản, chữ ký hai bên và xác minh bảo vệ thanh toán."],
+      ["Bên kia có thấy đánh giá của tôi không?", "Không, cho đến khi họ cũng gửi. Hai đánh giá được mở cùng lúc và có quy trình khiếu nại."],
+    ],
+    footer: "Nơi dự án được xác minh trở thành sự nghiệp không biên giới.", rights: "KONEXA. Bảo lưu mọi quyền.",
   },
-  {
-    icon: ScanSearch,
-    eyebrow: "SCOPE TRACEABILITY",
-    title: "마일스톤과 결과물 기록",
-    description: "업무범위, 변경요청, 제출물, 검수 결과를 한 흐름에 남겨 프로젝트 분쟁 가능성을 낮춥니다.",
-  },
-  {
-    icon: MessagesSquare,
-    eyebrow: "SAFE COMMUNICATION",
-    title: "이탈거래 예방 장치",
-    description: "연락처·SNS 공유 시점과 반복 취소 패턴을 필요한 범위에서 점검하도록 설계했습니다.",
-  },
-  {
-    icon: UserRoundCheck,
-    eyebrow: "HIRING CONVERSION",
-    title: "공식 채용 전환 경로",
-    description: "숨길 이유를 줄이도록 채용 제안, 조건 협의, 수수료 견적, 비자 준비도 확인을 연결합니다.",
-  },
-] as const;
-
-const FLOW = [
-  { number: "01", label: "DISCOVER", title: "검증된 정보로 탐색", text: "연락처 대신 기술, 전공, 언어, 수행평가 중심으로 후보를 검토합니다." },
-  { number: "02", label: "AGREE", title: "범위와 조건을 합의", text: "결과물, 주당 투입, 수정 횟수, 검수기간을 계약 전에 명확히 고정합니다." },
-  { number: "03", label: "PROTECT", title: "계약과 결제를 확인", text: "양측 전자서명과 결제 검증이 충족된 뒤 필요한 정보와 프로젝트 권한을 엽니다." },
-  { number: "04", label: "PROVE", title: "경력과 채용으로 전환", text: "완료된 기록은 Work Passport와 공식 채용 제안 흐름의 근거가 됩니다." },
-] as const;
-
-const OPERATING_GUARDS = [
-  "월 프로젝트 비용 선결제 원칙",
-  "결과물 중심 업무범위 관리",
-  "최소권한·종료 즉시 접근 회수",
-  "AI·오픈소스 사용내역 공개",
-  "상호평가 이의신청 절차",
-  "E-7 사전 적합성 검토 표기",
-] as const;
-
-const FAQ = [
-  {
-    question: "지금 실제 결제와 정산이 가능한가요?",
-    answer: "결제 코드와 검증 구조는 국내 PG 연동을 기준으로 준비 중입니다. 실제 결제·에스크로 표시는 PG 가맹 심사, 운영 키 등록, 실결제 검증이 끝난 뒤에만 활성화됩니다.",
-  },
-  {
-    question: "기업은 학생의 연락처를 언제 볼 수 있나요?",
-    answer: "기본적으로 소개 요청, 양측 전자계약, 프로젝트 결제 확인 등 공개 조건을 충족한 관계에서만 필요한 범위의 연락처가 열립니다.",
-  },
-  {
-    question: "AI 평가만으로 채용 여부가 결정되나요?",
-    answer: "아닙니다. AI 결과는 보조 근거이며 프로젝트 기록, 결과물, 커뮤니케이션, 사람의 검토를 함께 사용합니다. 자동 점수만으로 최종 채용이나 비자 가능성을 보장하지 않습니다.",
-  },
-] as const;
+} as const;
 
 function Reveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number; key?: React.Key }) {
-  const reduceMotion = useReducedMotion();
-  return (
-    <motion.div
-      initial={reduceMotion ? false : { opacity: 0, y: 28 }}
-      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.18 }}
-      transition={{ duration: 0.75, delay, ease: [0.22, 1, 0.36, 1] }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
+  const reduced = useReducedMotion();
+  return <motion.div initial={reduced ? false : { opacity: 0, y: 28 }} whileInView={reduced ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true, amount: .16 }} transition={{ duration: .72, delay, ease: [.22, 1, .36, 1] }} className={className}>{children}</motion.div>;
+}
+
+function Wordmark() {
+  return <span className="konexa-wordmark" aria-label="KONEXA"><span>KONE</span><span className="wordmark-x">X</span><span>A</span></span>;
 }
 
 export default function LandingHero({ onEnterApp }: LandingHeroProps) {
-  const reduceMotion = useReducedMotion();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(
-    () => typeof window !== "undefined" && (window.location.hash.includes("type=recovery") || window.location.search.includes("type=recovery")),
-  );
+  const reduced = useReducedMotion();
+  const [locale, setLocale] = useState<Locale>(() => {
+    if (typeof window === "undefined") return "ko";
+    const saved = localStorage.getItem("konexa_locale") as Locale | null;
+    if (saved && ["ko", "en", "vi"].includes(saved)) return saved;
+    return navigator.language.startsWith("ko") ? "ko" : navigator.language.startsWith("vi") ? "vi" : "en";
+  });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(() => typeof window !== "undefined" && (location.hash.includes("type=recovery") || location.search.includes("type=recovery")));
   const [activeRegisterRole, setActiveRegisterRole] = useState<UserRole | null>(null);
   const [openFaq, setOpenFaq] = useState(0);
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [isWaitlistSubmitting, setIsWaitlistSubmitting] = useState(false);
   const { success, error } = useToast();
+  const t = copy[locale];
 
-  const handleWaitlistSubmit = async (event: React.FormEvent) => {
+  useEffect(() => {
+    localStorage.setItem("konexa_locale", locale);
+    document.documentElement.lang = locale;
+  }, [locale]);
+
+  const modules = useMemo(() => [LockKeyhole, FileSignature, CircleDollarSign, UserRoundCheck], []);
+  const submitWaitlist = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!waitlistEmail.trim()) return;
     setIsWaitlistSubmitting(true);
     try {
-      await addDoc(collection(db, "waitlist"), { email: waitlistEmail.trim(), createdAt: Date.now() });
-      setWaitlistEmail("");
-      success("등록되었습니다", "KONEXA의 정식 공개 소식을 이메일로 알려드리겠습니다.");
-    } catch (submissionError) {
-      error("등록하지 못했습니다", submissionError instanceof Error ? submissionError.message : "잠시 후 다시 시도해 주세요.");
-    } finally {
-      setIsWaitlistSubmitting(false);
-    }
+      await addDoc(collection(db, "waitlist"), { email: waitlistEmail.trim(), locale, createdAt: Date.now() });
+      setWaitlistEmail(""); success(t.success, t.successBody);
+    } catch (cause) {
+      error(t.error, cause instanceof Error ? cause.message : "Please try again.");
+    } finally { setIsWaitlistSubmitting(false); }
   };
 
-  const enterApp = (role: UserRole) => onEnterApp(role);
+  return <div id="landing-master" className="konexa-light min-h-screen overflow-hidden text-[#17342d] selection:bg-[#b9f4d0] selection:text-[#17342d]">
+    <AnimatePresence mode="wait">
+      {activeRegisterRole ? <motion.main key="registration" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="min-h-screen bg-[#f7f6f1] text-neutral-900">
+        {activeRegisterRole === UserRole.STUDENT
+          ? <StudentRegisterForm onCancel={() => setActiveRegisterRole(null)} onSuccess={() => onEnterApp(UserRole.STUDENT)} />
+          : <CompanyRegisterForm onCancel={() => setActiveRegisterRole(null)} onSuccess={() => onEnterApp(UserRole.COMPANY)} />}
+      </motion.main> : <motion.div key="landing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+        <div className="film-grain-light" aria-hidden="true" />
+        <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-6">
+          <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-[#17342d]/10 bg-[#fbfaf6]/88 px-4 py-2.5 shadow-[0_12px_40px_rgba(23,52,45,.08)] backdrop-blur-xl sm:px-5" aria-label="Primary navigation">
+            <button onClick={() => scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" })} className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#17342d] text-xs font-black text-white">K</span><Wordmark /></button>
+            <div className="hidden items-center gap-7 text-xs font-bold text-[#47655d] lg:flex"><a href="#system">{t.nav[0]}</a><a href="#workflow">{t.nav[1]}</a><a href="#reviews">{t.nav[2]}</a></div>
+            <div className="flex items-center gap-1.5">
+              <div className="flex rounded-full bg-[#17342d]/5 p-1" aria-label="Language">
+                {(["ko", "en", "vi"] as Locale[]).map((item) => <button key={item} onClick={() => setLocale(item)} aria-pressed={locale === item} className={`rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-wider transition sm:px-2.5 ${locale === item ? "bg-white text-[#17342d] shadow-sm" : "text-[#6f847f] hover:text-[#17342d]"}`}>{item}</button>)}
+              </div>
+              <button onClick={() => setIsAuthModalOpen(true)} className="hidden items-center gap-2 rounded-full px-3 py-2 text-xs font-bold sm:flex"><LogIn className="h-3.5 w-3.5" />{t.login}</button>
+              <button onClick={() => setActiveRegisterRole(UserRole.STUDENT)} className="rounded-full bg-[#17342d] px-3.5 py-2.5 text-[11px] font-black text-white transition hover:-translate-y-0.5 hover:bg-[#284e44] sm:px-5">{t.start}</button>
+            </div>
+          </nav>
+        </header>
 
-  return (
-    <div id="landing-master" className="konexa-cinema min-h-screen overflow-hidden bg-[#050706] text-white selection:bg-[#b9ff66] selection:text-[#071006]">
-      <AnimatePresence mode="wait">
-        {activeRegisterRole ? (
-          <motion.main
-            key="registration"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -18 }}
-            className="relative z-20 min-h-screen bg-neutral-50 text-neutral-900"
-          >
-            {activeRegisterRole === UserRole.STUDENT ? (
-              <StudentRegisterForm onCancel={() => setActiveRegisterRole(null)} onSuccess={() => enterApp(UserRole.STUDENT)} />
-            ) : (
-              <CompanyRegisterForm onCancel={() => setActiveRegisterRole(null)} onSuccess={() => enterApp(UserRole.COMPANY)} />
-            )}
-          </motion.main>
-        ) : (
-          <motion.div key="landing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="cinema-noise" aria-hidden="true" />
-            <div className="cinema-aurora cinema-aurora-one" aria-hidden="true" />
-            <div className="cinema-aurora cinema-aurora-two" aria-hidden="true" />
+        <main>
+          <section className="relative flex min-h-[880px] items-center px-5 pb-24 pt-32 sm:px-8 lg:min-h-screen">
+            <div className="kinetic-wash" aria-hidden="true" />
+            <div className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-14 lg:grid-cols-[1.08fr_.92fr]">
+              <div>
+                <motion.div initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#17342d]/10 bg-white/65 px-3 py-1.5 text-[10px] font-black uppercase tracking-[.12em] text-[#365b51]"><Sparkles className="h-3.5 w-3.5 text-[#4361ee]" />{t.badge}</motion.div>
+                <motion.h1 initial={reduced ? false : { opacity: 0, y: 25 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .85, ease: [.22, 1, .36, 1] }} className="max-w-4xl font-display text-[clamp(3.35rem,7.2vw,7.3rem)] font-bold leading-[.91] tracking-[-.072em] text-[#17342d] [&_em]:font-normal [&_em]:not-italic [&_em]:text-[#4361ee]">{t.title}</motion.h1>
+                <motion.p initial={reduced ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .16 }} className="mt-8 max-w-xl text-base leading-8 text-[#557069] sm:text-lg">{t.lead}</motion.p>
+                <motion.div initial={reduced ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .26 }} className="mt-9 flex flex-col gap-3 sm:flex-row">
+                  <button onClick={() => setActiveRegisterRole(UserRole.STUDENT)} className="group inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-[#17342d] px-6 text-sm font-black text-white shadow-[0_18px_45px_rgba(23,52,45,.16)] transition hover:-translate-y-1"><UserRoundCheck className="h-4 w-4 text-[#b9f4d0]" />{t.studentCta}<ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></button>
+                  <button onClick={() => setActiveRegisterRole(UserRole.COMPANY)} className="inline-flex min-h-14 items-center justify-center gap-3 rounded-full border border-[#17342d]/14 bg-white/65 px-6 text-sm font-black transition hover:-translate-y-1 hover:bg-white"><Building2 className="h-4 w-4 text-[#4361ee]" />{t.companyCta}</button>
+                </motion.div>
+                <p className="mt-5 flex max-w-xl items-start gap-2 text-xs leading-5 text-[#718780]"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#2d8c69]" />{t.note}</p>
+              </div>
 
-            <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6">
-              <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-2xl border border-white/10 bg-[#070a08]/70 px-4 py-3 shadow-2xl shadow-black/30 backdrop-blur-xl sm:px-5" aria-label="주요 메뉴">
-                <button className="flex items-center gap-3" onClick={() => window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })} aria-label="KONEXA 홈">
-                  <span className="grid h-9 w-9 place-items-center rounded-xl border border-[#b9ff66]/30 bg-[#b9ff66] font-display text-sm font-black text-[#071006] shadow-[0_0_24px_rgba(185,255,102,.16)]">K</span>
-                  <span className="font-display text-sm font-bold tracking-[0.18em]">KONEXA</span>
-                </button>
-                <div className="hidden items-center gap-8 text-xs font-semibold text-white/55 md:flex">
-                  <a href="#system" className="transition-colors hover:text-white">운영 구조</a>
-                  <a href="#workflow" className="transition-colors hover:text-white">진행 방식</a>
-                  <a href="#safety" className="transition-colors hover:text-white">보호 장치</a>
+              <motion.div initial={reduced ? false : { opacity: 0, y: 30, rotate: 2 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ duration: 1, delay: .18, ease: [.22, 1, .36, 1] }} className="relative mx-auto w-full max-w-[560px]">
+                <div className="absolute -inset-10 rounded-full bg-[#b9f4d0]/40 blur-3xl" />
+                <div className="proof-sheet relative overflow-hidden rounded-[2.2rem] border border-[#17342d]/10 bg-[#fffefb]/92 p-5 shadow-[0_35px_100px_rgba(23,52,45,.16)] sm:p-7">
+                  <div className="flex items-center justify-between border-b border-[#17342d]/10 pb-5"><div><div className="font-mono text-[9px] font-bold tracking-[.18em] text-[#6f847f]">{t.ledger}</div><div className="mt-2 font-display text-xl font-bold tracking-[-.03em]">{t.candidate}</div></div><span className="rounded-full bg-[#dff8ea] px-3 py-1.5 text-[9px] font-black text-[#23644e]">{t.live}</span></div>
+                  <div className="my-6 rounded-[1.6rem] bg-[#edf0ff] p-5 sm:p-6"><div className="flex items-center justify-between"><div className="grid h-12 w-12 place-items-center rounded-full bg-[#4361ee] text-white"><BadgeCheck className="h-6 w-6" /></div><div className="font-mono text-[10px] font-bold text-[#4361ee]">RELATIONSHIP / KX-084</div></div><div className="mt-8 proof-line"><span /><span /><span /><span /></div></div>
+                  <div className="grid grid-cols-2 gap-3">{t.stages.map(([label, value], index) => <motion.div key={label} animate={reduced ? undefined : { y: [0, index % 2 ? -4 : 4, 0] }} transition={{ duration: 5 + index, repeat: Infinity, ease: "easeInOut" }} className="rounded-2xl border border-[#17342d]/8 bg-white p-4"><div className="text-[10px] font-bold text-[#80918c]">0{index + 1} / {label}</div><div className="mt-3 flex items-center gap-2 text-xs font-black"><Check className="h-3.5 w-3.5 text-[#2d8c69]" />{value}</div></motion.div>)}</div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setIsAuthModalOpen(true)} className="hidden items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/5 hover:text-white sm:flex">
-                    <LogIn className="h-4 w-4" /> 로그인
-                  </button>
-                  <button onClick={() => setActiveRegisterRole(UserRole.STUDENT)} className="rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-black transition hover:bg-[#b9ff66]">
-                    시작하기
-                  </button>
-                </div>
-              </nav>
-            </header>
+              </motion.div>
+            </div>
+          </section>
 
-            <main>
-              <section className="relative mx-auto flex min-h-[900px] max-w-[1500px] items-center px-5 pb-20 pt-32 sm:px-8 lg:min-h-screen lg:px-12">
-                <div className="cinema-grid" aria-hidden="true" />
-                <div className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-14 lg:grid-cols-[1.08fr_.92fr]">
-                  <div>
-                    <motion.div
-                      initial={reduceMotion ? false : { opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.7 }}
-                      className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#b9ff66]/20 bg-[#b9ff66]/8 px-3 py-1.5 font-mono text-[10px] font-bold tracking-[0.16em] text-[#d8ff9e]"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#b9ff66] shadow-[0_0_10px_#b9ff66]" />
-                      VERIFIED PROJECT → TRUST → HIRING
-                    </motion.div>
-                    <motion.h1
-                      initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.9, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-                      className="max-w-4xl font-display text-[clamp(3.2rem,7vw,7.1rem)] font-semibold leading-[.91] tracking-[-0.065em]"
-                    >
-                      경력이 아니라,
-                      <span className="mt-2 block bg-gradient-to-r from-[#b9ff66] via-[#7fffd4] to-[#81a7ff] bg-clip-text text-transparent">증명된 일로.</span>
-                    </motion.h1>
-                    <motion.p
-                      initial={reduceMotion ? false : { opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.8, delay: 0.2 }}
-                      className="mt-8 max-w-xl text-base leading-8 text-white/58 sm:text-lg"
-                    >
-                      한국 기업과 글로벌 학생 인재가 실제 프로젝트를 통해 역량을 검증하고, 계약·결제·채용 전환 기록을 하나의 신뢰 흐름으로 만드는 워크 플랫폼입니다.
-                    </motion.p>
-                    <motion.div
-                      initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.8, delay: 0.3 }}
-                      className="mt-10 flex flex-col gap-3 sm:flex-row"
-                    >
-                      <button onClick={() => setActiveRegisterRole(UserRole.STUDENT)} className="group inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-[#b9ff66] px-6 text-sm font-black text-[#071006] shadow-[0_18px_50px_rgba(185,255,102,.15)] transition hover:-translate-y-0.5 hover:bg-white">
-                        학생으로 프로젝트 시작 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                      </button>
-                      <button onClick={() => setActiveRegisterRole(UserRole.COMPANY)} className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/5 px-6 text-sm font-bold text-white transition hover:border-white/25 hover:bg-white/9">
-                        <Building2 className="h-4 w-4 text-[#7fffd4]" /> 기업 프로젝트 등록
-                      </button>
-                    </motion.div>
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.55 }} className="mt-5 flex items-center gap-2 text-xs text-white/35">
-                      <ShieldCheck className="h-3.5 w-3.5 text-[#b9ff66]" /> 국내 PG·에스크로는 가맹 심사와 실결제 검증 후 활성화됩니다.
-                    </motion.p>
-                  </div>
+          <div className="ticker border-y border-[#17342d]/10 bg-[#17342d] py-4 text-[#f8f5eb]"><div className="ticker-track">{[...t.ribbon, ...t.ribbon].map((item, index) => <span key={`${item}-${index}`}><Sparkles className="h-3 w-3 text-[#b9f4d0]" />{item}</span>)}</div></div>
 
-                  <motion.div
-                    initial={reduceMotion ? false : { opacity: 0, scale: 0.94, rotateY: -8 }}
-                    animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                    transition={{ duration: 1.1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                    className="relative mx-auto w-full max-w-[560px] [perspective:1200px]"
-                  >
-                    <div className="absolute -inset-12 rounded-full bg-[#33d6a6]/10 blur-[90px]" />
-                    <div className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-[#0b0f0d]/88 p-3 shadow-[0_50px_120px_rgba(0,0,0,.6)] backdrop-blur-2xl sm:p-5">
-                      <div className="flex items-center justify-between border-b border-white/8 px-2 pb-4">
-                        <div className="flex items-center gap-2 font-mono text-[9px] tracking-[.15em] text-white/40"><Orbit className="h-3.5 w-3.5 text-[#7fffd4]" /> TRUST RELATIONSHIP / 08A7</div>
-                        <span className="rounded-full bg-[#b9ff66]/10 px-2 py-1 text-[9px] font-bold text-[#d8ff9e]">LIVE WORKFLOW</span>
-                      </div>
-                      <div className="relative my-7 grid place-items-center py-8">
-                        <motion.div animate={reduceMotion ? undefined : { rotate: 360 }} transition={{ duration: 28, ease: "linear", repeat: Infinity }} className="absolute h-60 w-60 rounded-full border border-dashed border-[#7fffd4]/16" />
-                        <motion.div animate={reduceMotion ? undefined : { rotate: -360 }} transition={{ duration: 20, ease: "linear", repeat: Infinity }} className="absolute h-44 w-44 rounded-full border border-[#b9ff66]/14" />
-                        <div className="relative z-10 grid h-28 w-28 place-items-center rounded-full border border-[#b9ff66]/25 bg-gradient-to-br from-[#b9ff66]/14 to-[#7fffd4]/5 shadow-[0_0_50px_rgba(185,255,102,.12)]">
-                          <div className="text-center"><Fingerprint className="mx-auto h-7 w-7 text-[#b9ff66]" /><div className="mt-2 font-mono text-[9px] font-bold tracking-[.12em] text-white/70">VERIFIED</div></div>
-                        </div>
-                        <div className="absolute left-3 top-4 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-[10px] text-white/55 backdrop-blur"><span className="mr-2 text-[#7fffd4]">01</span>PROFILE</div>
-                        <div className="absolute bottom-3 right-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-[10px] text-white/55 backdrop-blur"><span className="mr-2 text-[#b9ff66]">04</span>WORK PASSPORT</div>
-                      </div>
-                      <div className="grid gap-2 sm:grid-cols-3">
-                        {[
-                          ["CONTACT", "LOCKED", LockKeyhole],
-                          ["CONTRACT", "2-SIGN", FileSignature],
-                          ["PAYMENT", "PG SETUP", CircleDollarSign],
-                        ].map(([label, value, Icon]) => (
-                          <div key={String(label)} className="rounded-2xl border border-white/8 bg-white/[.035] p-3.5">
-                            <Icon className="mb-4 h-4 w-4 text-[#7fffd4]" />
-                            <div className="font-mono text-[8px] tracking-[.14em] text-white/30">{label as string}</div>
-                            <div className="mt-1 text-xs font-bold text-white/80">{value as string}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-                <div className="absolute bottom-7 left-1/2 hidden -translate-x-1/2 items-center gap-3 font-mono text-[9px] tracking-[.22em] text-white/25 lg:flex"><span className="h-px w-10 bg-white/15" /> SCROLL TO TRACE THE SYSTEM <span className="h-px w-10 bg-white/15" /></div>
-              </section>
+          <section id="system" className="px-5 py-24 sm:px-8 lg:py-36"><div className="mx-auto max-w-7xl">
+            <Reveal className="grid gap-8 lg:grid-cols-[.7fr_1.3fr]"><div className="font-mono text-[10px] font-bold tracking-[.18em] text-[#4361ee]">01 / {t.systemEyebrow}</div><div><h2 className="whitespace-pre-line font-display text-4xl font-bold leading-[1.02] tracking-[-.05em] sm:text-6xl">{t.systemTitle}</h2><p className="mt-6 max-w-2xl text-base leading-8 text-[#617972]">{t.systemLead}</p></div></Reveal>
+            <div className="mt-16 grid gap-x-8 gap-y-4 md:grid-cols-2">{t.modules.map(([number, title, body], index) => { const Icon = modules[index]; return <Reveal key={number} delay={index * .05} className={`group border-t border-[#17342d]/15 py-8 ${index % 2 ? "md:translate-y-14" : ""}`}><div className="flex items-start gap-5"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#e9edff] text-[#4361ee]"><Icon className="h-5 w-5" /></span><div><span className="font-mono text-[9px] font-bold text-[#8b9a95]">{number}</span><h3 className="mt-2 font-display text-xl font-bold tracking-[-.025em]">{title}</h3><p className="mt-3 text-sm leading-7 text-[#667c76]">{body}</p></div></div></Reveal>})}</div>
+          </div></section>
 
-              <section id="system" className="relative border-y border-white/8 bg-white/[.018] px-5 py-24 sm:px-8 lg:py-32">
-                <div className="mx-auto max-w-7xl">
-                  <Reveal className="grid gap-8 lg:grid-cols-[.75fr_1.25fr] lg:items-end">
-                    <div className="font-mono text-[10px] font-bold tracking-[.2em] text-[#b9ff66]">01 / TRUST INFRASTRUCTURE</div>
-                    <div>
-                      <h2 className="font-display text-4xl font-semibold leading-[1.04] tracking-[-.045em] sm:text-6xl">소개부터 채용까지,<br /><span className="text-white/38">신뢰가 끊기지 않도록.</span></h2>
-                      <p className="mt-6 max-w-2xl leading-7 text-white/48">단순 매칭 목록이 아니라 누가, 언제, 무엇에 동의했고 어떤 결과를 만들었는지 증명할 수 있는 운영 구조를 설계합니다.</p>
-                    </div>
-                  </Reveal>
-                  <div className="mt-16 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                    {TRUST_MODULES.map((module, index) => (
-                      <Reveal key={module.title} delay={index * 0.05} className="group min-h-[270px] rounded-[1.65rem] border border-white/9 bg-gradient-to-b from-white/[.055] to-white/[.018] p-6 transition duration-500 hover:-translate-y-1 hover:border-[#b9ff66]/25 hover:bg-white/[.065]">
-                        <div className="flex items-start justify-between"><span className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-black/25"><module.icon className="h-5 w-5 text-[#7fffd4]" /></span><span className="font-mono text-[9px] text-white/18">0{index + 1}</span></div>
-                        <div className="mt-10 font-mono text-[9px] font-bold tracking-[.16em] text-[#b9ff66]/70">{module.eyebrow}</div>
-                        <h3 className="mt-2 font-display text-xl font-semibold tracking-[-.025em]">{module.title}</h3>
-                        <p className="mt-3 text-sm leading-6 text-white/42">{module.description}</p>
-                      </Reveal>
-                    ))}
-                  </div>
-                </div>
-              </section>
+          <section id="workflow" className="rounded-t-[3rem] bg-[#eaf0ff] px-5 py-24 sm:px-8 lg:py-32"><div className="mx-auto max-w-7xl">
+            <Reveal><div className="font-mono text-[10px] font-bold tracking-[.18em] text-[#4361ee]">02 / {t.flowEyebrow}</div><h2 className="mt-5 whitespace-pre-line font-display text-4xl font-bold leading-[1.03] tracking-[-.05em] sm:text-6xl">{t.flowTitle}</h2></Reveal>
+            <div className="mt-16 grid gap-3 lg:grid-cols-4">{t.flow.map(([number, title, body], index) => <Reveal key={number} delay={index * .07} className="min-h-[285px] rounded-[1.8rem] bg-[#fffefb] p-6 shadow-[0_12px_36px_rgba(67,97,238,.06)]"><div className="font-display text-5xl font-light tracking-[-.06em] text-[#aab6ef]">{number}</div><h3 className="mt-16 font-display text-xl font-bold">{title}</h3><p className="mt-3 text-sm leading-6 text-[#657773]">{body}</p></Reveal>)}</div>
+          </div></section>
 
-              <section id="workflow" className="relative px-5 py-24 sm:px-8 lg:py-36">
-                <div className="mx-auto max-w-7xl">
-                  <Reveal className="max-w-3xl"><div className="font-mono text-[10px] font-bold tracking-[.2em] text-[#7fffd4]">02 / ONE RELATIONSHIP, ONE LEDGER</div><h2 className="mt-6 font-display text-4xl font-semibold leading-[1.05] tracking-[-.045em] sm:text-6xl">일의 흐름 자체가<br />검증 가능한 경력이 됩니다.</h2></Reveal>
-                  <div className="relative mt-16">
-                    <div className="absolute left-[19px] top-0 h-full w-px bg-gradient-to-b from-[#b9ff66] via-[#7fffd4]/40 to-transparent md:left-0 md:top-[23px] md:h-px md:w-full" />
-                    <div className="grid gap-10 md:grid-cols-4 md:gap-6">
-                      {FLOW.map((step, index) => (
-                        <Reveal key={step.number} delay={index * 0.08} className="relative pl-14 md:pl-0 md:pt-14">
-                          <span className="absolute left-0 top-0 grid h-10 w-10 place-items-center rounded-full border border-[#b9ff66]/35 bg-[#071006] font-mono text-[9px] font-bold text-[#d8ff9e] md:-top-5">{step.number}</span>
-                          <div className="font-mono text-[9px] font-bold tracking-[.18em] text-white/28">{step.label}</div>
-                          <h3 className="mt-3 font-display text-xl font-semibold">{step.title}</h3>
-                          <p className="mt-3 text-sm leading-6 text-white/42">{step.text}</p>
-                        </Reveal>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </section>
+          <section id="reviews" className="bg-[#17342d] px-5 py-24 text-white sm:px-8 lg:py-36"><div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[.85fr_1.15fr] lg:items-center">
+            <Reveal><div className="font-mono text-[10px] font-bold tracking-[.18em] text-[#b9f4d0]">03 / {t.reviewEyebrow}</div><h2 className="mt-5 whitespace-pre-line font-display text-4xl font-bold leading-[1.03] tracking-[-.05em] sm:text-6xl">{t.reviewTitle}</h2><p className="mt-7 max-w-xl text-base leading-8 text-white/62">{t.reviewLead}</p><div className="mt-8 grid grid-cols-2 gap-2">{t.safeguards.map(item => <div key={item} className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-[10px] font-bold text-white/70"><Check className="h-3 w-3 text-[#b9f4d0]" />{item}</div>)}</div></Reveal>
+            <Reveal className="relative min-h-[470px]" delay={.1}><div className="absolute inset-0 rounded-full bg-[#4361ee]/20 blur-3xl" /><div className="review-card absolute left-0 top-4 w-[82%] -rotate-3 rounded-[2rem] bg-[#f9f5e9] p-6 text-[#17342d] sm:p-8"><div className="flex justify-between"><span className="text-xs font-black">COMPANY REVIEW</span><div className="flex text-[#ff9d5c]">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}</div></div><p className="mt-10 font-display text-xl font-bold leading-8">“{t.companyReview}”</p><div className="mt-8 flex items-center gap-2 text-[10px] font-bold text-[#748781]"><LockKeyhole className="h-3.5 w-3.5" />{t.sealed}</div></div><div className="review-card absolute bottom-0 right-0 w-[82%] rotate-3 rounded-[2rem] bg-[#dfe6ff] p-6 text-[#17342d] shadow-[0_30px_70px_rgba(0,0,0,.22)] sm:p-8"><div className="flex justify-between"><span className="text-xs font-black">TALENT REVIEW</span><BadgeCheck className="h-5 w-5 text-[#4361ee]" /></div><p className="mt-10 font-display text-xl font-bold leading-8">“{t.studentReview}”</p><div className="mt-8 flex items-center gap-2 text-[10px] font-bold text-[#4361ee]"><Globe2 className="h-3.5 w-3.5" />{t.revealed}</div></div></Reveal>
+          </div></section>
 
-              <section id="safety" className="px-5 pb-24 sm:px-8 lg:pb-36">
-                <Reveal className="mx-auto grid max-w-7xl overflow-hidden rounded-[2.25rem] border border-white/10 bg-[#0b100d] lg:grid-cols-[1.05fr_.95fr]">
-                  <div className="relative p-7 sm:p-10 lg:p-14">
-                    <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-[#b9ff66]/8 blur-[80px]" />
-                    <div className="relative"><div className="font-mono text-[10px] font-bold tracking-[.2em] text-[#b9ff66]">03 / OPERATING GUARDRAILS</div><h2 className="mt-6 max-w-xl font-display text-4xl font-semibold leading-[1.05] tracking-[-.045em] sm:text-5xl">좋은 매칭보다 먼저,<br />안전한 운영을 설계합니다.</h2><p className="mt-6 max-w-xl text-sm leading-7 text-white/46">대금 미지급, 범위 확장, 정보 유출, 조기 이탈처럼 실제 프로젝트에서 더 자주 발생하는 위험을 운영 규칙과 시스템 기록으로 줄입니다.</p></div>
-                  </div>
-                  <div className="border-t border-white/8 bg-black/20 p-7 sm:p-10 lg:border-l lg:border-t-0 lg:p-14">
-                    <div className="space-y-3">{OPERATING_GUARDS.map((guard, index) => <div key={guard} className="flex items-center gap-4 rounded-2xl border border-white/7 bg-white/[.025] px-4 py-3.5"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#b9ff66]/10 font-mono text-[9px] text-[#b9ff66]">{String(index + 1).padStart(2, "0")}</span><span className="text-sm text-white/66">{guard}</span><Check className="ml-auto h-4 w-4 text-[#7fffd4]/60" /></div>)}</div>
-                  </div>
-                </Reveal>
-              </section>
+          <section className="px-5 py-24 sm:px-8 lg:py-32"><div className="mx-auto max-w-5xl">
+            <Reveal><h2 className="text-center font-display text-3xl font-bold tracking-[-.04em] sm:text-5xl">{t.faqTitle}</h2></Reveal><div className="mt-12 border-t border-[#17342d]/15">{t.faq.map(([question, answer], index) => <div key={question} className="border-b border-[#17342d]/15"><button onClick={() => setOpenFaq(openFaq === index ? -1 : index)} className="flex w-full items-center justify-between gap-4 py-6 text-left font-display text-base font-bold sm:text-lg"><span>{question}</span><ChevronDown className={`h-5 w-5 shrink-0 transition ${openFaq === index ? "rotate-180" : ""}`} /></button><AnimatePresence>{openFaq === index && <motion.p initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden pb-6 pr-10 text-sm leading-7 text-[#617972]">{answer}</motion.p>}</AnimatePresence></div>)}</div>
+          </div></section>
 
-              <section className="border-y border-white/8 bg-white/[.018] px-5 py-24 sm:px-8">
-                <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[.8fr_1.2fr]">
-                  <Reveal><div className="font-mono text-[10px] font-bold tracking-[.2em] text-[#7fffd4]">04 / CLEAR ANSWERS</div><h2 className="mt-6 font-display text-4xl font-semibold tracking-[-.045em] sm:text-5xl">출시 상태를<br />과장하지 않습니다.</h2><p className="mt-5 max-w-md text-sm leading-7 text-white/42">KONEXA는 구현된 기능과 외부 심사 완료가 필요한 기능을 명확히 구분해 안내합니다.</p></Reveal>
-                  <div className="space-y-3">{FAQ.map((item, index) => <Reveal key={item.question} delay={index * 0.05}><div className="overflow-hidden rounded-2xl border border-white/9 bg-white/[.025]"><button className="flex w-full items-center justify-between gap-4 p-5 text-left text-sm font-bold sm:p-6" onClick={() => setOpenFaq(openFaq === index ? -1 : index)} aria-expanded={openFaq === index}>{item.question}<ChevronDown className={`h-4 w-4 shrink-0 text-white/35 transition-transform ${openFaq === index ? "rotate-180" : ""}`} /></button><AnimatePresence initial={false}>{openFaq === index && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}><p className="border-t border-white/7 px-5 py-5 text-sm leading-7 text-white/44 sm:px-6">{item.answer}</p></motion.div>}</AnimatePresence></div></Reveal>)}</div>
-                </div>
-              </section>
+          <section className="px-4 pb-4 sm:px-6"><div className="mx-auto max-w-7xl overflow-hidden rounded-[2.5rem] bg-[#4361ee] px-6 py-16 text-center text-white sm:px-10 lg:py-24"><Reveal><BriefcaseBusiness className="mx-auto h-8 w-8 text-[#cfd6ff]" /><h2 className="mt-5 font-display text-4xl font-bold tracking-[-.05em] sm:text-6xl">{t.ctaTitle}</h2><p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-white/75 sm:text-base">{t.ctaLead}</p><form onSubmit={submitWaitlist} className="mx-auto mt-9 flex max-w-lg flex-col gap-2 rounded-[1.4rem] bg-white p-2 sm:flex-row"><input required type="email" value={waitlistEmail} onChange={e => setWaitlistEmail(e.target.value)} placeholder={t.email} className="h-12 flex-1 bg-transparent px-4 text-sm text-[#17342d] outline-none" /><button disabled={isWaitlistSubmitting} className="h-12 rounded-xl bg-[#17342d] px-6 text-xs font-black text-white disabled:opacity-50">{t.join}</button></form></Reveal></div></section>
+        </main>
 
-              <section className="relative px-5 py-28 text-center sm:px-8 lg:py-40">
-                <div className="absolute left-1/2 top-1/2 h-80 w-3/4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#33d6a6]/8 blur-[110px]" />
-                <Reveal className="relative mx-auto max-w-3xl"><Sparkles className="mx-auto h-6 w-6 text-[#b9ff66]" /><h2 className="mt-7 font-display text-4xl font-semibold leading-[1.02] tracking-[-.05em] sm:text-6xl">프로젝트가 경력이 되고,<br />경력이 채용으로 이어지도록.</h2><p className="mx-auto mt-6 max-w-xl text-sm leading-7 text-white/45">학생과 기업 중 현재 역할을 선택해 KONEXA의 검증형 워크플로우를 시작하세요.</p><div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row"><button onClick={() => setActiveRegisterRole(UserRole.STUDENT)} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#b9ff66] px-7 text-sm font-black text-[#071006] transition hover:bg-white">학생 계정 만들기 <ArrowRight className="h-4 w-4" /></button><button onClick={() => setActiveRegisterRole(UserRole.COMPANY)} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/5 px-7 text-sm font-bold transition hover:bg-white/10"><BriefcaseBusiness className="h-4 w-4" /> 기업 계정 만들기</button></div></Reveal>
-              </section>
-
-              <section className="border-t border-white/8 px-5 py-16 sm:px-8">
-                <div className="mx-auto grid max-w-7xl gap-8 rounded-[2rem] border border-white/9 bg-white/[.025] p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
-                  <div><div className="flex items-center gap-2 font-mono text-[9px] font-bold tracking-[.18em] text-[#7fffd4]"><Globe2 className="h-4 w-4" /> PRIVATE BETA UPDATE</div><h2 className="mt-3 font-display text-2xl font-semibold">정식 공개 알림 받기</h2><p className="mt-2 text-sm text-white/38">베타 운영과 PG 연동 검증이 완료되면 등록한 이메일로 알려드립니다.</p></div>
-                  <form onSubmit={handleWaitlistSubmit} className="flex w-full flex-col gap-2 sm:flex-row lg:w-[430px]"><label className="sr-only" htmlFor="waitlist-email">이메일</label><input id="waitlist-email" type="email" required value={waitlistEmail} onChange={(event) => setWaitlistEmail(event.target.value)} placeholder="name@company.com" className="h-13 min-w-0 flex-1 rounded-xl border border-white/10 bg-black/25 px-4 text-sm text-white outline-none transition placeholder:text-white/22 focus:border-[#b9ff66]/45" /><button disabled={isWaitlistSubmitting} className="h-13 rounded-xl bg-white px-5 text-sm font-black text-black transition hover:bg-[#b9ff66] disabled:opacity-50">{isWaitlistSubmitting ? "등록 중…" : "알림 신청"}</button></form>
-                </div>
-              </section>
-            </main>
-
-            <footer className="border-t border-white/8 px-5 py-10 text-xs text-white/30 sm:px-8">
-              <div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-xl bg-[#b9ff66] font-display font-black text-black">K</span><span className="font-display font-bold tracking-[.16em] text-white/75">KONEXA</span></div><p>검증된 프로젝트 기록을 연결하는 글로벌 워크 플랫폼</p><div className="flex items-center gap-2"><BadgeCheck className="h-4 w-4 text-[#7fffd4]" /> BETA / EXTERNAL PROVIDER REVIEW PENDING</div></div>
-            </footer>
-
-            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={() => enterApp(UserRole.STUDENT)} onSwitchToRegister={setActiveRegisterRole} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
+        <footer className="px-6 py-10"><div className="mx-auto flex max-w-7xl flex-col gap-5 border-t border-[#17342d]/10 pt-8 sm:flex-row sm:items-center sm:justify-between"><div><Wordmark /><p className="mt-2 text-xs text-[#71857f]">{t.footer}</p></div><p className="text-[10px] font-bold text-[#8b9a95]">© {new Date().getFullYear()} {t.rights}</p></div></footer>
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={() => setIsAuthModalOpen(false)} onSwitchToRegister={(role) => { setIsAuthModalOpen(false); setActiveRegisterRole(role); }} />
+      </motion.div>}
+    </AnimatePresence>
+  </div>;
 }
