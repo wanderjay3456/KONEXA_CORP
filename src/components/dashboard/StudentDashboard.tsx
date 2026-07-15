@@ -170,7 +170,7 @@ export default function StudentDashboard({ activeTab, onNavigate }: StudentDashb
     return <ProjectMarketplace />;
   }
   if (activeTab === "workspace") {
-    return <ProjectWorkspace />;
+    return <ProjectWorkspace onNavigate={onNavigate} />;
   }
   if (activeTab === "resume-builder") {
     return <ResumeBuilder />;

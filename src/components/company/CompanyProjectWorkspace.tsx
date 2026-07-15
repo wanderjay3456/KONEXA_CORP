@@ -115,16 +115,6 @@ interface Deliverable {
   history: { version: string; date: string; status: string; notes?: string }[];
 }
 
-interface ProjectReview {
-  id: string;
-  type: "Company" | "Self" | "Peer" | "Mentor" | "AI";
-  reviewer: string;
-  score: number;
-  comments: string;
-  evidenceUrls: string[];
-  submittedAt: string;
-}
-
 interface TrustEvidence {
   id: string;
   category: "Attendance" | "Deadline" | "Task Quality" | "Communication" | "Review Quality" | "Mentoring" | "Project Contribution" | "Leadership" | "Reliability" | "Professionalism";
@@ -351,30 +341,6 @@ export default function CompanyProjectWorkspace({ onNavigate }: CompanyProjectWo
     }
   ]);
 
-  // Reviews State
-  const [reviews, setReviews] = useState<ProjectReview[]>([
-    {
-      id: "rev_1",
-      type: "Self",
-      reviewer: activeStudentName,
-      score: 90,
-      comments: "Designed modular generic hook parameters. Complete TypeScript type coverage established on all helper layouts.",
-      evidenceUrls: ["profiler_hook_diagnostic.ts"],
-      submittedAt: "1 day ago"
-    },
-    {
-      id: "rev_2",
-      type: "AI",
-      reviewer: "Gemini Agent Node #09",
-      score: 95,
-      comments: "The code is fully optimized. The use of requestAnimationFrame for timing calculations ensures sub-millisecond precision under high rendering strains.",
-      evidenceUrls: ["evaluation_run_log_#88.json"],
-      submittedAt: "3 hours ago"
-    }
-  ]);
-  const [newReviewComment, setNewReviewComment] = useState("");
-  const [newReviewScore, setNewReviewScore] = useState(90);
-
   // Trust Evidence State
   const [trustEvidences, setTrustEvidences] = useState<TrustEvidence[]>([
     { id: "tr_1", category: "Attendance", description: "Attended all sprint standups and aligned milestones.", scoreBonus: 2, hash: "sha256_8f0a21...", timestamp: "2 days ago" },
@@ -580,26 +546,6 @@ export default function CompanyProjectWorkspace({ onNavigate }: CompanyProjectWo
       }
       return del;
     }));
-  };
-
-  // Submit Evaluation Review
-  const handleSubmitSponsorReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newReviewComment.trim()) return;
-
-    const added: ProjectReview = {
-      id: `rev_${Date.now()}`,
-      type: "Company",
-      reviewer: "You (Sponsor Reviewer)",
-      score: newReviewScore,
-      comments: newReviewComment.trim(),
-      evidenceUrls: ["profiler_hook_diagnostic.ts"],
-      submittedAt: "Just now"
-    };
-
-    setReviews(prev => [added, ...prev]);
-    setNewReviewComment("");
-    success("Evaluation Score Committed", "Your metrics synced into candidate profile conversion nodes.");
   };
 
   // AI Cooperatives Discussion Trigger
@@ -1182,59 +1128,18 @@ export default function CompanyProjectWorkspace({ onNavigate }: CompanyProjectWo
               <div className="space-y-6 animate-fadeIn">
                 <div className="flex justify-between items-start flex-wrap gap-4 border-b border-neutral-100 pb-4">
                   <div>
-                    <h2 className="font-display font-black text-xl text-neutral-900">Hiring Evaluations Reviews</h2>
-                    <p className="text-xs text-neutral-400 mt-0.5">Commit final scores, evaluate code benchmarks, and sync reports to recruiter boards.</p>
+                    <h2 className="font-display font-black text-xl text-neutral-900">Verified Mutual Reviews</h2>
+                    <p className="text-xs text-neutral-400 mt-0.5">Transaction reviews are managed in one protected ledger for companies and talent.</p>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 animate-fadeIn">
-                  <div className="md:col-span-5 p-5 bg-neutral-50 border border-neutral-200 rounded-3xl space-y-4">
-                    <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-wider block">Lock Sponsor Evaluation Score</span>
-                    
-                    <form onSubmit={handleSubmitSponsorReview} className="space-y-3 text-xs">
-                      <div className="space-y-1">
-                        <label className="font-bold text-neutral-700">Lock Score (0-100)</label>
-                        <input 
-                          type="number" 
-                          value={newReviewScore}
-                          onChange={(e) => setNewReviewScore(Number(e.target.value))}
-                          className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 font-mono focus:outline-hidden"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-neutral-700">Audit Comments</label>
-                        <textarea 
-                          value={newReviewComment}
-                          onChange={(e) => setNewReviewComment(e.target.value)}
-                          placeholder="Verify candidate code performance, scalability metrics, and team standup attendance alignment..."
-                          rows={4}
-                          className="w-full bg-white border border-neutral-200 rounded-xl p-3 focus:outline-hidden"
-                        />
-                      </div>
-
-                      <button type="submit" className="w-full h-10 bg-black text-white rounded-xl text-xs font-bold cursor-pointer transition-colors">
-                        Lock Score and Sync
-                      </button>
-                    </form>
-                  </div>
-
-                  <div className="md:col-span-7 space-y-4">
-                    <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-wider block">Committed Review Ledger</span>
-                    <div className="space-y-3">
-                      {reviews.map(rev => (
-                        <div key={rev.id} className="p-4 border border-neutral-200 rounded-2xl bg-white space-y-2">
-                          <div className="flex justify-between items-center text-xs">
-                            <strong className="font-semibold text-neutral-800">Review: {rev.type} Evaluation</strong>
-                            <span className="font-mono text-neutral-400">{rev.submittedAt}</span>
-                          </div>
-                          <p className="text-xs text-neutral-500 font-light leading-relaxed">"{rev.comments}"</p>
-                          <div className="flex justify-between text-[10px] font-mono text-neutral-400 border-t border-neutral-100/50 pt-2">
-                            <span>Locked Score: {rev.score}/100</span>
-                          </div>
-                        </div>
-                      ))}
+                <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 to-emerald-50 p-6 md:p-8">
+                  <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                    <div className="max-w-2xl">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-blue-700"><ShieldCheck className="h-4 w-4" /> Double-blind transaction review</div>
+                      <h3 className="mt-3 text-xl font-black text-neutral-900">리뷰는 계약·결제 기록과 함께 보호됩니다.</h3>
+                      <p className="mt-3 text-xs leading-6 text-neutral-600">등록 PG에서 대금 확보가 확인된 프로젝트만 평가할 수 있습니다. 기업과 학생의 평가는 양쪽이 모두 제출하기 전까지 봉인되며, 제출 후 수정할 수 없습니다.</p>
                     </div>
+                    <button type="button" onClick={() => onNavigate("trust-operations")} className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-neutral-950 px-5 text-xs font-black text-white">상호 리뷰 작성·확인 <ArrowRight className="h-4 w-4" /></button>
                   </div>
                 </div>
               </div>
