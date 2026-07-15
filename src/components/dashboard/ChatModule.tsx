@@ -4,6 +4,9 @@ import { db } from "../../config/supabase";
 import { useApp } from "../../context/AppContext";
 import { Send, UserCircle2, Building2 } from "lucide-react";
 import { UserRole } from "../../types";
+import { inspectOffPlatformContact } from "../../lib/offPlatformGuard";
+import { isRelationshipContactUnlocked, recordRiskEvent } from "../../lib/trustOperations";
+import { useToast } from "../ui/Toast";
 
 interface Message {
   id: string;
@@ -17,8 +20,10 @@ interface Message {
 
 export default function ChatModule({ matchId, counterpartName, counterpartRole }: { matchId: string, counterpartName: string, counterpartRole: string }) {
   const { currentUser } = useApp();
+  const { error, info } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [contactUnlocked, setContactUnlocked] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,11 +49,25 @@ export default function ChatModule({ matchId, counterpartName, counterpartRole }
     return () => unsubscribe();
   }, [matchId, currentUser]);
 
+  useEffect(() => {
+    let active = true;
+    void isRelationshipContactUnlocked(matchId)
+      .then((unlocked) => { if (active) setContactUnlocked(unlocked); })
+      .catch(() => { if (active) setContactUnlocked(false); });
+    return () => { active = false; };
+  }, [matchId]);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !currentUser) return;
 
     const text = newMessage.trim();
+    const inspection = inspectOffPlatformContact(text, contactUnlocked);
+    if (inspection.blocked) {
+      void recordRiskEvent({ matchId, code: "CONTACT_PATTERN", matchedTypes: inspection.signals }).catch(() => undefined);
+      error("계약 전 연락처 공유 제한", inspection.message);
+      return;
+    }
     setNewMessage("");
 
     await addDoc(collection(db, "messages"), {
@@ -117,11 +136,17 @@ export default function ChatModule({ matchId, counterpartName, counterpartRole }
 
       {/* Input Form */}
       <div className="p-4 bg-white border-t border-neutral-100">
+        <div className={`mb-2 flex items-center gap-2 rounded-lg px-3 py-2 text-[10px] ${contactUnlocked ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
+          {contactUnlocked ? "계약·양측 서명·대금 확보 확인: 필요한 연락처 공유 가능" : "메시지는 안전 목적으로 연락처 패턴을 검사합니다. 원문은 위험기록에 복사하지 않습니다."}
+        </div>
         <form onSubmit={handleSendMessage} className="relative flex items-center">
           <input
             type="text"
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={(e) => {
+              setNewMessage(e.target.value);
+              if (!contactUnlocked && inspectOffPlatformContact(e.target.value).blocked) info("연락처 패턴 감지", "전송하면 차단됩니다. 소개·계약 절차를 먼저 완료해 주세요.");
+            }}
             placeholder="Type your message..."
             className="w-full h-12 pl-4 pr-12 bg-neutral-50 border border-neutral-200 rounded-xl text-sm font-sans focus:outline-hidden focus:border-black focus:ring-1 focus:ring-black transition-all"
           />

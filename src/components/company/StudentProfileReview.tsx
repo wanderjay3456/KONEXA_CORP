@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { 
   Search, Shield, Star, Award, Zap, Code, Mail, Github, 
   Linkedin, Globe, Calendar, MapPin, CheckCircle, FileText,
-  ChevronRight, ArrowUpRight, TrendingUp, Sparkles, BookOpen, Clock
+  ChevronRight, ArrowUpRight, TrendingUp, Sparkles, BookOpen, Clock, LockKeyhole
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
+import { isContactUnlocked, loadProtectedContact, requestIntroduction, type ProtectedContact } from "../../lib/trustOperations";
+import { maskedTalentName } from "../../lib/offPlatformGuard";
 
 interface StudentProfileReviewProps {
   studentId?: string | null;
@@ -13,8 +15,8 @@ interface StudentProfileReviewProps {
 }
 
 export default function StudentProfileReview({ studentId, onNavigate }: StudentProfileReviewProps) {
-  const { studentProfile } = useApp();
-  const { success, info } = useToast();
+  const { studentProfile, currentUser, companyProfile } = useApp();
+  const { success, error, info } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -22,15 +24,9 @@ export default function StudentProfileReview({ studentId, onNavigate }: StudentP
   const candidates = [
     {
       id: "usr_fndtn_konexa_99",
-      name: studentProfile?.name || "Alex Rivera",
-      preferredName: "Alex",
-      university: "Seoul National University",
+      name: studentProfile?.name || "Protected Candidate",
       degree: "B.S. Computer Science & Engineering",
       graduationYear: "2027",
-      email: "alex.rivera@snu.ac.kr",
-      github: studentProfile?.github || "https://github.com/alexrivera-dev",
-      linkedin: "https://linkedin.com/in/alexrivera-dev",
-      portfolio: "https://alexrivera.dev",
       bio: studentProfile?.bio || "Full-stack enthusiast focused on building high-performance interactive interfaces and clean software architectures.",
       skills: studentProfile?.skills || ["React", "TypeScript", "Node.js", "TailwindCSS", "Framer Motion"],
       languages: ["English (Native)", "Korean (Fluent)", "Spanish (Intermediate)"],
@@ -53,15 +49,9 @@ export default function StudentProfileReview({ studentId, onNavigate }: StudentP
     },
     {
       id: "std_2",
-      name: "Min-jun Kim",
-      preferredName: "MJ",
-      university: "KAIST",
+      name: "Protected Candidate",
       degree: "M.S. Software Engineering",
       graduationYear: "2026",
-      email: "mj.kim@kaist.ac.kr",
-      github: "https://github.com/mjkim-backend",
-      linkedin: "https://linkedin.com/in/mjkim-backend",
-      portfolio: "https://mjkim.io",
       bio: "Focusing on highly-concurrent distributed engines, database transaction modeling, and low-latency API architectures.",
       skills: ["Go", "gRPC", "Redis", "Docker", "PostgreSQL", "Kubernetes", "TypeScript"],
       languages: ["Korean (Native)", "English (Professional)"],
@@ -82,15 +72,9 @@ export default function StudentProfileReview({ studentId, onNavigate }: StudentP
     },
     {
       id: "std_3",
-      name: "Chloe Chen",
-      preferredName: "Chloe",
-      university: "National University of Singapore",
+      name: "Protected Candidate",
       degree: "B.S. Artificial Intelligence & Analytics",
       graduationYear: "2026",
-      email: "chloe.chen@nus.edu.sg",
-      github: "https://github.com/chloechen-ml",
-      linkedin: "https://linkedin.com/in/chloechen-ml",
-      portfolio: "https://chloechen.ai",
       bio: "Passionate about large language model alignment, semantic vector embedding compression, and generative AI proxy layers.",
       skills: ["Python", "PyTorch", "Transformers", "FastAPI", "React", "PostgreSQL"],
       languages: ["Mandarin (Native)", "English (Bilingual)", "Japanese (Intermediate)"],
@@ -116,12 +100,44 @@ export default function StudentProfileReview({ studentId, onNavigate }: StudentP
   // Search logic
   const filteredCandidates = candidates.filter(cand => {
     const term = searchQuery.toLowerCase();
-    return cand.name.toLowerCase().includes(term) || 
-           cand.skills.some(s => s.toLowerCase().includes(term)) ||
-           cand.university.toLowerCase().includes(term);
+    return cand.skills.some(s => s.toLowerCase().includes(term)) ||
+           cand.degree.toLowerCase().includes(term) ||
+           cand.languages.some(language => language.toLowerCase().includes(term));
   });
 
   const activeCand = candidates.find(c => c.id === activeId) || candidates[0];
+  const [contactUnlocked, setContactUnlocked] = useState(false);
+  const [protectedContact, setProtectedContact] = useState<ProtectedContact | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!currentUser?.uid) {
+      setContactUnlocked(false);
+      return;
+    }
+    void isContactUnlocked(currentUser.uid, activeCand.id)
+      .then(async (value) => {
+        if (!active) return;
+        setContactUnlocked(value);
+        setProtectedContact(value ? await loadProtectedContact(activeCand.id) : null);
+      })
+      .catch(() => { if (active) setContactUnlocked(false); });
+    return () => { active = false; };
+  }, [activeCand.id, currentUser?.uid]);
+
+  const displayName = (candidate: typeof activeCand) => contactUnlocked && candidate.id === activeCand.id ? candidate.name : maskedTalentName(candidate.id);
+
+  const handleIntroductionRequest = async () => {
+    if (!currentUser?.uid || currentUser.email === "guest@konexa.dev") return info("로그인이 필요합니다", "기업 계정으로 로그인한 뒤 소개를 요청해 주세요.");
+    if (!companyProfile?.verified || companyProfile.verifiedStatus !== "Verified") return error("사업자 확인 필요", "사업자등록 확인이 완료된 기업만 소개를 요청할 수 있습니다.");
+    try {
+      await requestIntroduction({ talentId: activeCand.id, purpose: "interview" });
+      success("소개 요청 접수", "연락처는 계약·양측 서명·국내 PG 대금 확보 후 공개됩니다.");
+      onNavigate("trust-operations");
+    } catch (cause) {
+      error("소개 요청 실패", cause instanceof Error ? cause.message : "다시 시도해 주세요.");
+    }
+  };
 
   const handleBookmarkToggle = (name: string) => {
     success("Student Bookmarked", `${name} added to your Saved Students list.`);
@@ -155,7 +171,7 @@ export default function StudentProfileReview({ studentId, onNavigate }: StudentP
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, skills, school..."
+              placeholder="기술·전공·언어로 검색..."
               className="w-full bg-neutral-50 border border-neutral-200 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-hidden font-light"
             />
           </div>
@@ -175,13 +191,13 @@ export default function StudentProfileReview({ studentId, onNavigate }: StudentP
                 >
                   <img 
                     src={cand.avatar} 
-                    alt={cand.name} 
+                    alt={displayName(cand)}
                     className="w-10 h-10 rounded-full object-cover shrink-0 border border-neutral-200/50"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="font-bold truncate">{cand.name}</div>
+                    <div className="font-bold truncate">{displayName(cand)}</div>
                     <div className={`text-[10px] truncate font-light ${activeId === cand.id ? "text-neutral-300" : "text-neutral-400"}`}>
-                      {cand.university}
+                      {cand.degree} · {cand.graduationYear}
                     </div>
                   </div>
                   <div className={`text-[10px] font-mono font-black shrink-0 px-2 py-0.5 rounded-lg border ${
@@ -205,51 +221,59 @@ export default function StudentProfileReview({ studentId, onNavigate }: StudentP
             <div className="flex items-start gap-4">
               <img 
                 src={activeCand.avatar} 
-                alt={activeCand.name} 
+                alt={displayName(activeCand)}
                 className="w-20 h-20 rounded-full object-cover border border-neutral-200 shadow-xs shrink-0" 
               />
               <div className="space-y-1.5">
                 <div className="flex items-center flex-wrap gap-2">
-                  <h2 className="font-display font-black text-2xl text-neutral-900 tracking-tight">{activeCand.name}</h2>
+                  <h2 className="font-display font-black text-2xl text-neutral-900 tracking-tight">{displayName(activeCand)}</h2>
                   <span className="bg-blue-50 border border-blue-100 text-blue-600 text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded">
                     Verified ID
                   </span>
                 </div>
-                <p className="text-xs text-neutral-500 font-light font-sans">{activeCand.degree} • {activeCand.university}</p>
+                <p className="text-xs text-neutral-500 font-light font-sans">{activeCand.degree} · {activeCand.graduationYear} 졸업예정</p>
                 
-                {/* Social icons */}
-                <div className="flex items-center gap-3 pt-1 text-neutral-400">
-                  <a href={activeCand.github} target="_blank" rel="noreferrer" className="hover:text-black transition-colors">
+                {/* Contact information is released only after bilateral signature and secured payment. */}
+                {contactUnlocked ? <div className="flex items-center gap-3 pt-1 text-neutral-400">
+                  {protectedContact?.github && <a href={protectedContact.github} target="_blank" rel="noreferrer" className="hover:text-black transition-colors">
                     <Github className="w-4 h-4" />
-                  </a>
-                  <a href={activeCand.linkedin} target="_blank" rel="noreferrer" className="hover:text-black transition-colors">
+                  </a>}
+                  {protectedContact?.linkedin && <a href={protectedContact.linkedin} target="_blank" rel="noreferrer" className="hover:text-black transition-colors">
                     <Linkedin className="w-4 h-4" />
-                  </a>
-                  <a href={activeCand.portfolio} target="_blank" rel="noreferrer" className="hover:text-black transition-colors">
+                  </a>}
+                  {protectedContact?.portfolio && <a href={protectedContact.portfolio} target="_blank" rel="noreferrer" className="hover:text-black transition-colors">
                     <Globe className="w-4 h-4" />
-                  </a>
-                  <a href={`mailto:${activeCand.email}`} className="hover:text-black transition-colors">
+                  </a>}
+                  {protectedContact?.email && <a href={`mailto:${protectedContact.email}`} className="hover:text-black transition-colors">
                     <Mail className="w-4 h-4" />
-                  </a>
-                </div>
+                  </a>}
+                </div> : (
+                  <div className="mt-2 flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-[10px] font-bold text-amber-800">
+                    <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
+                    이메일·전화번호·SNS·상세 포트폴리오 주소 비공개
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="flex flex-col gap-2 w-full sm:w-auto shrink-0">
               <button 
-                onClick={() => handleBookmarkToggle(activeCand.name)}
+                onClick={() => handleBookmarkToggle(displayName(activeCand))}
                 className="w-full px-4 py-2 bg-neutral-900 hover:bg-black text-white text-xs font-semibold rounded-xl cursor-pointer shadow-xs transition-all flex items-center justify-center gap-1.5"
               >
                 <span>Save to Bookmarks</span>
               </button>
               <button 
-                onClick={() => {
-                  success("Messaging Channel Connected", `Real-time chat active with ${activeCand.preferredName}.`);
-                  onNavigate("messaging");
-                }}
+                onClick={handleIntroductionRequest}
                 className="w-full px-4 py-2 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-200 text-xs font-semibold rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5"
               >
-                <span>Initiate Student Chat</span>
+                <span>소개·면접 요청하기</span>
+              </button>
+              <button
+                onClick={() => onNavigate("trust-operations")}
+                className="w-full px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl cursor-pointer transition-all"
+              >
+                이 인재에게 채용 제안하기
               </button>
             </div>
           </div>

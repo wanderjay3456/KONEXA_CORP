@@ -69,6 +69,8 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
   const [termsAgreement, setTermsAgreement] = useState(false);
+  const [nonCircumventionAgreement, setNonCircumventionAgreement] = useState(false);
+  const [privacyTransferConsent, setPrivacyTransferConsent] = useState(false);
   const [password, setPassword] = useState("");
   const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
 
@@ -161,7 +163,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
       }
       if (!formData.companyIntroduction?.trim()) nextErrors.companyIntroduction = "Please write a brief corporate overview introduction.";
     } else if (step === 3) {
-      if (!termsAgreement) nextErrors.terms = "You must accept our workspace sharing standards to launch challenges.";
+      if (!termsAgreement || !nonCircumventionAgreement || !privacyTransferConsent) nextErrors.terms = "필수 이용약관, 소개요금·이탈거래 약정, 메시지 분석·국외이전 고지에 모두 동의해야 합니다.";
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -213,7 +215,14 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
           ...formData,
           description: desc
         },
-        password
+        password,
+        {
+          terms: termsAgreement,
+          nonCircumvention: nonCircumventionAgreement,
+          messageAnalysis: privacyTransferConsent,
+          crossBorderPrivacy: privacyTransferConsent,
+          documentVersion: "2026-07-15",
+        }
       );
       setEmailConfirmationRequired(result.emailConfirmationRequired);
 
@@ -617,6 +626,28 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                     />
                     <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
                       <span>I authorize the verification audits of our physical business coordinates and registry, and agree to keep workspace postings compliant with <strong>KONEXA Sponsor Regulations</strong>. *</span>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer mt-3">
+                    <input
+                      type="checkbox"
+                      checked={nonCircumventionAgreement}
+                      onChange={(e) => setNonCircumventionAgreement(e.target.checked)}
+                      className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
+                    />
+                    <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
+                      KONEXA를 통해 최초 소개받은 인재와 관계회사·대표자 개인·외주업체를 포함한 우회계약을 체결하는 경우 이를 신고하고, 소개일로부터 12개월 이내에는 사전 약정된 정상 전환수수료를 지급하는 정책을 확인했습니다. *
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer mt-3">
+                    <input
+                      type="checkbox"
+                      checked={privacyTransferConsent}
+                      onChange={(e) => setPrivacyTransferConsent(e.target.checked)}
+                      className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
+                    />
+                    <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
+                      계약 전 연락처 공유 방지를 위한 메시지 패턴 탐지와 한국·해외 간 개인정보 이전 고지를 확인했습니다. 위험기록에는 메시지 원문을 복사하지 않습니다. *
                     </div>
                   </label>
                   {errors.terms && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.terms}</span>}

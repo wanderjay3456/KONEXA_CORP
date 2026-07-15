@@ -1,6 +1,6 @@
 # KONEXA
 
-KONEXA is a React 19, Vite, Express, Supabase, Gemini, Stripe, and Resend application for project-first hiring workflows.
+KONEXA is a React 19, Vite, Express, Supabase, Gemini, domestic PG/escrow-ready, Modusign-ready, Stripe, and Resend application for project-first hiring workflows.
 
 ## Authentication and data security
 
@@ -10,6 +10,8 @@ KONEXA is a React 19, Vite, Express, Supabase, Gemini, Stripe, and Resend applic
 - Self-registration only accepts student and company roles. A user cannot promote their own role.
 - Browser requests use the Supabase publishable key. The server-only secret key must be stored in the deployment secret manager.
 - Stripe and Resend webhooks verify provider signatures and use idempotent records.
+- Trust operations record signup/introduction/contract consent versions, keep contacts in a protected collection, and release them only after bilateral signature plus a verified PG funds-secured record.
+- Message contact-pattern controls store only the pattern type and related record ID, not a copy of the message body.
 
 The database definition is versioned in `supabase/migrations/202607140001_initial_supabase.sql`.
 
@@ -41,6 +43,9 @@ The Express backend requires:
 - `RESEND_WEBHOOK_SECRET`
 - `EMAIL_FROM` on a verified sending domain
 - `EMAIL_REPLY_TO` is recommended
+- `PORTONE_API_SECRET`, `PORTONE_WEBHOOK_SECRET`, `PORTONE_STORE_ID`
+- `PORTONE_PAYMENT_CHANNEL_KEY`, `PORTONE_IDENTITY_CHANNEL_KEY`
+- `MODUSIGN_API_KEY` and the three approved document template IDs
 
 ## Provider setup
 
@@ -49,6 +54,8 @@ For Stripe, create a live recurring Price, enable the Customer Portal, and regis
 For Resend, verify the sending domain (SPF/DKIM), set `EMAIL_FROM`, and register `/api/webhooks/resend`.
 
 For Google sign-in, configure Google as a Supabase Auth provider, add the production redirect URL, then set `VITE_ENABLE_GOOGLE_AUTH=true`. Email/password remains the default public sign-in path.
+
+For domestic project payments, complete the PortOne and PG merchant review first, confirm escrow support for project/milestone service transactions, and register signed webhooks. KONEXA must not mark a payment as `paid` or `funds_secured` from a browser callback; the server must verify the provider event. Complete Modusign API service approval and approve the four legal document templates before enabling e-signature. The application intentionally shows these providers as pending until those contracts and secrets exist.
 
 The Sites deployment serves the React application. Configure `BACKEND_ORIGIN` only after deploying the Express backend with its server secrets.
 

@@ -97,7 +97,7 @@ interface AppContextType {
   createProject: (title: string, description: string, requirements: string[], difficulty: ProjectDifficulty, reward: string, tags: string[]) => Promise<void>;
   updateStudentProfile: (profile: Partial<StudentProfile>) => Promise<void>;
   updateCompanyProfile: (profile: Partial<CompanyProfile>) => Promise<void>;
-  registerUser: (email: string, displayName: string, role: UserRole, studentData?: Partial<StudentProfile>, companyData?: Partial<CompanyProfile>, password?: string) => Promise<{ emailConfirmationRequired: boolean }>;
+  registerUser: (email: string, displayName: string, role: UserRole, studentData?: Partial<StudentProfile>, companyData?: Partial<CompanyProfile>, password?: string, consentBundle?: Record<string, unknown>) => Promise<{ emailConfirmationRequired: boolean }>;
   loginUser: (email: string, role: UserRole, password?: string) => Promise<{ emailConfirmationRequired: boolean }>;
   googleLogin: (role: UserRole) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -542,6 +542,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
       setStudentProfile(updated);
       await setDoc(doc(db, "student_profiles", updated.uid), updated, { merge: true });
+      await setDoc(doc(db, "protected_contacts", updated.uid), {
+        userId: updated.uid,
+        talentId: updated.uid,
+        email: currentUser?.email || "",
+        github: updated.github || "",
+        linkedin: updated.linkedin || "",
+        portfolio: updated.portfolio || "",
+        updatedAt: Date.now(),
+      }, { merge: true });
       
       await logSystemAction(
         "STUDENT_PROFILE_UPDATE",
@@ -583,7 +592,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     role: UserRole,
     studentData?: Partial<StudentProfile>,
     companyData?: Partial<CompanyProfile>,
-    password?: string
+    password?: string,
+    consentBundle?: Record<string, unknown>
   ) => {
     try {
       if (![UserRole.STUDENT, UserRole.COMPANY].includes(role)) {
@@ -595,6 +605,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         role,
         student_profile: studentData || undefined,
         company_profile: companyData || undefined,
+        consent_bundle: consentBundle || undefined,
       });
       const authUid = credential.user.uid;
       
@@ -631,6 +642,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...studentData
         };
         await setDoc(doc(db, "student_profiles", authUid), sProfile);
+        await setDoc(doc(db, "protected_contacts", authUid), {
+          userId: authUid,
+          talentId: authUid,
+          email,
+          github: sProfile.github || "",
+          linkedin: sProfile.linkedin || "",
+          portfolio: sProfile.portfolio || "",
+          updatedAt: now,
+        });
         setStudentProfile(sProfile);
         setCompanyProfile(null);
       } else if (role === UserRole.COMPANY) {

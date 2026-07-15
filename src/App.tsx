@@ -16,6 +16,7 @@ const CompanyOnboarding = lazy(() => import("./components/onboarding/CompanyOnbo
 const DesignSystemShowcase = lazy(() => import("./components/dashboard/DesignSystemShowcase"));
 const IdentityCenter = lazy(() => import("./components/dashboard/IdentityCenter"));
 const IntelligenceCenter = lazy(() => import("./components/dashboard/IntelligenceCenter"));
+const TrustOperationsCenter = lazy(() => import("./components/trust/TrustOperationsCenter"));
 
 function WorkspaceLoading() {
   return (
@@ -113,7 +114,9 @@ function AppContent() {
         {/* Dynamic central workspace */}
         <main className="flex-1 flex flex-col min-w-0">
           <Suspense fallback={<WorkspaceLoading />}>
-          {activeTab === "design-system" ? (
+          {activeTab === "trust-operations" ? (
+            <TrustOperationsCenter />
+          ) : activeTab === "design-system" ? (
             <DesignSystemShowcase />
           ) : activeTab === "identity-center" ? (
             <IdentityCenter />

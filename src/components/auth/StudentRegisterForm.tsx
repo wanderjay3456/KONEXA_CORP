@@ -76,6 +76,8 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
   const [password, setPassword] = useState("");
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [termsAgreement, setTermsAgreement] = useState(false);
+  const [nonCircumventionAgreement, setNonCircumventionAgreement] = useState(false);
+  const [privacyTransferConsent, setPrivacyTransferConsent] = useState(false);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [resumeName, setResumeName] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -156,7 +158,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     } else if (step === 3) {
       if (!formData.github?.trim()) nextErrors.github = "GitHub is crucial for global technical validation.";
     } else if (step === 5) {
-      if (!termsAgreement) nextErrors.terms = "You must agree to the Terms of Service to authorize account provisioning.";
+      if (!termsAgreement || !nonCircumventionAgreement || !privacyTransferConsent) nextErrors.terms = "필수 이용약관, 이탈거래 방지, 메시지 분석·국외이전 고지에 모두 동의해야 합니다.";
     }
     
     setErrors(nextErrors);
@@ -202,7 +204,13 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     if (!validateStep()) return;
 
     try {
-      const result = await registerUser(email, formData.name || "Global Student", UserRole.STUDENT, formData, undefined, password);
+      const result = await registerUser(email, formData.name || "Global Student", UserRole.STUDENT, formData, undefined, password, {
+        terms: termsAgreement,
+        nonCircumvention: nonCircumventionAgreement,
+        messageAnalysis: privacyTransferConsent,
+        crossBorderPrivacy: privacyTransferConsent,
+        documentVersion: "2026-07-15",
+      });
       setEmailConfirmationRequired(result.emailConfirmationRequired);
       
       // Jump to Step 6 (AI evaluation onboarding recommendations screen!)
@@ -770,6 +778,28 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                       />
                       <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
                         <span>I confirm that I have reviewed and agree to the <strong>KONEXA Terms of Service</strong>, global matching policy, and <strong>Privacy Standards</strong>. *</span>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={nonCircumventionAgreement}
+                        onChange={(e) => setNonCircumventionAgreement(e.target.checked)}
+                        className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
+                      />
+                      <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
+                        프로젝트 진행 중 플랫폼 외 거래를 하지 않고, KONEXA를 통해 소개받은 기업과의 직접 고용·용역 전환은 12개월간 플랫폼에 신고하는 정책을 확인했습니다. 학생에게 거액의 위약금을 부과하는 조항은 적용하지 않습니다. *
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={privacyTransferConsent}
+                        onChange={(e) => setPrivacyTransferConsent(e.target.checked)}
+                        className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
+                      />
+                      <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
+                        계약 전 연락처 공유 방지를 위한 메시지 패턴 탐지와 한국·해외 간 개인정보 이전 고지를 확인했습니다. 위험기록에는 메시지 원문 대신 탐지 유형과 기록 ID만 저장합니다. *
                       </div>
                     </label>
                     {errors.terms && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.terms}</span>}
