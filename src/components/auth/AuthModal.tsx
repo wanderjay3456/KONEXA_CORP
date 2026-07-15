@@ -201,7 +201,23 @@ export default function AuthModal({
                 className="space-y-4"
               >
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">
-                  Secure email and password sign-in is active.
+                  Google 계정 또는 이메일·비밀번호로 로그인할 수 있습니다.
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={isSubmitting}
+                  className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-neutral-200 bg-white text-xs font-bold text-neutral-800 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-200 font-black text-blue-600">G</span>
+                  <span>Google로 로그인</span>
+                </button>
+
+                <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-neutral-300">
+                  <span className="h-px flex-1 bg-neutral-200" />
+                  <span>또는 이메일</span>
+                  <span className="h-px flex-1 bg-neutral-200" />
                 </div>
 
                 <form onSubmit={handleLoginSubmit} className="space-y-3">

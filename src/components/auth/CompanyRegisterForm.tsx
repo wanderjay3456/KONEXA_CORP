@@ -31,7 +31,7 @@ interface CompanyRegisterFormProps {
 }
 
 export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegisterFormProps) {
-  const { registerUser, studentProfile } = useApp();
+  const { registerUser, googleLogin, studentProfile } = useApp();
   const { success, error, info } = useToast();
   
   const [step, setStep] = useState(1);
@@ -72,6 +72,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
   const [nonCircumventionAgreement, setNonCircumventionAgreement] = useState(false);
   const [privacyTransferConsent, setPrivacyTransferConsent] = useState(false);
   const [password, setPassword] = useState("");
+  const [authMethod, setAuthMethod] = useState<"email" | "google">("email");
   const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
 
   // Custom skills or benefits inputs helpers
@@ -155,10 +156,10 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
       if (!formData.website?.trim()) nextErrors.website = "Company website URL is required.";
     } else if (step === 2) {
       if (!formData.contactPerson?.trim()) nextErrors.contactPerson = "Contact Person Representative Name is required.";
-      if (!formData.corporateEmail?.trim() || !formData.corporateEmail.includes("@")) {
+      if (authMethod === "email" && (!formData.corporateEmail?.trim() || !formData.corporateEmail.includes("@"))) {
         nextErrors.corporateEmail = "A valid corporate workspace email is required.";
       }
-      if (!password.trim() || password.length < 6) {
+      if (authMethod === "email" && (!password.trim() || password.length < 6)) {
         nextErrors.password = "A password of at least 6 characters is required for your credential account.";
       }
       if (!formData.companyIntroduction?.trim()) nextErrors.companyIntroduction = "Please write a brief corporate overview introduction.";
@@ -230,6 +231,27 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
       triggerAiMatching();
     } catch (err: any) {
       error("Registration failed", err.message || "An account creation error occurred.");
+    }
+  };
+
+  const handleGoogleSubmit = async () => {
+    if (!validateStep()) return;
+    const safeProfile = { ...formData, description: formData.companyIntroduction || "Corporate software matching partner." };
+    delete safeProfile.companyLogo;
+    try {
+      await googleLogin(UserRole.COMPANY, {
+        mode: "register",
+        profileData: safeProfile as Record<string, unknown>,
+        consentBundle: {
+          terms: termsAgreement,
+          nonCircumvention: nonCircumventionAgreement,
+          messageAnalysis: privacyTransferConsent,
+          crossBorderPrivacy: privacyTransferConsent,
+          documentVersion: "2026-07-15",
+        },
+      });
+    } catch (err: any) {
+      error("Google 회원가입 실패", err.message || "Google 인증을 시작할 수 없습니다.");
     }
   };
 
@@ -439,6 +461,11 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                   <p className="font-sans text-xs text-neutral-400 mt-0.5">Identify the prime human point of contact who authorizes candidate testing.</p>
                 </div>
 
+                <div className="grid grid-cols-2 gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-1.5">
+                  <button type="button" onClick={() => setAuthMethod("google")} className={`h-10 rounded-xl text-xs font-bold ${authMethod === "google" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>Google로 가입</button>
+                  <button type="button" onClick={() => setAuthMethod("email")} className={`h-10 rounded-xl text-xs font-bold ${authMethod === "email" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>이메일로 가입</button>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-neutral-700">Contact Person Name *</label>
@@ -467,7 +494,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {authMethod === "email" ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-neutral-700 font-sans">Representative Corporate Email *</label>
                     <div className="relative">
@@ -494,7 +521,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                     />
                     {errors.password && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.password}</span>}
                   </div>
-                </div>
+                </div> : <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">마지막 단계에서 Google 계정으로 인증합니다. 기업 인증은 별도로 사업자등록 확인 후 완료됩니다.</div>}
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-700 font-sans">Corporate Mobile Phone</label>
@@ -754,11 +781,11 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                   </button>
                 ) : (
                   <button
-                    type="submit"
-                    onClick={handleSubmit}
+                    type="button"
+                    onClick={authMethod === "google" ? handleGoogleSubmit : handleSubmit}
                     className="px-5 h-11 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
                   >
-                    <span>Register Corporate Account</span>
+                    <span>{authMethod === "google" ? "Google로 기업 가입" : "이메일로 기업 가입"}</span>
                     <ShieldCheck className="w-4 h-4" />
                   </button>
                 )}

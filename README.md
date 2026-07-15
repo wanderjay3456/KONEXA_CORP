@@ -53,7 +53,9 @@ For Stripe, create a live recurring Price, enable the Customer Portal, and regis
 
 For Resend, verify the sending domain (SPF/DKIM), set `EMAIL_FROM`, and register `/api/webhooks/resend`.
 
-For Google sign-in, configure Google as a Supabase Auth provider, add the production redirect URL, then set `VITE_ENABLE_GOOGLE_AUTH=true`. Email/password remains the default public sign-in path.
+For Google sign-in, configure Google as a Supabase Auth provider and add the production redirect URL. The app supports both Google OAuth and email/password sign-in. New Google users must finish the role-specific registration flow and accept the required agreements before receiving application permissions.
+
+Student registration stores an optional preferred weekly project pay in KRW (`preferredWeeklyPayKrw`). The form deliberately shows no suggested amount to avoid anchoring applicants.
 
 For domestic project payments, complete the PortOne and PG merchant review first, confirm escrow support for project/milestone service transactions, and register signed webhooks. KONEXA must not mark a payment as `paid` or `funds_secured` from a browser callback; the server must verify the provider event. Complete Modusign API service approval and approve the four legal document templates before enabling e-signature. The application intentionally shows these providers as pending until those contracts and secrets exist.
 

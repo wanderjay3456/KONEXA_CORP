@@ -66,7 +66,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
     preferredIndustry: studentProfile?.preferredIndustry || "AI & SaaS",
     preferredJob: studentProfile?.preferredJob || "Software Engineer",
     preferredCountry: studentProfile?.preferredCountry || "South Korea",
-    preferredSalary: studentProfile?.preferredSalary || "$50,000 - $70,000",
+    preferredWeeklyPayKrw: studentProfile?.preferredWeeklyPayKrw,
     availability: studentProfile?.availability || "Immediate (Full-time)",
     workPreference: studentProfile?.workPreference || "Remote",
     timezone: studentProfile?.timezone || "GMT+9 (Seoul)",
@@ -620,7 +620,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                   <div className="space-y-6">
                     <div>
                       <h3 className="font-display font-bold text-lg text-white">Career Vector & Expectations</h3>
-                      <p className="text-neutral-400 text-xs">Define your target employment setting, salary brackets, and work environment.</p>
+                      <p className="text-neutral-400 text-xs">희망 직무, 선택형 주급, 근무 환경을 설정합니다.</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -675,14 +675,17 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-300">Expected Salary Bracket</label>
+                        <label className="text-xs font-bold text-neutral-300">희망 주급 (선택, 원)</label>
                         <input
-                          type="text"
-                          value={formData.preferredSalary || ""}
-                          onChange={(e) => updateField("preferredSalary", e.target.value)}
-                          placeholder="$50,000 - $70,000"
+                          type="number"
+                          min="0"
+                          step="10000"
+                          inputMode="numeric"
+                          value={formData.preferredWeeklyPayKrw ?? ""}
+                          onChange={(e) => updateField("preferredWeeklyPayKrw", e.target.value === "" ? undefined : Number(e.target.value))}
                           className="w-full h-11 bg-white/5 border border-white/10 rounded-xl px-4 text-xs font-sans focus:outline-hidden text-white"
                         />
+                        <p className="text-[10px] leading-4 text-neutral-500">프로젝트는 주 단위로 정산합니다. 희망 금액이 없으면 비워두세요.</p>
                       </div>
 
                       <div className="space-y-1">

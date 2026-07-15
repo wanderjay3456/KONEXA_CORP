@@ -32,7 +32,7 @@ interface StudentRegisterFormProps {
 }
 
 export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegisterFormProps) {
-  const { registerUser, projects } = useApp();
+  const { registerUser, googleLogin, projects } = useApp();
   const { success, error, info } = useToast();
   
   const [step, setStep] = useState(1);
@@ -62,7 +62,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     preferredIndustry: "AI & SaaS",
     preferredJob: "Software Engineer",
     preferredCountry: "South Korea",
-    preferredSalary: "$45,000 - $60,000",
+    preferredWeeklyPayKrw: undefined,
     availability: "Immediate (Full-time)",
     workPreference: "Remote",
     timezone: "GMT+9 (Seoul)",
@@ -74,6 +74,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [authMethod, setAuthMethod] = useState<"email" | "google">("email");
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [termsAgreement, setTermsAgreement] = useState(false);
   const [nonCircumventionAgreement, setNonCircumventionAgreement] = useState(false);
@@ -150,8 +151,8 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     if (step === 1) {
       if (!formData.name?.trim()) nextErrors.name = "Full legal name is required.";
       if (!formData.bio?.trim()) nextErrors.bio = "A brief biographical pitch is required.";
-      if (!email.trim() || !email.includes("@")) nextErrors.email = "A valid email is required.";
-      if (!password.trim() || password.length < 6) nextErrors.password = "A password of at least 6 characters is required.";
+      if (authMethod === "email" && (!email.trim() || !email.includes("@"))) nextErrors.email = "A valid email is required.";
+      if (authMethod === "email" && (!password.trim() || password.length < 6)) nextErrors.password = "A password of at least 6 characters is required.";
     } else if (step === 2) {
       if (!formData.university?.trim()) nextErrors.university = "University Name is required.";
       if (!formData.major?.trim()) nextErrors.major = "Academic major study field is required.";
@@ -218,6 +219,27 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
       runAiAnalysis();
     } catch (err: any) {
       error("Registration failed", err.message || "An account creation error occurred.");
+    }
+  };
+
+  const handleGoogleSubmit = async () => {
+    if (!validateStep()) return;
+    const safeProfile = { ...formData };
+    delete safeProfile.profilePhoto;
+    try {
+      await googleLogin(UserRole.STUDENT, {
+        mode: "register",
+        profileData: { ...safeProfile },
+        consentBundle: {
+          terms: termsAgreement,
+          nonCircumvention: nonCircumventionAgreement,
+          messageAnalysis: privacyTransferConsent,
+          crossBorderPrivacy: privacyTransferConsent,
+          documentVersion: "2026-07-15",
+        },
+      });
+    } catch (err: any) {
+      error("Google 회원가입 실패", err.message || "Google 인증을 시작할 수 없습니다.");
     }
   };
 
@@ -296,6 +318,11 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                   <p className="font-sans text-xs text-neutral-400 mt-0.5">Let’s begin with your legal naming, background localization, and personal pitch bio.</p>
                 </div>
 
+                <div className="grid grid-cols-2 gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-1.5">
+                  <button type="button" onClick={() => setAuthMethod("google")} className={`h-10 rounded-xl text-xs font-bold ${authMethod === "google" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>Google로 가입</button>
+                  <button type="button" onClick={() => setAuthMethod("email")} className={`h-10 rounded-xl text-xs font-bold ${authMethod === "email" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>이메일로 가입</button>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   {/* Photo picker */}
                   <div className="md:col-span-1 flex flex-col items-center justify-center border border-dashed border-neutral-200 rounded-2xl p-4 bg-neutral-50 hover:bg-neutral-100/50 transition-colors relative">
@@ -340,7 +367,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {authMethod === "email" ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-neutral-700">Email Address *</label>
                         <input
@@ -364,7 +391,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                         />
                         {errors.password && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.password}</span>}
                       </div>
-                    </div>
+                    </div> : <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">마지막 단계에서 Google 계정으로 인증합니다. KONEXA에는 Google 비밀번호가 저장되지 않습니다.</div>}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1">
@@ -672,14 +699,17 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">Preferred Salary Expectation</label>
+                    <label className="text-xs font-bold text-neutral-700 font-sans">희망 주급 (선택, 원)</label>
                     <input
-                      type="text"
-                      value={formData.preferredSalary || ""}
-                      onChange={(e) => updateField("preferredSalary", e.target.value)}
-                      placeholder="$50,000 - $70,000 / year"
+                      type="number"
+                      min="0"
+                      step="10000"
+                      inputMode="numeric"
+                      value={formData.preferredWeeklyPayKrw ?? ""}
+                      onChange={(e) => updateField("preferredWeeklyPayKrw", e.target.value === "" ? undefined : Number(e.target.value))}
                       className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
                     />
+                    <p className="text-[10px] leading-4 text-neutral-400">프로젝트는 주 단위로 정산합니다. 희망 금액이 아직 없으면 비워두어도 됩니다.</p>
                   </div>
 
                   <div className="space-y-1">
@@ -939,11 +969,11 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                   </button>
                 ) : (
                   <button
-                    type="submit"
-                    onClick={handleSubmit}
+                    type="button"
+                    onClick={authMethod === "google" ? handleGoogleSubmit : handleSubmit}
                     className="px-5 h-11 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
                   >
-                    <span>Register Account</span>
+                    <span>{authMethod === "google" ? "Google로 학생 가입" : "이메일로 학생 가입"}</span>
                     <ShieldCheck className="w-4 h-4" />
                   </button>
                 )}

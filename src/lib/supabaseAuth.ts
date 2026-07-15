@@ -3,6 +3,36 @@ import { db, supabase } from "../config/supabase";
 
 let cachedUser: User | null = null;
 let readyPromise: Promise<void> | null = null;
+const GOOGLE_AUTH_INTENT_KEY = "konexa_google_auth_intent";
+
+export interface GoogleAuthIntent {
+  mode: "login" | "register";
+  role: "student" | "company";
+  consentBundle?: Record<string, unknown>;
+  profileData?: Record<string, unknown>;
+  createdAt: number;
+}
+
+export function getPendingGoogleAuthIntent(): GoogleAuthIntent | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(GOOGLE_AUTH_INTENT_KEY);
+    if (!raw) return null;
+    const intent = JSON.parse(raw) as GoogleAuthIntent;
+    if (Date.now() - intent.createdAt > 30 * 60 * 1000) {
+      window.sessionStorage.removeItem(GOOGLE_AUTH_INTENT_KEY);
+      return null;
+    }
+    return intent;
+  } catch {
+    window.sessionStorage.removeItem(GOOGLE_AUTH_INTENT_KEY);
+    return null;
+  }
+}
+
+export function clearPendingGoogleAuthIntent() {
+  if (typeof window !== "undefined") window.sessionStorage.removeItem(GOOGLE_AUTH_INTENT_KEY);
+}
 
 function userAdapter(user: User | null): any {
   if (!user) return null;
@@ -95,12 +125,22 @@ export async function signInAnonymously(_auth?: unknown) {
   return { user: null };
 }
 
-export async function signInWithPopup(_auth: unknown, _provider: GoogleAuthProvider) {
+export async function signInWithPopup(
+  _auth: unknown,
+  _provider: GoogleAuthProvider,
+  intent: Omit<GoogleAuthIntent, "createdAt">,
+) {
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(GOOGLE_AUTH_INTENT_KEY, JSON.stringify({ ...intent, createdAt: Date.now() }));
+  }
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo: typeof window === "undefined" ? undefined : window.location.origin },
   });
-  if (error) throw error;
+  if (error) {
+    clearPendingGoogleAuthIntent();
+    throw error;
+  }
   return { user: auth.currentUser, provider: data.provider };
 }
 
