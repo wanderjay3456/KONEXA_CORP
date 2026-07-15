@@ -178,26 +178,17 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     setStep(prev => Math.max(1, prev - 1));
   };
 
-  // Build AI Profile Analysis & recommendation
+  // Profile analysis is performed by the authenticated backend after registration.
+  // Never present a fabricated score or recommendation during pre-auth registration.
   const runAiAnalysis = () => {
-    setIsAiLoading(true);
-    setTimeout(() => {
-      // Find a suitable challenge project
-      const matchProject = projects.find(p => p.tags.some(t => formData.skills?.includes(t))) || projects[0];
-      
-      setAiReport({
-        profileAnalysis: `Alex Rivera exhibits robust familiarity with ${formData.skills?.join(", ")}. Their educational background at ${formData.university} suggests high-integrity theoretical computer science knowledge. With English verified at [${formData.englishLevel}] and Korean verified at [${formData.koreanLevel}], they are prime candidates for cross-border software collaborations.`,
-        score: 84,
-        skillsVerified: formData.skills || [],
-        roleRecommendations: [
-          formData.preferredJob || "Frontend Engineer",
-          "International Developer Associate",
-          "SaaS Performance Engineer"
-        ],
-        recommendedProjectId: matchProject?.id || "seed-1"
-      });
-      setIsAiLoading(false);
-    }, 1800);
+    setIsAiLoading(false);
+    setAiReport({
+      profileAnalysis: "회원가입이 완료되면 인증된 Gemini 분석 서버에서 프로필과 포트폴리오를 검토합니다. 현재는 사전 입력값만 저장되며, 검증 점수나 추천 결과를 생성하지 않습니다.",
+      score: 0,
+      skillsVerified: [],
+      roleRecommendations: [],
+      recommendedProjectId: ""
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -877,10 +868,10 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                       <div className="bg-neutral-50 border border-neutral-200/80 p-6 rounded-2xl space-y-4 shadow-xs">
                         <div className="flex justify-between items-center">
                           <span className="text-[10px] font-mono font-bold text-teal-600 bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-lg">
-                            AI Audit Completed
+                            AI Audit Pending
                           </span>
                           <span className="text-xs font-mono font-bold text-neutral-600 bg-neutral-100 border border-neutral-200 px-2.5 py-1 rounded-lg">
-                            Initial Trust Score: {aiReport.score}/100
+                            Trust Score: 산정 대기
                           </span>
                         </div>
                         
@@ -917,19 +908,19 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                       <div className="border border-neutral-200 p-5 rounded-2xl flex flex-col justify-between bg-white shadow-premium">
                         <div>
                           <span className="text-[9px] font-mono font-black text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                            Recommended Challenge
+                            Recommended Challenge (after verification)
                           </span>
                           <h4 className="font-display font-bold text-base text-neutral-900 mt-2">
-                            {projects.find(p => p.id === aiReport.recommendedProjectId)?.title || "Vite + React Core Performance Optimizer"}
+                            {aiReport.recommendedProjectId ? projects.find(p => p.id === aiReport.recommendedProjectId)?.title : "회원가입 후 검증 결과에 따라 추천됩니다"}
                           </h4>
                           <p className="font-sans text-xs text-neutral-400 mt-1 line-clamp-2 leading-relaxed">
-                            {projects.find(p => p.id === aiReport.recommendedProjectId)?.description || "Complete this entry performance challenge to boost your initial trust metrics by up to 15 points."}
+                            {aiReport.recommendedProjectId ? projects.find(p => p.id === aiReport.recommendedProjectId)?.description : "인증된 프로필 분석과 프로젝트 적합성 검토가 완료된 후 표시됩니다."}
                           </p>
                         </div>
 
                         <div className="mt-4 pt-3 border-t border-neutral-100 flex items-center justify-between text-xs">
-                          <span className="font-mono text-neutral-400">Reward: <strong className="text-neutral-900 font-bold">{projects.find(p => p.id === aiReport.recommendedProjectId)?.reward || "$2,800 + Fast-Track"}</strong></span>
-                          <span className="text-neutral-400 text-[10px] font-mono font-extrabold uppercase">{projects.find(p => p.id === aiReport.recommendedProjectId)?.difficulty || "HARD"}</span>
+                          <span className="font-mono text-neutral-400">Reward: <strong className="text-neutral-900 font-bold">검토 후 공개</strong></span>
+                          <span className="text-neutral-400 text-[10px] font-mono font-extrabold uppercase">PENDING</span>
                         </div>
                       </div>
 

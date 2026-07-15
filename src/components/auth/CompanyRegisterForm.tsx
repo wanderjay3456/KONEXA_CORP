@@ -182,22 +182,17 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
     setStep(prev => Math.max(1, prev - 1));
   };
 
+  // Business verification and talent matching run only after authenticated backend setup.
+  // Do not show fabricated registry results or candidate counts during registration.
   const triggerAiMatching = () => {
-    setIsAiLoading(true);
-    setTimeout(() => {
-      setAiReport({
-        verificationStatus: "Pending Audit",
-        auditDetails: `Business ID [${formData.businessRegistrationNumber}] is queued for active validation with the National Corporate Registry database. Audit completes in ~4 hours. Under security protocols, you can publish challenges in Developer Sandbox mode immediately.`,
-        matchingTalentsCount: 142,
-        recommendedCandidates: [
-          studentProfile?.name || "Alex Rivera",
-          "Sophia Kim (SNU CS, Python Expert)",
-          "Ji-Min Park (KAIST Fullstack, React core)"
-        ],
-        matchingStrategy: `Based on your requirement for [${formData.requiredSkills?.join(", ")}], KONEXA's Semantic Matching Engine identified 3 primary fits within a 5km radius of your office at ${formData.officeLocation}.`
-      });
-      setIsAiLoading(false);
-    }, 1500);
+    setIsAiLoading(false);
+    setAiReport({
+      verificationStatus: "Pending KONEXA review",
+      auditDetails: "사업자등록증과 기업 프로필이 제출되었습니다. 관리자 검토와 연결된 검증 서버가 확인을 완료한 뒤 상태가 갱신됩니다.",
+      matchingTalentsCount: 0,
+      recommendedCandidates: [],
+      matchingStrategy: "기업 검증 및 프로젝트 조건 저장 후, 인증된 인재 데이터에 한해 매칭 결과를 제공합니다."
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -723,7 +718,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                       <div className="p-6 border border-neutral-200 rounded-2xl bg-white space-y-4 shadow-premium">
                         <div>
                           <span className="text-[10px] font-mono font-bold text-teal-600 uppercase tracking-widest block mb-1">
-                            AI Recommendation Matches
+                            AI Recommendation Matches (after verification)
                           </span>
                           <h4 className="font-display font-bold text-base text-neutral-900">
                             Semantic Candidates matched: {aiReport.matchingTalentsCount} profiles

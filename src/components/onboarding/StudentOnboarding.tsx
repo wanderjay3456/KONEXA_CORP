@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
 import { eventSystem } from "../../lib/eventSystem";
+import { auth } from "../../lib/supabaseAuth";
+import { uploadPrivateFile } from "../../lib/privateStorage";
 
 interface StudentOnboardingProps {
   onComplete: () => void;
@@ -79,8 +81,8 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
   const [autosaving, setAutosaving] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [termsAgreement, setTermsAgreement] = useState(false);
-  const [proofFile, setProofFile] = useState<string | null>(null);
-  const [resumeFile, setResumeFile] = useState<string | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
 
   // AI analysis state for the very end
   const [aiReport, setAiReport] = useState<any>(null);
@@ -153,18 +155,17 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
   const handleProofUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setProofFile(file.name);
-      success("Academic Document Loaded", `Simulated verification lock created for "${file.name}"`);
+      setProofFile(file);
+      success("학적 서류 선택 완료", "프로필 저장 시 인증된 보안 저장소에 업로드됩니다.");
     }
   };
 
   const handleResumeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setResumeFile(file.name);
-      updateField("resumeUrl", "https://konexa.storage/resumes/" + file.name);
+      setResumeFile(file);
       eventSystem.publish("ResumeUploaded", { fileName: file.name });
-      success("Resume Document Loaded", `AI Indexer is prepared to scan "${file.name}"`);
+      success("이력서 선택 완료", "프로필 저장 시 인증된 보안 저장소에 업로드됩니다.");
     }
   };
 
@@ -173,12 +174,21 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
     setAiStep(true);
     
     try {
+      const uid = auth.currentUser?.uid;
+      const uploadedFields: Record<string, unknown> = {};
+      if (uid && proofFile) {
+        uploadedFields.identityDocumentPath = await uploadPrivateFile("identity-documents", uid, proofFile);
+      }
+      if (uid && resumeFile) {
+        uploadedFields.resumeUrl = await uploadPrivateFile("resumes", uid, resumeFile);
+      }
       // First, save the complete profile fields to local state & database
       const updatedProfile = {
         ...formData,
+        ...uploadedFields,
         // Mark onboarding completed!
         onboardingCompleted: true,
-        trustScore: 85 // Boost initial trust score for completing all onboarding fields!
+        trustScore: studentProfile?.trustScore ?? 80
       } as any;
 
       await updateStudentProfile(updatedProfile);
@@ -208,19 +218,12 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
       success("AI Analysis Complete", "Gemini successfully completed your talent vector audits.");
     } catch (err) {
       console.error(err);
-      // Premium fallback report if API key missing or offline
+      // Keep the state honest when the AI service is unavailable.
       setAiReport({
-        strengthSummary: `${formData.name} exhibits robust technical familiarity with ${formData.skills.slice(0, 3).join(", ")}. Their educational background at ${formData.university} provides strong academic credentials for high-performance software engineering.`,
-        weaknessSummary: "They can benefit from completing verified backend and systems level production challenges to build their concrete trust ratings.",
-        skillGap: ["System Architecture", "Security Audits", "Scalable Devops"],
-        recommendedSkills: ["GraphQL", "Docker", "PostgreSQL", "Next.js"],
-        recommendedProjects: [projects[0]?.title || "Vite Performance Optimizer", projects[1]?.title || "Clean Architecture Router"],
-        recommendedCompanies: ["Horizon Labs", "Linear Inc", "Stripe Korea"],
-        recommendedLearningPath: ["Complete Vite Optimizer Challenge", "Build secure API pipelines", "Claim Sponsor Reward"],
-        careerReadiness: 88,
-        employabilityScore: 92
+        status: "unavailable",
+        message: "Gemini 분석 서버에 연결되지 않아 프로필 분석을 완료하지 못했습니다. 서버 연결 후 다시 실행해 주세요.",
       });
-      error("AI Endpoint Offline", "Reverted to secure offline deterministic profile analysis.");
+      error("AI 서비스 연결 필요", "프로필은 저장됐지만 실제 AI 분석은 완료되지 않았습니다.");
     } finally {
       setIsAiLoading(false);
     }

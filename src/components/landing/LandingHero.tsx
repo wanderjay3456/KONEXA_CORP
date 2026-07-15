@@ -104,7 +104,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
     {
       icon: Globe,
       title: "Borderless Global Compliance",
-      desc: "Fully integrated payment escrow pipelines and local contractor compliance managers handling international matching easily."
+      desc: "Projects are prepared for domestic PG/escrow onboarding and contractor compliance review before live settlement is enabled."
     },
     {
       icon: Layers,
@@ -149,7 +149,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
     },
     {
       q: "Are the corporate payouts real?",
-      a: "Yes. Every active project has real, verified budget escrowed by the sponsoring company. Upon successful code review and system validation, funds are directly wired via global banking networks."
+      a: "Settlement is enabled only after a domestic PG/escrow provider is connected and the project payment is confirmed. Until then, the site does not claim that funds are escrowed or paid out."
     },
     {
       q: "Can companies create admin accounts?",

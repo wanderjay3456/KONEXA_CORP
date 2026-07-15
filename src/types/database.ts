@@ -49,7 +49,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      begin_google_registration: {
+        Args: {
+          requested_role: string
+          consent_payload?: Json
+          profile_payload?: Json
+        }
+        Returns: string
+      }
+      complete_google_registration: {
+        Args: {
+          registration_id: string
+        }
+        Returns: string
+      }
+      complete_google_onboarding: {
+        Args: {
+          requested_role: string
+          consent_payload?: Json
+          profile_payload?: Json
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

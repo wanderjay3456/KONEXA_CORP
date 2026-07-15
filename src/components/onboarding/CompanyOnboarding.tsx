@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
 import { eventSystem } from "../../lib/eventSystem";
+import { auth } from "../../lib/supabaseAuth";
+import { uploadPrivateFile } from "../../lib/privateStorage";
 
 interface CompanyOnboardingProps {
   onComplete: () => void;
@@ -71,7 +73,8 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [termsAgreement, setTermsAgreement] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [licenseFile, setLicenseFile] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
 
   // AI analysis state for the very end
   const [aiReport, setAiReport] = useState<any>(null);
@@ -143,15 +146,16 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+      if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setLogoFile(file);
       const reader = new FileReader();
       reader.onload = (uploadEvent) => {
         if (uploadEvent.target?.result) {
           const resultStr = uploadEvent.target.result as string;
           setLogoPreview(resultStr);
           updateField("companyLogo", resultStr);
-          success("Logo uploaded", `Company logo thumbnail saved locally.`);
+          success("로고 선택 완료", "프로필 저장 시 인증된 보안 저장소에 업로드됩니다.");
         }
       };
       reader.readAsDataURL(file);
@@ -161,8 +165,8 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
   const handleLicenseUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setLicenseFile(file.name);
-      success("Business Document Attached", `Attached license details for "${file.name}"`);
+      setLicenseFile(file);
+      success("사업자 서류 선택 완료", "프로필 저장 시 인증된 보안 저장소에 업로드됩니다.");
     }
   };
 
@@ -201,11 +205,20 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
     setAiStep(true);
     
     try {
+      const uid = auth.currentUser?.uid;
+      const uploadedFields: Record<string, unknown> = {};
+      if (uid && logoFile) {
+        uploadedFields.companyLogoPath = await uploadPrivateFile("profile-media", uid, logoFile);
+      }
+      if (uid && licenseFile) {
+        uploadedFields.businessRegistrationDocumentPath = await uploadPrivateFile("business-documents", uid, licenseFile);
+      }
       const updatedProfile = {
         ...formData,
+        ...uploadedFields,
         onboardingCompleted: true,
-        verified: true, // Auto-verify sponsor sandbox on onboarding finish
-        verifiedStatus: "Verified"
+        verified: false,
+        verifiedStatus: licenseFile ? "Pending Review" : "Pending"
       } as any;
 
       await updateCompanyProfile(updatedProfile);
@@ -231,19 +244,12 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
       success("Recruitment Strategy Designed", "Gemini successfully completed corporate match planning.");
     } catch (err) {
       console.error(err);
-      // Fallback design plan
+      // Do not present synthetic matching or verification results when the server is unavailable.
       setAiReport({
-        strengthSummary: `Horizon Labs Inc. offers a high-trust employer branding based on target skill vectors in ${formData.requiredSkills?.slice(0, 3).join(", ")}. Their physical presence in ${formData.officeLocation} is key for corporate collaborations.`,
-        weaknessSummary: "They need to publish interactive sandbox tasks in TypeScript / Vite to attract premium students.",
-        skillGap: ["Advanced Rust Optimization", "Secure Key Management", "Sandbox Docker Monitors"],
-        recommendedSkills: ["D3.js Visualization", "Postgres Pooling", "Node Cluster Threading"],
-        recommendedProjects: ["Implement real-time matchers", "Integrate Spanner analytics", "Vite Bundler optimizations"],
-        recommendedCompanies: ["Vercel", "Stripe", "Linear", "Figma"],
-        recommendedLearningPath: ["Establish $5,000 developer reward pot", "Review 12 pending student entries", "Schedule interview matching blocks"],
-        careerReadiness: 94,
-        employabilityScore: 98
+        status: "unavailable",
+        message: "Gemini 분석 서버에 연결되지 않아 채용 전략을 생성하지 못했습니다. 서버 연결 후 다시 실행해 주세요.",
       });
-      error("AI Service Offline", "Reverted to secure local matchmaker modeling.");
+      error("AI 서비스 연결 필요", "프로필은 저장됐지만 실제 채용 전략 분석은 완료되지 않았습니다.");
     } finally {
       setIsAiLoading(false);
     }
@@ -573,7 +579,7 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
                         <div className="border border-dashed border-white/10 rounded-2xl p-5 text-center bg-white/5 hover:bg-white/10 transition-colors relative flex flex-col items-center justify-center">
                           <UploadCloud className="w-8 h-8 text-neutral-400 mb-2" />
                           <span className="text-xs font-bold text-white">
-                            {licenseFile ? `Attached: ${licenseFile}` : "Upload Business License Document"}
+                            {licenseFile ? `Attached: ${licenseFile.name}` : "Upload Business License Document"}
                           </span>
                           <span className="text-[10px] text-neutral-500 font-mono mt-1">Our compliance team reviews license attachments within 24 hours.</span>
                           <input type="file" accept=".pdf,image/*" onChange={handleLicenseUpload} className="absolute inset-0 opacity-0 cursor-pointer" />

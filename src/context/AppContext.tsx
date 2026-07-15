@@ -19,6 +19,8 @@ import {
   sendPasswordResetEmail,
   getPendingGoogleAuthIntent,
   clearPendingGoogleAuthIntent,
+  getGoogleRegistrationId,
+  clearGoogleRegistrationId,
 } from "../lib/supabaseAuth";
 import { db, auth, supabase } from "../lib/supabaseAuth";
 import { 
@@ -233,7 +235,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // 1 & 2. Persistent Supabase Authentication Synchronization Hook
   useEffect(() => {
+    let authCallbackInFlight = false;
+    let rejectedGoogleUid: string | null = null;
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (authCallbackInFlight) return;
+      authCallbackInFlight = true;
+      try {
       if (user) {
         console.log("[KONEXA] Active Auth State Detected. UID:", user.uid, "Anonymous:", user.isAnonymous);
         
@@ -280,23 +287,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             
             if (userSnapshot.exists()) {
               const pendingIntent = getPendingGoogleAuthIntent();
+              const registrationId = getGoogleRegistrationId();
               const initialProfile = userSnapshot.data() as UserProfile & { onboardingStatus?: string };
-              if (initialProfile.onboardingStatus === "pending_google") {
-                if (!pendingIntent || pendingIntent.mode !== "register") {
-                  clearPendingGoogleAuthIntent();
-                  await signOut(auth);
-                  error("Google 회원가입이 필요합니다", "신규 Google 계정은 학생 또는 기업 회원가입 화면에서 필수 약관에 동의한 후 가입해 주세요.");
+              if (registrationId) {
+                const { error: registrationError } = await supabase.rpc("complete_google_registration", {
+                  registration_id: registrationId,
+                });
+                clearGoogleRegistrationId();
+                clearPendingGoogleAuthIntent();
+                if (registrationError) {
+                  const registrationMessage = String(registrationError.message || registrationError);
+                  if (rejectedGoogleUid !== user.uid) {
+                    rejectedGoogleUid = user.uid;
+                    await signOut(auth);
+                  }
+                  setCurrentUser(null);
+                  setStudentProfile(null);
+                  setCompanyProfile(null);
+                  error(
+                    registrationMessage.includes("KONEXA_ROLE_CONFLICT") ? "계정 유형이 이미 등록되어 있습니다" : "Google 가입을 완료하지 못했습니다",
+                    registrationMessage.includes("KONEXA_ROLE_CONFLICT")
+                      ? "이 Google 이메일은 이미 다른 유형의 KONEXA 계정으로 등록되어 있습니다. 기존 계정으로 로그인하거나 다른 Google 계정을 사용해 주세요."
+                      : "가입 세션이 만료되었거나 필수 동의 확인에 실패했습니다. 가입 화면에서 다시 시작해 주세요."
+                  );
                   setIsAuthReady(true);
                   return;
                 }
-                const { error: onboardingError } = await (supabase as any).rpc("complete_google_onboarding", {
-                  requested_role: pendingIntent.role,
-                  consent_payload: pendingIntent.consentBundle || {},
-                  profile_payload: pendingIntent.profileData || {},
-                });
-                if (onboardingError) throw onboardingError;
-                clearPendingGoogleAuthIntent();
                 userSnapshot = await getDoc(userDocRef);
+              } else if (initialProfile.onboardingStatus === "pending_google") {
+                clearPendingGoogleAuthIntent();
+                if (rejectedGoogleUid !== user.uid) {
+                  rejectedGoogleUid = user.uid;
+                  await signOut(auth);
+                }
+                error("Google 가입 세션이 만료되었습니다", "가입 화면에서 Google 회원가입을 다시 시작해 주세요.");
+                setIsAuthReady(true);
+                return;
               } else if (pendingIntent) {
                 clearPendingGoogleAuthIntent();
               }
@@ -358,6 +384,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } else {
+        rejectedGoogleUid = null;
         // No user found, sign in anonymously to keep database rules happy!
         console.log("[KONEXA] No user session. Signing in anonymously...");
         try {
@@ -366,6 +393,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           console.warn("[KONEXA] Failed anonymous authentication fallback", err.message);
           setIsAuthReady(true);
         }
+      }
+      } finally {
+        authCallbackInFlight = false;
       }
     });
 
