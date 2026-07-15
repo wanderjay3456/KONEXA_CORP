@@ -13,6 +13,7 @@ import {
   reportDispute, requestIntroduction, type TrustSnapshot,
 } from "../../lib/trustOperations";
 import { useToast } from "../ui/Toast";
+import { payProjectContract } from "../../lib/portonePayments";
 
 const emptySnapshot: TrustSnapshot = {
   consents: [], introductions: [], contracts: [], signatures: [], milestones: [], payments: [],
@@ -58,6 +59,7 @@ export default function TrustOperationsCenter() {
   const [excludedWork, setExcludedWork] = useState("운영서버 직접 배포, 별도 합의가 없는 콘텐츠 제작 및 추가 기능");
   const [monthlyAmount, setMonthlyAmount] = useState(2_000_000);
   const [disputeSummary, setDisputeSummary] = useState("");
+  const [processingPaymentId, setProcessingPaymentId] = useState("");
 
   const refresh = async () => {
     if (!currentUser || currentUser.email === "guest@konexa.dev") return;
@@ -190,6 +192,22 @@ export default function TrustOperationsCenter() {
     }
   };
 
+  const handleProjectPayment = async (contract: Record<string, unknown>) => {
+    const contractId = asText(contract.id);
+    if (!contractId || processingPaymentId) return;
+    setProcessingPaymentId(contractId);
+    try {
+      const result = await payProjectContract(contractId);
+      if (result.status !== "funds_secured" || !result.amountMatches) throw new Error("PG 결제 검증이 아직 완료되지 않았습니다.");
+      success("결제 검증 완료", "PG가 확인한 금액과 계약 금액이 일치합니다.");
+      await refresh();
+    } catch (cause) {
+      error("결제를 완료하지 못했습니다", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
+    } finally {
+      setProcessingPaymentId("");
+    }
+  };
+
   const signedIn = Boolean(currentUser && currentUser.email !== "guest@konexa.dev");
 
   return (
@@ -318,7 +336,7 @@ export default function TrustOperationsCenter() {
                   return (
                     <div key={contract.id} className="rounded-2xl border border-neutral-200 p-4">
                       <div className="flex items-start justify-between gap-3"><div><b className="text-sm">{asText(contract.title) || "프로젝트 계약"}</b><p className="mt-1 text-[11px] text-neutral-400">{contract.id}</p></div><StatusPill good={relationshipUnlocked}>{relationshipUnlocked ? "연락처 공개" : "연락처 잠금"}</StatusPill></div>
-                      <div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled className="rounded-xl bg-neutral-200 px-3 py-2 text-[11px] font-bold text-neutral-500">{mySigned ? "모두싸인 검증 완료" : "모두싸인 가맹 승인 후 서명 가능"}</button>{activeRole === UserRole.COMPANY && <button onClick={() => handleMilestone(contract)} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-bold">1주차 마일스톤 생성</button>}</div>
+                      <div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled className="rounded-xl bg-neutral-200 px-3 py-2 text-[11px] font-bold text-neutral-500">{mySigned ? "모두싸인 검증 완료" : "모두싸인 가맹 승인 후 서명 가능"}</button>{activeRole === UserRole.COMPANY && <button onClick={() => handleMilestone(contract)} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-bold">1주차 마일스톤 생성</button>}{activeRole === UserRole.COMPANY && <button onClick={() => void handleProjectPayment(contract)} disabled={Boolean(processingPaymentId)} className="rounded-xl bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50">{processingPaymentId === contract.id ? "결제창 준비 중…" : "PG로 결제하기"}</button>}</div>
                     </div>
                   );
                 })}
