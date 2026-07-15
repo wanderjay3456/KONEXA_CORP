@@ -16,9 +16,13 @@ import {
   signOut,
   signInWithPopup,
   GoogleAuthProvider,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  getPendingGoogleAuthIntent,
+  clearPendingGoogleAuthIntent,
+  getGoogleRegistrationId,
+  clearGoogleRegistrationId,
 } from "../lib/supabaseAuth";
-import { db, auth } from "../lib/supabaseAuth";
+import { db, auth, supabase } from "../lib/supabaseAuth";
 import { 
   UserRole, 
   UserProfile, 
@@ -97,13 +101,19 @@ interface AppContextType {
   createProject: (title: string, description: string, requirements: string[], difficulty: ProjectDifficulty, reward: string, tags: string[]) => Promise<void>;
   updateStudentProfile: (profile: Partial<StudentProfile>) => Promise<void>;
   updateCompanyProfile: (profile: Partial<CompanyProfile>) => Promise<void>;
-  registerUser: (email: string, displayName: string, role: UserRole, studentData?: Partial<StudentProfile>, companyData?: Partial<CompanyProfile>, password?: string) => Promise<{ emailConfirmationRequired: boolean }>;
+  registerUser: (email: string, displayName: string, role: UserRole, studentData?: Partial<StudentProfile>, companyData?: Partial<CompanyProfile>, password?: string, consentBundle?: Record<string, unknown>) => Promise<{ emailConfirmationRequired: boolean }>;
   loginUser: (email: string, role: UserRole, password?: string) => Promise<{ emailConfirmationRequired: boolean }>;
-  googleLogin: (role: UserRole) => Promise<void>;
+  googleLogin: (role: UserRole, options?: GoogleLoginOptions) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   logoutUser: () => Promise<void>;
   reviewApplication: (applicationId: string, status: ApplicationStatus, feedback: string, score: number) => Promise<void>;
   triggerEvaluation: (applicationId: string, code: string, requirements: string[]) => Promise<any>;
+}
+
+interface GoogleLoginOptions {
+  mode?: "login" | "register";
+  consentBundle?: Record<string, unknown>;
+  profileData?: Record<string, unknown>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -225,7 +235,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // 1 & 2. Persistent Supabase Authentication Synchronization Hook
   useEffect(() => {
+    let authCallbackInFlight = false;
+    let rejectedGoogleUid: string | null = null;
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (authCallbackInFlight) return;
+      authCallbackInFlight = true;
+      try {
       if (user) {
         console.log("[KONEXA] Active Auth State Detected. UID:", user.uid, "Anonymous:", user.isAnonymous);
         
@@ -268,9 +283,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // Fetch user doc and profile from Supabase!
           try {
             const userDocRef = doc(db, "users", user.uid);
-            const userSnapshot = await getDoc(userDocRef);
+            let userSnapshot = await getDoc(userDocRef);
             
             if (userSnapshot.exists()) {
+              const pendingIntent = getPendingGoogleAuthIntent();
+              const registrationId = getGoogleRegistrationId();
+              const initialProfile = userSnapshot.data() as UserProfile & { onboardingStatus?: string };
+              if (registrationId) {
+                const { error: registrationError } = await supabase.rpc("complete_google_registration", {
+                  registration_id: registrationId,
+                });
+                clearGoogleRegistrationId();
+                clearPendingGoogleAuthIntent();
+                if (registrationError) {
+                  const registrationMessage = String(registrationError.message || registrationError);
+                  if (rejectedGoogleUid !== user.uid) {
+                    rejectedGoogleUid = user.uid;
+                    await signOut(auth);
+                  }
+                  setCurrentUser(null);
+                  setStudentProfile(null);
+                  setCompanyProfile(null);
+                  error(
+                    registrationMessage.includes("KONEXA_ROLE_CONFLICT") ? "계정 유형이 이미 등록되어 있습니다" : "Google 가입을 완료하지 못했습니다",
+                    registrationMessage.includes("KONEXA_ROLE_CONFLICT")
+                      ? "이 Google 이메일은 이미 다른 유형의 KONEXA 계정으로 등록되어 있습니다. 기존 계정으로 로그인하거나 다른 Google 계정을 사용해 주세요."
+                      : "가입 세션이 만료되었거나 필수 동의 확인에 실패했습니다. 가입 화면에서 다시 시작해 주세요."
+                  );
+                  setIsAuthReady(true);
+                  return;
+                }
+                userSnapshot = await getDoc(userDocRef);
+              } else if (initialProfile.onboardingStatus === "pending_google") {
+                clearPendingGoogleAuthIntent();
+                if (rejectedGoogleUid !== user.uid) {
+                  rejectedGoogleUid = user.uid;
+                  await signOut(auth);
+                }
+                error("Google 가입 세션이 만료되었습니다", "가입 화면에서 Google 회원가입을 다시 시작해 주세요.");
+                setIsAuthReady(true);
+                return;
+              } else if (pendingIntent) {
+                clearPendingGoogleAuthIntent();
+              }
+
               const uProfile = userSnapshot.data() as UserProfile;
               setCurrentUser(uProfile);
               
@@ -328,6 +384,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } else {
+        rejectedGoogleUid = null;
         // No user found, sign in anonymously to keep database rules happy!
         console.log("[KONEXA] No user session. Signing in anonymously...");
         try {
@@ -336,6 +393,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           console.warn("[KONEXA] Failed anonymous authentication fallback", err.message);
           setIsAuthReady(true);
         }
+      }
+      } finally {
+        authCallbackInFlight = false;
       }
     });
 
@@ -542,6 +602,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
       setStudentProfile(updated);
       await setDoc(doc(db, "student_profiles", updated.uid), updated, { merge: true });
+      await setDoc(doc(db, "protected_contacts", updated.uid), {
+        userId: updated.uid,
+        talentId: updated.uid,
+        email: currentUser?.email || "",
+        github: updated.github || "",
+        linkedin: updated.linkedin || "",
+        portfolio: updated.portfolio || "",
+        updatedAt: Date.now(),
+      }, { merge: true });
       
       await logSystemAction(
         "STUDENT_PROFILE_UPDATE",
@@ -583,7 +652,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     role: UserRole,
     studentData?: Partial<StudentProfile>,
     companyData?: Partial<CompanyProfile>,
-    password?: string
+    password?: string,
+    consentBundle?: Record<string, unknown>
   ) => {
     try {
       if (![UserRole.STUDENT, UserRole.COMPANY].includes(role)) {
@@ -595,6 +665,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         role,
         student_profile: studentData || undefined,
         company_profile: companyData || undefined,
+        consent_bundle: consentBundle || undefined,
       });
       const authUid = credential.user.uid;
       
@@ -631,6 +702,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...studentData
         };
         await setDoc(doc(db, "student_profiles", authUid), sProfile);
+        await setDoc(doc(db, "protected_contacts", authUid), {
+          userId: authUid,
+          talentId: authUid,
+          email,
+          github: sProfile.github || "",
+          linkedin: sProfile.linkedin || "",
+          portfolio: sProfile.portfolio || "",
+          updatedAt: now,
+        });
         setStudentProfile(sProfile);
         setCompanyProfile(null);
       } else if (role === UserRole.COMPANY) {
@@ -748,90 +828,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const googleLogin = async (role: UserRole) => {
+  const googleLogin = async (role: UserRole, options: GoogleLoginOptions = {}) => {
     try {
       if (![UserRole.STUDENT, UserRole.COMPANY].includes(role)) {
         throw new Error("This account type cannot use self-service login.");
       }
       const provider = new GoogleAuthProvider();
-      const credential = await signInWithPopup(auth, provider);
-      if (!credential.user) return;
-      const user = credential.user;
-      const authUid = user.uid;
-      const email = user.email || "";
-      const displayName = user.displayName || email.split("@")[0];
-      const now = Date.now();
-
-      // Check if user profile exists in Supabase
-      const userDocRef = doc(db, "users", authUid);
-      const userSnapshot = await getDoc(userDocRef);
-      
-      let profile: UserProfile;
-      if (userSnapshot.exists()) {
-        profile = userSnapshot.data() as UserProfile;
-      } else {
-        profile = {
-          uid: authUid,
-          email,
-          displayName,
-          role,
-          createdAt: now
-        };
-        await setDoc(userDocRef, profile);
-      }
-
-      setCurrentUser(profile);
-      const effectiveRole = profile.role;
-      setActiveRole(effectiveRole);
-
-      if (effectiveRole === UserRole.STUDENT) {
-        const studentDocRef = doc(db, "student_profiles", authUid);
-        const studentSnapshot = await getDoc(studentDocRef);
-        let sProfile: StudentProfile;
-        if (studentSnapshot.exists()) {
-          sProfile = studentSnapshot.data() as StudentProfile;
-        } else {
-          sProfile = {
-            uid: authUid,
-            name: profile.displayName,
-            skills: ["React", "TypeScript", "TailwindCSS", "Framer Motion"],
-            github: "https://github.com",
-            bio: "Experienced developer eager to solve challenges and build high-quality web software.",
-            trustScore: 82,
-            completedProjects: 1,
-            createdAt: now
-          };
-          await setDoc(studentDocRef, sProfile);
-        }
-        setStudentProfile(sProfile);
-        setCompanyProfile(null);
-      } else if (effectiveRole === UserRole.COMPANY) {
-        const companyDocRef = doc(db, "company_profiles", authUid);
-        const companySnapshot = await getDoc(companyDocRef);
-        let cProfile: CompanyProfile;
-        if (companySnapshot.exists()) {
-          cProfile = companySnapshot.data() as CompanyProfile;
-        } else {
-          cProfile = {
-            uid: authUid,
-            companyName: profile.displayName + " Enterprise",
-            website: "https://example.com",
-            description: "Leading enterprise solutions.",
-            verified: true,
-            verifiedStatus: "Verified",
-            createdAt: now
-          };
-          await setDoc(companyDocRef, cProfile);
-        }
-        setCompanyProfile(cProfile);
-        setStudentProfile(null);
-      }
-
-      await logSystemAction(
-        "AUTH_LOGIN_GOOGLE",
-        `Authenticated user via Google (${effectiveRole}): ${profile.displayName} (${email})`
-      );
-      success("Welcome", `Successfully signed in via Google as ${effectiveRole}.`);
+      await signInWithPopup(auth, provider, {
+        mode: options.mode || "login",
+        role: role === UserRole.COMPANY ? "company" : "student",
+        consentBundle: options.consentBundle,
+        profileData: options.profileData,
+      });
     } catch (err: any) {
       error("Google Login failed", err.message);
       throw err;

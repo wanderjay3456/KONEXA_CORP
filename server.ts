@@ -10,6 +10,7 @@ import { registerIntelligenceRoutes } from "./src/lib/intelligenceBackend";
 import { registerAdminRoutes } from "./src/lib/adminBackend";
 import { registerBillingRoutes, registerStripeWebhook } from "./src/server/billing";
 import { registerEmailRoutes, registerResendWebhook } from "./src/server/email";
+import { registerPortOnePaymentRoutes, registerPortOneWebhook } from "./src/server/payments";
 import { requireAuth, requireRole, type AuthenticatedRequest } from "./src/server/security";
 import { adminDb, FieldValue } from "./src/server/supabaseAdmin";
 
@@ -32,18 +33,7 @@ function getAIClient(): GoogleGenAI {
 
 function validateProductionConfiguration() {
   if (process.env.NODE_ENV !== "production") return;
-  const required = [
-    "APP_URL",
-    "SUPABASE_URL",
-    "SUPABASE_SECRET_KEY",
-    "GEMINI_API_KEY",
-    "STRIPE_SECRET_KEY",
-    "STRIPE_WEBHOOK_SECRET",
-    "STRIPE_PRICE_PRO_MONTHLY",
-    "RESEND_API_KEY",
-    "RESEND_WEBHOOK_SECRET",
-    "EMAIL_FROM",
-  ];
+  const required = ["APP_URL"];
   const missing = required.filter((name) => !process.env[name]);
   if (missing.length) throw new Error(`Missing production environment variables: ${missing.join(", ")}`);
   if (!process.env.APP_URL?.startsWith("https://")) throw new Error("APP_URL must use HTTPS in production");
@@ -52,14 +42,9 @@ function validateProductionConfiguration() {
   }
 }
 
-async function startServer() {
+export function createApp() {
   validateProductionConfiguration();
   const app = express();
-  const PORT = Number.parseInt(process.env.PORT || "3000", 10);
-
-  if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
-    throw new Error("PORT must be a valid TCP port number");
-  }
 
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
@@ -68,6 +53,7 @@ async function startServer() {
   // Signed webhooks must receive the unmodified raw request body.
   registerStripeWebhook(app);
   registerResendWebhook(app);
+  registerPortOneWebhook(app);
 
   app.use(express.json({ limit: "12mb" }));
   app.use("/api", rateLimit({
@@ -88,6 +74,7 @@ async function startServer() {
   app.use("/api/ai", requireAuth, aiRateLimit);
   app.use("/api/intelligence", requireAuth);
   app.use("/api/billing", requireAuth, requireRole("company"));
+  app.use("/api/payments", requireAuth, requireRole("company"));
   app.use("/api/email", requireAuth);
   app.use("/api/admin", requireAuth, requireRole("admin"));
 
@@ -97,9 +84,12 @@ async function startServer() {
       status: "healthy",
       timestamp: Date.now(),
       configuration: {
+        supabaseAdmin: Boolean(process.env.SUPABASE_SECRET_KEY),
         gemini: Boolean(process.env.GEMINI_API_KEY),
-        stripe: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET && process.env.STRIPE_PRICE_PRO_MONTHLY),
+        stripeSubscription: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET && process.env.STRIPE_PRICE_PRO_MONTHLY),
+        portoneProjectPayments: Boolean(process.env.PORTONE_API_SECRET && process.env.PORTONE_WEBHOOK_SECRET && process.env.PORTONE_STORE_ID && process.env.PORTONE_CHANNEL_KEY),
         email: Boolean(process.env.RESEND_API_KEY && process.env.RESEND_WEBHOOK_SECRET && process.env.EMAIL_FROM),
+        modusign: Boolean(process.env.MODUSIGN_API_KEY && process.env.MODUSIGN_WEBHOOK_SECRET),
       },
     });
   });
@@ -316,6 +306,7 @@ async function startServer() {
 
   registerBillingRoutes(app);
   registerEmailRoutes(app);
+  registerPortOnePaymentRoutes(app);
 
   app.post("/api/gemini/analyze-pdf", async (req, res) => {
     try {
@@ -350,7 +341,16 @@ async function startServer() {
   // Register Enterprise Admin routes (Phase 9)
   registerAdminRoutes(app, getAIClient);
 
-  // Vite integration
+  return app;
+}
+
+const app = createApp();
+export default app;
+
+async function startStandaloneServer() {
+  const PORT = Number.parseInt(process.env.PORT || "3000", 10);
+  if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) throw new Error("PORT must be a valid TCP port number");
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -385,7 +385,9 @@ async function startServer() {
   process.once("SIGINT", () => shutdown("SIGINT"));
 }
 
-startServer().catch((err) => {
-  console.error("Failed to start server:", err);
-  process.exitCode = 1;
-});
+if (!process.env.VERCEL) {
+  startStandaloneServer().catch((err) => {
+    console.error("Failed to start server:", err);
+    process.exitCode = 1;
+  });
+}

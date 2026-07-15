@@ -32,7 +32,7 @@ interface StudentRegisterFormProps {
 }
 
 export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegisterFormProps) {
-  const { registerUser, projects } = useApp();
+  const { registerUser, googleLogin, projects } = useApp();
   const { success, error, info } = useToast();
   
   const [step, setStep] = useState(1);
@@ -62,7 +62,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     preferredIndustry: "AI & SaaS",
     preferredJob: "Software Engineer",
     preferredCountry: "South Korea",
-    preferredSalary: "$45,000 - $60,000",
+    preferredWeeklyPayKrw: undefined,
     availability: "Immediate (Full-time)",
     workPreference: "Remote",
     timezone: "GMT+9 (Seoul)",
@@ -74,8 +74,11 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [authMethod, setAuthMethod] = useState<"email" | "google">("email");
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [termsAgreement, setTermsAgreement] = useState(false);
+  const [nonCircumventionAgreement, setNonCircumventionAgreement] = useState(false);
+  const [privacyTransferConsent, setPrivacyTransferConsent] = useState(false);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
   const [resumeName, setResumeName] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -148,15 +151,15 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     if (step === 1) {
       if (!formData.name?.trim()) nextErrors.name = "Full legal name is required.";
       if (!formData.bio?.trim()) nextErrors.bio = "A brief biographical pitch is required.";
-      if (!email.trim() || !email.includes("@")) nextErrors.email = "A valid email is required.";
-      if (!password.trim() || password.length < 6) nextErrors.password = "A password of at least 6 characters is required.";
+      if (authMethod === "email" && (!email.trim() || !email.includes("@"))) nextErrors.email = "A valid email is required.";
+      if (authMethod === "email" && (!password.trim() || password.length < 6)) nextErrors.password = "A password of at least 6 characters is required.";
     } else if (step === 2) {
       if (!formData.university?.trim()) nextErrors.university = "University Name is required.";
       if (!formData.major?.trim()) nextErrors.major = "Academic major study field is required.";
     } else if (step === 3) {
       if (!formData.github?.trim()) nextErrors.github = "GitHub is crucial for global technical validation.";
     } else if (step === 5) {
-      if (!termsAgreement) nextErrors.terms = "You must agree to the Terms of Service to authorize account provisioning.";
+      if (!termsAgreement || !nonCircumventionAgreement || !privacyTransferConsent) nextErrors.terms = "필수 이용약관, 이탈거래 방지, 메시지 분석·국외이전 고지에 모두 동의해야 합니다.";
     }
     
     setErrors(nextErrors);
@@ -175,26 +178,17 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     setStep(prev => Math.max(1, prev - 1));
   };
 
-  // Build AI Profile Analysis & recommendation
+  // Profile analysis is performed by the authenticated backend after registration.
+  // Never present a fabricated score or recommendation during pre-auth registration.
   const runAiAnalysis = () => {
-    setIsAiLoading(true);
-    setTimeout(() => {
-      // Find a suitable challenge project
-      const matchProject = projects.find(p => p.tags.some(t => formData.skills?.includes(t))) || projects[0];
-      
-      setAiReport({
-        profileAnalysis: `Alex Rivera exhibits robust familiarity with ${formData.skills?.join(", ")}. Their educational background at ${formData.university} suggests high-integrity theoretical computer science knowledge. With English verified at [${formData.englishLevel}] and Korean verified at [${formData.koreanLevel}], they are prime candidates for cross-border software collaborations.`,
-        score: 84,
-        skillsVerified: formData.skills || [],
-        roleRecommendations: [
-          formData.preferredJob || "Frontend Engineer",
-          "International Developer Associate",
-          "SaaS Performance Engineer"
-        ],
-        recommendedProjectId: matchProject?.id || "seed-1"
-      });
-      setIsAiLoading(false);
-    }, 1800);
+    setIsAiLoading(false);
+    setAiReport({
+      profileAnalysis: "회원가입이 완료되면 인증된 Gemini 분석 서버에서 프로필과 포트폴리오를 검토합니다. 현재는 사전 입력값만 저장되며, 검증 점수나 추천 결과를 생성하지 않습니다.",
+      score: 0,
+      skillsVerified: [],
+      roleRecommendations: [],
+      recommendedProjectId: ""
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -202,7 +196,13 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     if (!validateStep()) return;
 
     try {
-      const result = await registerUser(email, formData.name || "Global Student", UserRole.STUDENT, formData, undefined, password);
+      const result = await registerUser(email, formData.name || "Global Student", UserRole.STUDENT, formData, undefined, password, {
+        terms: termsAgreement,
+        nonCircumvention: nonCircumventionAgreement,
+        messageAnalysis: privacyTransferConsent,
+        crossBorderPrivacy: privacyTransferConsent,
+        documentVersion: "2026-07-15",
+      });
       setEmailConfirmationRequired(result.emailConfirmationRequired);
       
       // Jump to Step 6 (AI evaluation onboarding recommendations screen!)
@@ -210,6 +210,27 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
       runAiAnalysis();
     } catch (err: any) {
       error("Registration failed", err.message || "An account creation error occurred.");
+    }
+  };
+
+  const handleGoogleSubmit = async () => {
+    if (!validateStep()) return;
+    const safeProfile = { ...formData };
+    delete safeProfile.profilePhoto;
+    try {
+      await googleLogin(UserRole.STUDENT, {
+        mode: "register",
+        profileData: { ...safeProfile },
+        consentBundle: {
+          terms: termsAgreement,
+          nonCircumvention: nonCircumventionAgreement,
+          messageAnalysis: privacyTransferConsent,
+          crossBorderPrivacy: privacyTransferConsent,
+          documentVersion: "2026-07-15",
+        },
+      });
+    } catch (err: any) {
+      error("Google 회원가입 실패", err.message || "Google 인증을 시작할 수 없습니다.");
     }
   };
 
@@ -288,6 +309,11 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                   <p className="font-sans text-xs text-neutral-400 mt-0.5">Let’s begin with your legal naming, background localization, and personal pitch bio.</p>
                 </div>
 
+                <div className="grid grid-cols-2 gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-1.5">
+                  <button type="button" onClick={() => setAuthMethod("google")} className={`h-10 rounded-xl text-xs font-bold ${authMethod === "google" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>Google로 가입</button>
+                  <button type="button" onClick={() => setAuthMethod("email")} className={`h-10 rounded-xl text-xs font-bold ${authMethod === "email" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>이메일로 가입</button>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   {/* Photo picker */}
                   <div className="md:col-span-1 flex flex-col items-center justify-center border border-dashed border-neutral-200 rounded-2xl p-4 bg-neutral-50 hover:bg-neutral-100/50 transition-colors relative">
@@ -332,7 +358,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {authMethod === "email" ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="text-xs font-bold text-neutral-700">Email Address *</label>
                         <input
@@ -356,7 +382,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                         />
                         {errors.password && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.password}</span>}
                       </div>
-                    </div>
+                    </div> : <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">마지막 단계에서 Google 계정으로 인증합니다. KONEXA에는 Google 비밀번호가 저장되지 않습니다.</div>}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1">
@@ -664,14 +690,17 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">Preferred Salary Expectation</label>
+                    <label className="text-xs font-bold text-neutral-700 font-sans">희망 주급 (선택, 원)</label>
                     <input
-                      type="text"
-                      value={formData.preferredSalary || ""}
-                      onChange={(e) => updateField("preferredSalary", e.target.value)}
-                      placeholder="$50,000 - $70,000 / year"
+                      type="number"
+                      min="0"
+                      step="10000"
+                      inputMode="numeric"
+                      value={formData.preferredWeeklyPayKrw ?? ""}
+                      onChange={(e) => updateField("preferredWeeklyPayKrw", e.target.value === "" ? undefined : Number(e.target.value))}
                       className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
                     />
+                    <p className="text-[10px] leading-4 text-neutral-400">프로젝트는 주 단위로 정산합니다. 희망 금액이 아직 없으면 비워두어도 됩니다.</p>
                   </div>
 
                   <div className="space-y-1">
@@ -772,6 +801,28 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                         <span>I confirm that I have reviewed and agree to the <strong>KONEXA Terms of Service</strong>, global matching policy, and <strong>Privacy Standards</strong>. *</span>
                       </div>
                     </label>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={nonCircumventionAgreement}
+                        onChange={(e) => setNonCircumventionAgreement(e.target.checked)}
+                        className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
+                      />
+                      <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
+                        프로젝트 진행 중 플랫폼 외 거래를 하지 않고, KONEXA를 통해 소개받은 기업과의 직접 고용·용역 전환은 12개월간 플랫폼에 신고하는 정책을 확인했습니다. 학생에게 거액의 위약금을 부과하는 조항은 적용하지 않습니다. *
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={privacyTransferConsent}
+                        onChange={(e) => setPrivacyTransferConsent(e.target.checked)}
+                        className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
+                      />
+                      <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
+                        계약 전 연락처 공유 방지를 위한 메시지 패턴 탐지와 한국·해외 간 개인정보 이전 고지를 확인했습니다. 위험기록에는 메시지 원문 대신 탐지 유형과 기록 ID만 저장합니다. *
+                      </div>
+                    </label>
                     {errors.terms && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.terms}</span>}
                   </div>
                 </div>
@@ -817,10 +868,10 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                       <div className="bg-neutral-50 border border-neutral-200/80 p-6 rounded-2xl space-y-4 shadow-xs">
                         <div className="flex justify-between items-center">
                           <span className="text-[10px] font-mono font-bold text-teal-600 bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-lg">
-                            AI Audit Completed
+                            AI Audit Pending
                           </span>
                           <span className="text-xs font-mono font-bold text-neutral-600 bg-neutral-100 border border-neutral-200 px-2.5 py-1 rounded-lg">
-                            Initial Trust Score: {aiReport.score}/100
+                            Trust Score: 산정 대기
                           </span>
                         </div>
                         
@@ -857,19 +908,19 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                       <div className="border border-neutral-200 p-5 rounded-2xl flex flex-col justify-between bg-white shadow-premium">
                         <div>
                           <span className="text-[9px] font-mono font-black text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                            Recommended Challenge
+                            Recommended Challenge (after verification)
                           </span>
                           <h4 className="font-display font-bold text-base text-neutral-900 mt-2">
-                            {projects.find(p => p.id === aiReport.recommendedProjectId)?.title || "Vite + React Core Performance Optimizer"}
+                            {aiReport.recommendedProjectId ? projects.find(p => p.id === aiReport.recommendedProjectId)?.title : "회원가입 후 검증 결과에 따라 추천됩니다"}
                           </h4>
                           <p className="font-sans text-xs text-neutral-400 mt-1 line-clamp-2 leading-relaxed">
-                            {projects.find(p => p.id === aiReport.recommendedProjectId)?.description || "Complete this entry performance challenge to boost your initial trust metrics by up to 15 points."}
+                            {aiReport.recommendedProjectId ? projects.find(p => p.id === aiReport.recommendedProjectId)?.description : "인증된 프로필 분석과 프로젝트 적합성 검토가 완료된 후 표시됩니다."}
                           </p>
                         </div>
 
                         <div className="mt-4 pt-3 border-t border-neutral-100 flex items-center justify-between text-xs">
-                          <span className="font-mono text-neutral-400">Reward: <strong className="text-neutral-900 font-bold">{projects.find(p => p.id === aiReport.recommendedProjectId)?.reward || "$2,800 + Fast-Track"}</strong></span>
-                          <span className="text-neutral-400 text-[10px] font-mono font-extrabold uppercase">{projects.find(p => p.id === aiReport.recommendedProjectId)?.difficulty || "HARD"}</span>
+                          <span className="font-mono text-neutral-400">Reward: <strong className="text-neutral-900 font-bold">검토 후 공개</strong></span>
+                          <span className="text-neutral-400 text-[10px] font-mono font-extrabold uppercase">PENDING</span>
                         </div>
                       </div>
 
@@ -909,11 +960,11 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                   </button>
                 ) : (
                   <button
-                    type="submit"
-                    onClick={handleSubmit}
+                    type="button"
+                    onClick={authMethod === "google" ? handleGoogleSubmit : handleSubmit}
                     className="px-5 h-11 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
                   >
-                    <span>Register Account</span>
+                    <span>{authMethod === "google" ? "Google로 학생 가입" : "이메일로 학생 가입"}</span>
                     <ShieldCheck className="w-4 h-4" />
                   </button>
                 )}

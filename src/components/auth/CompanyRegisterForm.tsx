@@ -31,7 +31,7 @@ interface CompanyRegisterFormProps {
 }
 
 export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegisterFormProps) {
-  const { registerUser, studentProfile } = useApp();
+  const { registerUser, googleLogin, studentProfile } = useApp();
   const { success, error, info } = useToast();
   
   const [step, setStep] = useState(1);
@@ -69,7 +69,10 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
   const [termsAgreement, setTermsAgreement] = useState(false);
+  const [nonCircumventionAgreement, setNonCircumventionAgreement] = useState(false);
+  const [privacyTransferConsent, setPrivacyTransferConsent] = useState(false);
   const [password, setPassword] = useState("");
+  const [authMethod, setAuthMethod] = useState<"email" | "google">("email");
   const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
 
   // Custom skills or benefits inputs helpers
@@ -153,15 +156,15 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
       if (!formData.website?.trim()) nextErrors.website = "Company website URL is required.";
     } else if (step === 2) {
       if (!formData.contactPerson?.trim()) nextErrors.contactPerson = "Contact Person Representative Name is required.";
-      if (!formData.corporateEmail?.trim() || !formData.corporateEmail.includes("@")) {
+      if (authMethod === "email" && (!formData.corporateEmail?.trim() || !formData.corporateEmail.includes("@"))) {
         nextErrors.corporateEmail = "A valid corporate workspace email is required.";
       }
-      if (!password.trim() || password.length < 6) {
+      if (authMethod === "email" && (!password.trim() || password.length < 6)) {
         nextErrors.password = "A password of at least 6 characters is required for your credential account.";
       }
       if (!formData.companyIntroduction?.trim()) nextErrors.companyIntroduction = "Please write a brief corporate overview introduction.";
     } else if (step === 3) {
-      if (!termsAgreement) nextErrors.terms = "You must accept our workspace sharing standards to launch challenges.";
+      if (!termsAgreement || !nonCircumventionAgreement || !privacyTransferConsent) nextErrors.terms = "필수 이용약관, 소개요금·이탈거래 약정, 메시지 분석·국외이전 고지에 모두 동의해야 합니다.";
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -179,22 +182,17 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
     setStep(prev => Math.max(1, prev - 1));
   };
 
+  // Business verification and talent matching run only after authenticated backend setup.
+  // Do not show fabricated registry results or candidate counts during registration.
   const triggerAiMatching = () => {
-    setIsAiLoading(true);
-    setTimeout(() => {
-      setAiReport({
-        verificationStatus: "Pending Audit",
-        auditDetails: `Business ID [${formData.businessRegistrationNumber}] is queued for active validation with the National Corporate Registry database. Audit completes in ~4 hours. Under security protocols, you can publish challenges in Developer Sandbox mode immediately.`,
-        matchingTalentsCount: 142,
-        recommendedCandidates: [
-          studentProfile?.name || "Alex Rivera",
-          "Sophia Kim (SNU CS, Python Expert)",
-          "Ji-Min Park (KAIST Fullstack, React core)"
-        ],
-        matchingStrategy: `Based on your requirement for [${formData.requiredSkills?.join(", ")}], KONEXA's Semantic Matching Engine identified 3 primary fits within a 5km radius of your office at ${formData.officeLocation}.`
-      });
-      setIsAiLoading(false);
-    }, 1500);
+    setIsAiLoading(false);
+    setAiReport({
+      verificationStatus: "Pending KONEXA review",
+      auditDetails: "사업자등록증과 기업 프로필이 제출되었습니다. 관리자 검토와 연결된 검증 서버가 확인을 완료한 뒤 상태가 갱신됩니다.",
+      matchingTalentsCount: 0,
+      recommendedCandidates: [],
+      matchingStrategy: "기업 검증 및 프로젝트 조건 저장 후, 인증된 인재 데이터에 한해 매칭 결과를 제공합니다."
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -213,7 +211,14 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
           ...formData,
           description: desc
         },
-        password
+        password,
+        {
+          terms: termsAgreement,
+          nonCircumvention: nonCircumventionAgreement,
+          messageAnalysis: privacyTransferConsent,
+          crossBorderPrivacy: privacyTransferConsent,
+          documentVersion: "2026-07-15",
+        }
       );
       setEmailConfirmationRequired(result.emailConfirmationRequired);
 
@@ -221,6 +226,27 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
       triggerAiMatching();
     } catch (err: any) {
       error("Registration failed", err.message || "An account creation error occurred.");
+    }
+  };
+
+  const handleGoogleSubmit = async () => {
+    if (!validateStep()) return;
+    const safeProfile = { ...formData, description: formData.companyIntroduction || "Corporate software matching partner." };
+    delete safeProfile.companyLogo;
+    try {
+      await googleLogin(UserRole.COMPANY, {
+        mode: "register",
+        profileData: safeProfile as Record<string, unknown>,
+        consentBundle: {
+          terms: termsAgreement,
+          nonCircumvention: nonCircumventionAgreement,
+          messageAnalysis: privacyTransferConsent,
+          crossBorderPrivacy: privacyTransferConsent,
+          documentVersion: "2026-07-15",
+        },
+      });
+    } catch (err: any) {
+      error("Google 회원가입 실패", err.message || "Google 인증을 시작할 수 없습니다.");
     }
   };
 
@@ -430,6 +456,11 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                   <p className="font-sans text-xs text-neutral-400 mt-0.5">Identify the prime human point of contact who authorizes candidate testing.</p>
                 </div>
 
+                <div className="grid grid-cols-2 gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-1.5">
+                  <button type="button" onClick={() => setAuthMethod("google")} className={`h-10 rounded-xl text-xs font-bold ${authMethod === "google" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>Google로 가입</button>
+                  <button type="button" onClick={() => setAuthMethod("email")} className={`h-10 rounded-xl text-xs font-bold ${authMethod === "email" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>이메일로 가입</button>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-neutral-700">Contact Person Name *</label>
@@ -458,7 +489,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {authMethod === "email" ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-neutral-700 font-sans">Representative Corporate Email *</label>
                     <div className="relative">
@@ -485,7 +516,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                     />
                     {errors.password && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.password}</span>}
                   </div>
-                </div>
+                </div> : <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">마지막 단계에서 Google 계정으로 인증합니다. 기업 인증은 별도로 사업자등록 확인 후 완료됩니다.</div>}
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-700 font-sans">Corporate Mobile Phone</label>
@@ -619,6 +650,28 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                       <span>I authorize the verification audits of our physical business coordinates and registry, and agree to keep workspace postings compliant with <strong>KONEXA Sponsor Regulations</strong>. *</span>
                     </div>
                   </label>
+                  <label className="flex items-start gap-3 cursor-pointer mt-3">
+                    <input
+                      type="checkbox"
+                      checked={nonCircumventionAgreement}
+                      onChange={(e) => setNonCircumventionAgreement(e.target.checked)}
+                      className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
+                    />
+                    <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
+                      KONEXA를 통해 최초 소개받은 인재와 관계회사·대표자 개인·외주업체를 포함한 우회계약을 체결하는 경우 이를 신고하고, 소개일로부터 12개월 이내에는 사전 약정된 정상 전환수수료를 지급하는 정책을 확인했습니다. *
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer mt-3">
+                    <input
+                      type="checkbox"
+                      checked={privacyTransferConsent}
+                      onChange={(e) => setPrivacyTransferConsent(e.target.checked)}
+                      className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
+                    />
+                    <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
+                      계약 전 연락처 공유 방지를 위한 메시지 패턴 탐지와 한국·해외 간 개인정보 이전 고지를 확인했습니다. 위험기록에는 메시지 원문을 복사하지 않습니다. *
+                    </div>
+                  </label>
                   {errors.terms && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.terms}</span>}
                 </div>
               </div>
@@ -665,7 +718,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                       <div className="p-6 border border-neutral-200 rounded-2xl bg-white space-y-4 shadow-premium">
                         <div>
                           <span className="text-[10px] font-mono font-bold text-teal-600 uppercase tracking-widest block mb-1">
-                            AI Recommendation Matches
+                            AI Recommendation Matches (after verification)
                           </span>
                           <h4 className="font-display font-bold text-base text-neutral-900">
                             Semantic Candidates matched: {aiReport.matchingTalentsCount} profiles
@@ -723,11 +776,11 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                   </button>
                 ) : (
                   <button
-                    type="submit"
-                    onClick={handleSubmit}
+                    type="button"
+                    onClick={authMethod === "google" ? handleGoogleSubmit : handleSubmit}
                     className="px-5 h-11 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
                   >
-                    <span>Register Corporate Account</span>
+                    <span>{authMethod === "google" ? "Google로 기업 가입" : "이메일로 기업 가입"}</span>
                     <ShieldCheck className="w-4 h-4" />
                   </button>
                 )}

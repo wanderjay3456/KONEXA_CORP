@@ -61,7 +61,7 @@ export interface StudentProfile {
   preferredIndustry?: string;
   preferredJob?: string;
   preferredCountry?: string;
-  preferredSalary?: string;
+  preferredWeeklyPayKrw?: number;
   availability?: string;
   workPreference?: "Remote" | "Hybrid" | "Onsite";
   timezone?: string;

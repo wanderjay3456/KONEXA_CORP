@@ -3,6 +3,53 @@ import { db, supabase } from "../config/supabase";
 
 let cachedUser: User | null = null;
 let readyPromise: Promise<void> | null = null;
+const GOOGLE_AUTH_INTENT_KEY = "konexa_google_auth_intent";
+const GOOGLE_REGISTRATION_PARAM = "konexa_registration";
+
+export interface GoogleAuthIntent {
+  mode: "login" | "register";
+  role: "student" | "company";
+  consentBundle?: Record<string, unknown>;
+  profileData?: Record<string, unknown>;
+  createdAt: number;
+}
+
+export function getPendingGoogleAuthIntent(): GoogleAuthIntent | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(GOOGLE_AUTH_INTENT_KEY);
+    if (!raw) return null;
+    const intent = JSON.parse(raw) as GoogleAuthIntent;
+    if (Date.now() - intent.createdAt > 30 * 60 * 1000) {
+      window.sessionStorage.removeItem(GOOGLE_AUTH_INTENT_KEY);
+      return null;
+    }
+    return intent;
+  } catch {
+    window.sessionStorage.removeItem(GOOGLE_AUTH_INTENT_KEY);
+    return null;
+  }
+}
+
+export function clearPendingGoogleAuthIntent() {
+  if (typeof window !== "undefined") window.sessionStorage.removeItem(GOOGLE_AUTH_INTENT_KEY);
+}
+
+export function getGoogleRegistrationId(): string | null {
+  if (typeof window === "undefined") return null;
+  const value = new URL(window.location.href).searchParams.get(GOOGLE_REGISTRATION_PARAM);
+  return value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ? value
+    : null;
+}
+
+export function clearGoogleRegistrationId() {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has(GOOGLE_REGISTRATION_PARAM)) return;
+  url.searchParams.delete(GOOGLE_REGISTRATION_PARAM);
+  window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+}
 
 function userAdapter(user: User | null): any {
   if (!user) return null;
@@ -95,12 +142,35 @@ export async function signInAnonymously(_auth?: unknown) {
   return { user: null };
 }
 
-export async function signInWithPopup(_auth: unknown, _provider: GoogleAuthProvider) {
+export async function signInWithPopup(
+  _auth: unknown,
+  _provider: GoogleAuthProvider,
+  intent: Omit<GoogleAuthIntent, "createdAt">,
+) {
+  let redirectTo = typeof window === "undefined" ? undefined : window.location.origin;
+  if (intent.mode === "register") {
+    const { data: registrationId, error: registrationError } = await supabase.rpc("begin_google_registration", {
+      requested_role: intent.role,
+      consent_payload: (intent.consentBundle || {}) as any,
+      profile_payload: (intent.profileData || {}) as any,
+    });
+    if (registrationError || !registrationId) throw registrationError || new Error("Google registration could not be initialized");
+    if (typeof window !== "undefined") {
+      const callback = new URL(window.location.origin);
+      callback.searchParams.set(GOOGLE_REGISTRATION_PARAM, String(registrationId));
+      redirectTo = callback.toString();
+    }
+  } else {
+    clearPendingGoogleAuthIntent();
+  }
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: typeof window === "undefined" ? undefined : window.location.origin },
+    options: { redirectTo },
   });
-  if (error) throw error;
+  if (error) {
+    clearPendingGoogleAuthIntent();
+    throw error;
+  }
   return { user: auth.currentUser, provider: data.provider };
 }
 

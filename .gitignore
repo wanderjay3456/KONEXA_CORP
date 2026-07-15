@@ -2,7 +2,9 @@ node_modules/
 build/
 dist/
 coverage/
+supabase/.temp/
 .DS_Store
 *.log
 .env*
 !.env.example
+.vercel

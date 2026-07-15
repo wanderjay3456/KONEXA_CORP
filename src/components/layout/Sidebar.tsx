@@ -19,7 +19,8 @@ import {
   MessageSquare,
   Layers,
   ShieldCheck,
-  Award
+  Award,
+  Scale
 } from "lucide-react";
 
 interface SidebarProps {
@@ -43,6 +44,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           { id: "achievement-center", label: "Gamification & Badges", icon: ShieldCheck },
           { id: "ai-workspace", label: "AI Coach Suite", icon: Brain },
           { id: "messaging", label: "Realtime Messaging", icon: MessageSquare },
+          { id: "trust-operations", label: "Contracts & Protection", icon: Scale },
           { id: "profile", label: "Dynamic Portfolio", icon: User }
         ];
       case UserRole.COMPANY:
@@ -54,6 +56,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           { id: "ai-recruiter", label: "AI Recruitment Center", icon: Brain },
           { id: "project-workspace", label: "Project Workspace", icon: Layers },
           { id: "employee-conversions", label: "Employee Conversions", icon: Award },
+          { id: "trust-operations", label: "Contracts & Protection", icon: Scale },
           { id: "company-analytics", label: "Talent Analytics", icon: Activity },
           { id: "university-management", label: "Academic Networks", icon: GraduationCap },
           { id: "company-bookmarks", label: "Central Bookmarks", icon: ShieldCheck },
@@ -65,7 +68,8 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         return [
           { id: "admin-logs", label: "System Audit Logs", icon: Terminal },
           { id: "admin-analytics", label: "SaaS Analytics", icon: TrendingUp },
-          { id: "admin-health", label: "Database Monitors", icon: Activity }
+          { id: "admin-health", label: "Database Monitors", icon: Activity },
+          { id: "trust-operations", label: "Trust & Disputes", icon: Scale }
         ];
       case UserRole.AI:
         return [
