@@ -212,6 +212,46 @@ export async function recordRiskEvent(input: { matchId?: string; relationshipId?
   });
 }
 
+export async function submitTransactionReview(input: {
+  relationshipId: string;
+  contractId?: string;
+  revieweeId: string;
+  reviewerRole: "company" | "student";
+  overallRating: number;
+  qualityRating: number;
+  communicationRating: number;
+  reliabilityRating: number;
+  scopeClarityRating: number;
+  comment: string;
+}) {
+  const user = requireUser();
+  const ratings = [input.overallRating, input.qualityRating, input.communicationRating, input.reliabilityRating, input.scopeClarityRating];
+  if (ratings.some((rating) => !Number.isInteger(rating) || rating < 1 || rating > 5)) throw new Error("평점은 1점부터 5점까지 입력해 주세요.");
+  const comment = input.comment.trim();
+  if (comment.length < 20 || comment.length > 1000) throw new Error("리뷰는 20자 이상 1,000자 이하로 작성해 주세요.");
+  const existing = await getDocs(query(collection(db, "reviews"), where("relationshipId", "==", input.relationshipId), where("reviewerId", "==", user.uid)));
+  if (!existing.empty) throw new Error("이 거래에 대한 리뷰를 이미 제출했습니다.");
+  const review = await addDoc(collection(db, "reviews"), {
+    userId: user.uid,
+    reviewerId: user.uid,
+    revieweeId: input.revieweeId,
+    relationshipId: input.relationshipId,
+    contractId: input.contractId || null,
+    reviewerRole: input.reviewerRole,
+    overallRating: input.overallRating,
+    qualityRating: input.qualityRating,
+    communicationRating: input.communicationRating,
+    reliabilityRating: input.reliabilityRating,
+    scopeClarityRating: input.scopeClarityRating,
+    comment,
+    status: "sealed",
+    moderationStatus: "pending",
+    appealStatus: "none",
+    createdAt: Date.now(),
+  });
+  return review.id;
+}
+
 export async function isContactUnlocked(companyId: string, talentId: string) {
   const snapshot = await getDocs(query(collection(db, "contact_unlocks"), where("companyId", "==", companyId), where("talentId", "==", talentId)));
   return !snapshot.empty && snapshot.docs.some((item) => item.data().status === "unlocked");

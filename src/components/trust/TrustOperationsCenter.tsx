@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle, BriefcaseBusiness, Check, ChevronRight, CircleDollarSign, FileSignature,
-  Fingerprint, Flag, LockKeyhole, RefreshCw, Scale, ShieldCheck, UserRoundSearch,
+  Fingerprint, Flag, LockKeyhole, RefreshCw, Scale, ShieldCheck, Star, UserRoundSearch,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { UserRole } from "../../types";
@@ -10,7 +10,7 @@ import {
 } from "../../config/compliancePolicy";
 import {
   createHiringOffer, createMilestone, createProjectContract, loadTrustSnapshot, recordConsent,
-  reportDispute, requestIntroduction, type TrustSnapshot,
+  reportDispute, requestIntroduction, submitTransactionReview, type TrustSnapshot,
 } from "../../lib/trustOperations";
 import { useToast } from "../ui/Toast";
 import { payProjectContract } from "../../lib/portonePayments";
@@ -45,7 +45,7 @@ export default function TrustOperationsCenter() {
   const { success, error, info } = useToast();
   const [snapshot, setSnapshot] = useState<TrustSnapshot>(emptySnapshot);
   const [loading, setLoading] = useState(false);
-  const [activeSection, setActiveSection] = useState<"workflow" | "contracts" | "policy" | "privacy">("workflow");
+  const [activeSection, setActiveSection] = useState<"workflow" | "contracts" | "reviews" | "policy" | "privacy">("workflow");
 
   const [talentId, setTalentId] = useState("");
   const [purpose, setPurpose] = useState<"interview" | "project" | "hire">("project");
@@ -60,6 +60,8 @@ export default function TrustOperationsCenter() {
   const [monthlyAmount, setMonthlyAmount] = useState(2_000_000);
   const [disputeSummary, setDisputeSummary] = useState("");
   const [processingPaymentId, setProcessingPaymentId] = useState("");
+  const [reviewRatings, setReviewRatings] = useState({ overall: 5, quality: 5, communication: 5, reliability: 5, scope: 5 });
+  const [reviewComment, setReviewComment] = useState("");
 
   const refresh = async () => {
     if (!currentUser || currentUser.email === "guest@konexa.dev") return;
@@ -208,6 +210,34 @@ export default function TrustOperationsCenter() {
     }
   };
 
+  const handleReview = async () => {
+    if (!selectedIntro) return error("거래 선택 필요", "평가할 소개 관계를 선택해 주세요.");
+    if (!requireSignedIn()) return;
+    const reviewerRole = activeRole === UserRole.COMPANY ? "company" : "student";
+    const revieweeId = reviewerRole === "company" ? asText(selectedIntro.talentId) : asText(selectedIntro.companyId);
+    if (!revieweeId) return error("상대방 확인 실패", "소개 관계의 상대방 계정을 확인할 수 없습니다.");
+    const contract = snapshot.contracts.find((item) => asText(item.relationshipId) === selectedIntro.id);
+    try {
+      await submitTransactionReview({
+        relationshipId: selectedIntro.id,
+        contractId: contract?.id,
+        revieweeId,
+        reviewerRole,
+        overallRating: reviewRatings.overall,
+        qualityRating: reviewRatings.quality,
+        communicationRating: reviewRatings.communication,
+        reliabilityRating: reviewRatings.reliability,
+        scopeClarityRating: reviewRatings.scope,
+        comment: reviewComment,
+      });
+      setReviewComment("");
+      success("리뷰가 봉인되었습니다", "상대방도 리뷰를 제출하면 두 리뷰가 동시에 공개됩니다.");
+      await refresh();
+    } catch (cause) {
+      error("리뷰 제출 실패", cause instanceof Error ? cause.message : "다시 시도해 주세요.");
+    }
+  };
+
   const signedIn = Boolean(currentUser && currentUser.email !== "guest@konexa.dev");
 
   return (
@@ -236,7 +266,7 @@ export default function TrustOperationsCenter() {
 
         <div className="flex gap-2 overflow-x-auto rounded-2xl border border-neutral-200 bg-white p-2">
           {([
-            ["workflow", "소개·채용"], ["contracts", "계약·마일스톤"], ["policy", "요금·보증·문서"], ["privacy", "개인정보·탐지"],
+            ["workflow", "소개·채용"], ["contracts", "계약·마일스톤"], ["reviews", "상호 리뷰"], ["policy", "요금·보증·문서"], ["privacy", "개인정보·탐지"],
           ] as const).map(([id, label]) => (
             <button key={id} onClick={() => setActiveSection(id)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-bold ${activeSection === id ? "bg-neutral-950 text-white" : "text-neutral-500 hover:bg-neutral-50"}`}>{label}</button>
           ))}
@@ -347,6 +377,49 @@ export default function TrustOperationsCenter() {
             <section className="rounded-3xl border border-neutral-200 bg-white p-6 lg:col-span-2">
               <div className="flex items-center gap-2"><Flag className="h-5 w-5" /><h2 className="font-black">분쟁 접수</h2></div>
               <div className="mt-4 flex flex-col gap-3 md:flex-row"><select value={selectedRelationship} onChange={(e) => setSelectedRelationship(e.target.value)} className="h-11 rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-xs md:w-64"><option value="">소개관계 선택</option>{snapshot.introductions.map((item) => <option key={item.id} value={item.id}>{asText(item.talentId)}</option>)}</select><input value={disputeSummary} onChange={(e) => setDisputeSummary(e.target.value)} placeholder="범위·대금·품질·연락두절 등 사실관계 요약" className="h-11 flex-1 rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-xs" /><button onClick={handleDispute} className="h-11 rounded-xl bg-neutral-950 px-5 text-xs font-bold text-white">관리자 검토 요청</button></div>
+            </section>
+          </div>
+        )}
+
+        {activeSection === "reviews" && (
+          <div className="grid gap-6 lg:grid-cols-[1.05fr_.95fr]">
+            <section className="rounded-3xl border border-neutral-200 bg-white p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div><div className="flex items-center gap-2"><Star className="h-5 w-5 fill-amber-400 text-amber-400" /><h2 className="font-black">검증 거래 상호 리뷰</h2></div><p className="mt-2 text-xs leading-5 text-neutral-500">등록 PG에서 대금 확보가 확인된 거래만 평가할 수 있습니다. 먼저 제출한 평가는 상대방에게 보이지 않으며 양측 제출 후 동시에 공개됩니다.</p></div>
+                <StatusPill good>거래 기반</StatusPill>
+              </div>
+              <div className="mt-6 space-y-4">
+                <label className="block text-[11px] font-bold text-neutral-600">평가할 거래
+                  <select value={selectedRelationship} onChange={(event) => setSelectedRelationship(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-xs">
+                    <option value="">소개 관계 선택</option>
+                    {snapshot.introductions.map((item) => <option key={item.id} value={item.id}>{asText(item.projectId) || asText(item.talentId) || item.id} · {asText(item.status)}</option>)}
+                  </select>
+                </label>
+                {([
+                  ["overall", "종합 만족도"], ["quality", "결과물 품질"], ["communication", "커뮤니케이션"], ["reliability", "일정·약속 준수"], ["scope", "업무 범위 명확성"],
+                ] as const).map(([key, label]) => <div key={key} className="flex flex-col justify-between gap-2 rounded-2xl bg-neutral-50 p-4 sm:flex-row sm:items-center"><span className="text-xs font-bold text-neutral-700">{label}</span><div className="flex gap-1" role="radiogroup" aria-label={label}>{[1, 2, 3, 4, 5].map((rating) => <button key={rating} type="button" role="radio" aria-checked={reviewRatings[key] === rating} onClick={() => setReviewRatings((current) => ({ ...current, [key]: rating }))} className="rounded-lg p-1.5 transition hover:bg-white" aria-label={`${rating}점`}><Star className={`h-5 w-5 ${rating <= reviewRatings[key] ? "fill-amber-400 text-amber-400" : "text-neutral-300"}`} /></button>)}</div></div>)}
+                <label className="block text-[11px] font-bold text-neutral-600">구체적인 협업 경험
+                  <textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} maxLength={1000} rows={5} placeholder="업무 범위, 소통, 결과물에 대한 사실 중심의 경험을 20자 이상 작성해 주세요." className="mt-2 w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-xs leading-6 outline-none focus:border-neutral-900" />
+                </label>
+                <div className="flex items-center justify-between text-[10px] text-neutral-400"><span>차별·외모·국적 관련 표현과 보복성 평가는 제한됩니다.</span><span>{reviewComment.length}/1,000</span></div>
+                <button onClick={() => void handleReview()} disabled={reviewComment.trim().length < 20} className="h-12 w-full rounded-xl bg-neutral-950 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-35">리뷰 봉인 제출</button>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-neutral-200 bg-white p-6">
+              <div className="flex items-center justify-between"><h2 className="font-black">내 리뷰 기록</h2><span className="text-[10px] font-bold text-neutral-400">{snapshot.reviews.length}건</span></div>
+              <div className="mt-5 space-y-3">
+                {snapshot.reviews.map((review) => {
+                  const published = review.status === "published";
+                  return <div key={review.id} className="rounded-2xl border border-neutral-200 p-4">
+                    <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-1">{[1, 2, 3, 4, 5].map((rating) => <Star key={rating} className={`h-3.5 w-3.5 ${rating <= Number(review.overallRating || 0) ? "fill-amber-400 text-amber-400" : "text-neutral-200"}`} />)}</div><StatusPill good={published}>{published ? "양측 공개" : "상대방 제출 대기"}</StatusPill></div>
+                    <p className="mt-3 text-xs leading-6 text-neutral-600">{asText(review.comment)}</p>
+                    <div className="mt-3 text-[10px] text-neutral-400">{asText(review.relationshipId)} · {asText(review.reviewerRole)}</div>
+                  </div>;
+                })}
+                {!snapshot.reviews.length && <div className="rounded-2xl bg-neutral-50 p-6 text-center"><LockKeyhole className="mx-auto h-6 w-6 text-neutral-300" /><p className="mt-3 text-xs text-neutral-400">아직 제출한 리뷰가 없습니다.</p></div>}
+              </div>
+              <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-[11px] leading-5 text-blue-800"><b>공정성 원칙</b><br />종료 전에는 상대 평가를 공개하지 않고, 사실과 의견을 구분해 검토합니다. 공개 후에도 관리자 이의신청과 차별 표현 신고가 가능합니다.</div>
             </section>
           </div>
         )}
