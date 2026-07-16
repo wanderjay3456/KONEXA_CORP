@@ -57,6 +57,7 @@ export interface StudentProfile {
   portfolio?: string;
   linkedin?: string;
   resumeUrl?: string;
+  identityDocumentPath?: string;
   careerInterests?: string[];
   preferredIndustry?: string;
   preferredJob?: string;
@@ -79,6 +80,7 @@ export interface StudentProfile {
   trustScore: number;
   completedProjects: number;
   createdAt: number;
+  onboardingCompleted?: boolean;
 }
 
 export interface CompanyProfile {
@@ -112,6 +114,33 @@ export interface CompanyProfile {
   verifiedStatus?: "Pending" | "Verified" | "Rejected" | "Suspended";
   description: string;
   createdAt: number;
+  companyLogoPath?: string;
+  businessRegistrationDocumentPath?: string;
+  onboardingCompleted?: boolean;
+}
+
+export type NotificationKind =
+  | "account"
+  | "verification"
+  | "project"
+  | "application"
+  | "contract"
+  | "payment"
+  | "review"
+  | "security"
+  | "system";
+
+export interface NotificationRecord {
+  id: string;
+  recipientId: string;
+  kind: NotificationKind;
+  title: string;
+  message: string;
+  entityType?: string;
+  entityId?: string;
+  actionTab?: string;
+  createdAt: number;
+  readAt?: number | null;
 }
 
 export interface Project {

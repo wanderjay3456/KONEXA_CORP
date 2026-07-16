@@ -32,9 +32,11 @@ import {
   SystemLog, 
   ProjectDifficulty, 
   ProjectStatus,
-  ApplicationStatus
+  ApplicationStatus,
+  NotificationRecord,
 } from "../types";
 import { useToast } from "../components/ui/Toast";
+import { firstValidationMessage, getCompanyCompletionErrors, getStudentCompletionErrors } from "../lib/profileCompletion";
 
 // --- START FIRESTORE ERROR HANDLING PROTOCOL ---
 enum OperationType {
@@ -94,6 +96,10 @@ interface AppContextType {
   projects: Project[];
   applications: Application[];
   logs: SystemLog[];
+  notifications: NotificationRecord[];
+  unreadNotificationCount: number;
+  markNotificationRead: (notificationId: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
   activeRole: UserRole;
   setActiveRole: (role: UserRole) => void;
   applyToProject: (projectId: string, codeSubmission: string) => Promise<void>;
@@ -137,6 +143,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   // 1 & 2. Persistent Supabase Authentication Synchronization Hook
@@ -265,6 +272,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setProjects([]);
         setApplications([]);
         setLogs([]);
+        setNotifications([]);
         setIsAuthReady(true);
       }
       } finally {
@@ -332,10 +340,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       handleSupabaseError(err, OperationType.GET, "logs");
     });
 
+    const notificationsQuery = query(collection(db, "notifications"), where("recipientId", "==", currentUser.uid));
+    const unsubNotifications = onSnapshot(notificationsQuery, (snapshot) => {
+      const items: NotificationRecord[] = [];
+      snapshot.forEach((notificationDoc) => {
+        items.push({ id: notificationDoc.id, ...notificationDoc.data() } as NotificationRecord);
+      });
+      items.sort((a, b) => b.createdAt - a.createdAt);
+      setNotifications(items.slice(0, 100));
+    }, (err) => {
+      handleSupabaseError(err, OperationType.GET, "notifications");
+    });
+
     return () => {
       unsubProjects();
       unsubApplications();
       unsubLogs();
+      unsubNotifications();
     };
   }, [isAuthReady, currentUser]);
 
@@ -457,6 +478,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...studentProfile,
         ...profile
       };
+      if (profile.onboardingCompleted === true) {
+        const validationErrors = getStudentCompletionErrors(updated);
+        if (Object.keys(validationErrors).length > 0) throw new Error(firstValidationMessage(validationErrors));
+      }
       setStudentProfile(updated);
       await setDoc(doc(db, "student_profiles", updated.uid), updated, { merge: true });
       await setDoc(doc(db, "protected_contacts", updated.uid), {
@@ -489,6 +514,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...companyProfile,
         ...profile
       };
+      if (profile.onboardingCompleted === true) {
+        const validationErrors = getCompanyCompletionErrors(updated);
+        if (Object.keys(validationErrors).length > 0) throw new Error(firstValidationMessage(validationErrors));
+      }
       setCompanyProfile(updated);
       await setDoc(doc(db, "company_profiles", updated.uid), updated, { merge: true });
 
@@ -517,6 +546,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Only student and company self-registration is supported.");
       }
       if (!password) throw new Error("A password is required for registration.");
+      const registrationErrors = role === UserRole.STUDENT
+        ? getStudentCompletionErrors({ ...studentData, identityDocumentPath: "required-after-verification", resumeUrl: "required-after-verification" })
+        : getCompanyCompletionErrors({ ...companyData, businessRegistrationDocumentPath: "required-after-verification" });
+      if (Object.keys(registrationErrors).length > 0) throw new Error(firstValidationMessage(registrationErrors));
       const credential = await createUserWithEmailAndPassword(auth, email, password, {
         display_name: displayName,
         role,
@@ -550,10 +583,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const sProfile = {
           uid: authUid,
           name: displayName,
-          skills: studentData?.skills || ["React", "TypeScript", "TailwindCSS"],
-          github: studentData?.github || "https://github.com",
-          bio: studentData?.bio || "A brilliant mind ready to solve global challenges.",
-          trustScore: 80,
+          skills: studentData?.skills || [],
+          github: studentData?.github || "",
+          bio: studentData?.bio || "",
+          trustScore: 0,
           completedProjects: 0,
           createdAt: now,
           ...studentData
@@ -573,9 +606,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else if (role === UserRole.COMPANY) {
         const cProfile = {
           uid: authUid,
-          companyName: companyData?.companyName || "Horizon Partner",
-          website: companyData?.website || "https://horizon.io",
-          description: companyData?.description || "Empowering tech ecosystems globally.",
+          companyName: companyData?.companyName || displayName,
+          website: companyData?.website || "",
+          description: companyData?.description || "",
           verified: false,
           verifiedStatus: "Pending",
           createdAt: now,
@@ -634,42 +667,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (effectiveRole === UserRole.STUDENT) {
         const studentDocRef = doc(db, "student_profiles", authUid);
         const studentSnapshot = await getDoc(studentDocRef);
-        let sProfile: StudentProfile;
-        if (studentSnapshot.exists()) {
-          sProfile = studentSnapshot.data() as StudentProfile;
-        } else {
-          sProfile = {
-            uid: authUid,
-            name: profile.displayName,
-            skills: ["React", "TypeScript", "TailwindCSS", "Framer Motion"],
-            github: "https://github.com",
-            bio: "Experienced developer eager to solve challenges and build high-quality web software.",
-            trustScore: 82,
-            completedProjects: 1,
-            createdAt: now
-          };
-          await setDoc(studentDocRef, sProfile);
-        }
+        if (!studentSnapshot.exists()) throw new Error("학생 프로필을 찾을 수 없습니다. 관리자에게 문의해 주세요.");
+        const sProfile = studentSnapshot.data() as StudentProfile;
         setStudentProfile(sProfile);
         setCompanyProfile(null);
       } else if (effectiveRole === UserRole.COMPANY) {
         const companyDocRef = doc(db, "company_profiles", authUid);
         const companySnapshot = await getDoc(companyDocRef);
-        let cProfile: CompanyProfile;
-        if (companySnapshot.exists()) {
-          cProfile = companySnapshot.data() as CompanyProfile;
-        } else {
-          cProfile = {
-            uid: authUid,
-            companyName: "Vercel Enterprise Partner",
-            website: "https://vercel.com",
-            description: "Leading deployment platforms and developer tools.",
-            verified: true,
-            verifiedStatus: "Verified",
-            createdAt: now
-          };
-          await setDoc(companyDocRef, cProfile);
-        }
+        if (!companySnapshot.exists()) throw new Error("기업 프로필을 찾을 수 없습니다. 관리자에게 문의해 주세요.");
+        const cProfile = companySnapshot.data() as CompanyProfile;
         setCompanyProfile(cProfile);
         setStudentProfile(null);
       }
@@ -719,11 +725,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(null);
       setStudentProfile(null);
       setCompanyProfile(null);
+      setNotifications([]);
       
       success("Signed Out", "You have successfully exited your authenticated session.");
     } catch (err: any) {
       error("Sign out failed", err.message);
     }
+  };
+
+  const markNotificationRead = async (notificationId: string) => {
+    const target = notifications.find((item) => item.id === notificationId);
+    if (!target || target.readAt) return;
+    await setDoc(doc(db, "notifications", notificationId), { readAt: Date.now() }, { merge: true });
+  };
+
+  const markAllNotificationsRead = async () => {
+    const unread = notifications.filter((item) => !item.readAt);
+    await Promise.all(unread.map((item) => setDoc(doc(db, "notifications", item.id), { readAt: Date.now() }, { merge: true })));
   };
 
   const reviewApplication = async (
@@ -789,6 +807,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         projects,
         applications,
         logs,
+        notifications,
+        unreadNotificationCount: notifications.filter((item) => !item.readAt).length,
+        markNotificationRead,
+        markAllNotificationsRead,
         activeRole,
         setActiveRole,
         applyToProject,

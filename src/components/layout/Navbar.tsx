@@ -2,10 +2,11 @@ import React from "react";
 import { Building2, LogOut, ShieldCheck, User } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { UserRole } from "../../types";
+import NotificationMenu from "./NotificationMenu";
 
-interface NavbarProps { onLogout: () => void }
+interface NavbarProps { onLogout: () => void; onNavigate?: (tab: string) => void }
 
-export default function Navbar({ onLogout }: NavbarProps) {
+export default function Navbar({ onLogout, onNavigate }: NavbarProps) {
   const { currentUser, activeRole } = useApp();
   const isCompany = activeRole === UserRole.COMPANY;
   const RoleIcon = isCompany ? Building2 : User;
@@ -23,6 +24,7 @@ export default function Navbar({ onLogout }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          <NotificationMenu onNavigate={onNavigate} />
           <div className="hidden items-center gap-2 text-xs text-neutral-500 md:flex"><ShieldCheck className="h-4 w-4 text-emerald-600" /><span className="max-w-56 truncate">{currentUser?.email}</span></div>
           <button onClick={onLogout} className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs font-bold text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50"><LogOut className="h-3.5 w-3.5" />로그아웃</button>
         </div>
