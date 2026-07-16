@@ -104,8 +104,8 @@ interface AppContextType {
   setActiveRole: (role: UserRole) => void;
   applyToProject: (projectId: string, codeSubmission: string) => Promise<void>;
   createProject: (title: string, description: string, requirements: string[], difficulty: ProjectDifficulty, reward: string, tags: string[]) => Promise<void>;
-  updateStudentProfile: (profile: Partial<StudentProfile>) => Promise<void>;
-  updateCompanyProfile: (profile: Partial<CompanyProfile>) => Promise<void>;
+  updateStudentProfile: (profile: Partial<StudentProfile>) => Promise<boolean>;
+  updateCompanyProfile: (profile: Partial<CompanyProfile>) => Promise<boolean>;
   registerUser: (email: string, displayName: string, role: UserRole, studentData?: Partial<StudentProfile>, companyData?: Partial<CompanyProfile>, password?: string, consentBundle?: Record<string, unknown>) => Promise<{ emailConfirmationRequired: boolean }>;
   loginUser: (email: string, role: UserRole, password?: string) => Promise<{ emailConfirmationRequired: boolean }>;
   googleLogin: (role: UserRole, options?: GoogleLoginOptions) => Promise<void>;
@@ -473,7 +473,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     profile: Partial<StudentProfile>
   ) => {
     try {
-      if (!studentProfile) return;
+      if (!studentProfile) throw new Error("학생 프로필을 불러오지 못했습니다. 다시 로그인해 주세요.");
       const updated = {
         ...studentProfile,
         ...profile
@@ -500,8 +500,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
 
       success("Profile Saved", "Your student portfolio was updated successfully.");
+      return true;
     } catch (err: any) {
       error("Profile Save Failed", err.message);
+      return false;
     }
   };
 
@@ -509,7 +511,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     profile: Partial<CompanyProfile>
   ) => {
     try {
-      if (!companyProfile) return;
+      if (!companyProfile) throw new Error("기업 프로필을 불러오지 못했습니다. 다시 로그인해 주세요.");
       const updated = {
         ...companyProfile,
         ...profile
@@ -527,8 +529,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
 
       success("Company Saved", "Your company details have been updated.");
+      return true;
     } catch (err: any) {
       error("Company Save Failed", err.message);
+      return false;
     }
   };
 
