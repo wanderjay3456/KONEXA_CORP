@@ -253,7 +253,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white flex flex-col justify-center items-center py-16 px-6 font-sans relative overflow-y-auto">
+    <div className="onboarding-readable min-h-screen bg-neutral-950 text-white flex flex-col justify-center items-center py-16 px-6 font-sans relative overflow-y-auto">
       <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
       
       {!aiStep ? (

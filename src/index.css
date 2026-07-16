@@ -178,11 +178,20 @@ html {
   align-items: center;
   gap: .75rem;
   padding: 0 2.2rem;
-  font-size: .65rem;
+  font-size: .75rem;
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
 }
+
+/* Keep dense onboarding metadata legible on the dark verification surface. */
+.onboarding-readable [class~="text-[9px]"],
+.onboarding-readable [class~="text-[10px]"] {
+  font-size: .75rem !important;
+  line-height: 1.125rem !important;
+}
+.onboarding-readable .text-neutral-400 { color: #d4d4d4 !important; }
+.onboarding-readable .text-neutral-500 { color: #b8b8b8 !important; }
 
 .review-card { animation: card-breathe 7s ease-in-out infinite alternate; }
 .review-card + .review-card { animation-delay: -3.5s; }
