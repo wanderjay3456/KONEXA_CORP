@@ -19,7 +19,7 @@ dotenv.config({ path: [".env.local", ".env"] });
 
 // The public Sites URL is the safe production default for redirects and emails.
 // A verified custom domain can override it through APP_URL without a code change.
-process.env.APP_URL ||= "https://konexa-corp.wanderjay3456899007.chatgpt.site";
+process.env.APP_URL ||= "https://konexa.co.kr";
 
 // Lazy initialize Google Gen AI
 let aiClient: GoogleGenAI | null = null;

@@ -36,7 +36,7 @@ function escapeHtml(value: unknown) {
 }
 
 function renderEmail(template: EmailTemplate, data: SendEmailInput["data"] = {}) {
-  const appUrl = process.env.APP_URL || "https://konexa.example.com";
+  const appUrl = process.env.APP_URL || "https://konexa.co.kr";
   const name = escapeHtml(data.name || "KONEXA member");
   const plan = escapeHtml(data.plan || "Pro AI Matchmaker");
   const project = escapeHtml(data.project || "your project");
