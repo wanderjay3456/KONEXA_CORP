@@ -27,6 +27,7 @@ import { useToast } from "../ui/Toast";
 import { eventSystem } from "../../lib/eventSystem";
 import { auth } from "../../lib/supabaseAuth";
 import { uploadPrivateFile } from "../../lib/privateStorage";
+import { firstValidationMessage, getCompanyCompletionErrors } from "../../lib/profileCompletion";
 
 interface CompanyOnboardingProps {
   onComplete: () => void;
@@ -110,24 +111,29 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
     setStep(prev => Math.max(1, prev - 1));
   };
 
-  const handleSkip = () => {
-    if (step < 5) {
-      setStep(prev => prev + 1);
-    }
-  };
-
   const validateStep = (): boolean => {
     const nextErrors: { [key: string]: string } = {};
     if (step === 1) {
       if (!formData.companyName?.trim()) nextErrors.companyName = "Organization Name is required.";
       if (!formData.businessRegistrationNumber?.trim()) nextErrors.businessRegistrationNumber = "Business Registration Number is required.";
+      if (!formData.country?.trim()) nextErrors.country = "Headquarters country is required.";
+      if (!formData.officeLocation?.trim()) nextErrors.officeLocation = "Headquarters address is required.";
     } else if (step === 2) {
       if (!formData.website?.trim()) nextErrors.website = "Company Website URL is required.";
       if (!formData.corporateEmail?.trim()) nextErrors.corporateEmail = "Contact email is required.";
+      if (!formData.contactPerson?.trim()) nextErrors.contactPerson = "Representative name is required.";
+      if (!formData.position?.trim()) nextErrors.position = "Representative position is required.";
+      if (!formData.phoneNumber?.trim()) nextErrors.phoneNumber = "Representative phone is required.";
     } else if (step === 3) {
       if (!formData.companyIntroduction?.trim()) nextErrors.companyIntroduction = "A short introduction is required.";
+      if (!formData.industry?.trim()) nextErrors.industry = "Industry is required.";
+      if (!formData.requiredSkills?.length) nextErrors.requiredSkills = "At least one required skill is needed.";
+    } else if (step === 4) {
+      if (!formData.companySize?.trim()) nextErrors.companySize = "Company size is required.";
+      if (!formData.remotePolicy?.trim()) nextErrors.remotePolicy = "Work policy is required.";
     } else if (step === 5) {
       if (!termsAgreement) nextErrors.terms = "Agreement of terms is required to establish partner sponsorship.";
+      if (!licenseFile && !companyProfile?.businessRegistrationDocumentPath) nextErrors.businessRegistrationDocumentPath = "사업자등록증을 업로드해 주세요.";
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -190,15 +196,25 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
 
   const handleFinalize = async () => {
     setIsAiLoading(true);
-    setAiStep(true);
-    
+    let profileSaved = false;
+
     try {
       const uid = auth.currentUser?.uid;
+      if (!uid) throw new Error("로그인 세션을 확인할 수 없습니다. 다시 로그인해 주세요.");
+      const preflightProfile = {
+        ...formData,
+        businessRegistrationDocumentPath: companyProfile?.businessRegistrationDocumentPath || (licenseFile ? "pending-upload" : ""),
+      };
+      const preflightErrors = getCompanyCompletionErrors(preflightProfile);
+      if (Object.keys(preflightErrors).length > 0) {
+        setErrors(preflightErrors);
+        throw new Error(firstValidationMessage(preflightErrors));
+      }
       const uploadedFields: Record<string, unknown> = {};
-      if (uid && logoFile) {
+      if (logoFile) {
         uploadedFields.companyLogoPath = await uploadPrivateFile("profile-media", uid, logoFile);
       }
-      if (uid && licenseFile) {
+      if (licenseFile) {
         uploadedFields.businessRegistrationDocumentPath = await uploadPrivateFile("business-documents", uid, licenseFile);
       }
       const updatedProfile = {
@@ -206,10 +222,15 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
         ...uploadedFields,
         onboardingCompleted: true,
         verified: false,
-        verifiedStatus: licenseFile ? "Pending Review" : "Pending"
+        verifiedStatus: "Pending"
       } as any;
 
+      const completionErrors = getCompanyCompletionErrors(updatedProfile);
+      if (Object.keys(completionErrors).length > 0) throw new Error(firstValidationMessage(completionErrors));
+
       await updateCompanyProfile(updatedProfile);
+      profileSaved = true;
+      setAiStep(true);
 
       // Emit synchronization events
       eventSystem.publish("CompanyCreated", updatedProfile);
@@ -232,6 +253,11 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
       success("Recruitment Strategy Designed", "Gemini successfully completed corporate match planning.");
     } catch (err) {
       console.error(err);
+      if (!profileSaved) {
+        error("필수정보 등록 실패", err instanceof Error ? err.message : "필수정보와 사업자등록증을 확인해 주세요.");
+        setIsAiLoading(false);
+        return;
+      }
       // Do not present synthetic matching or verification results when the server is unavailable.
       setAiReport({
         status: "unavailable",
@@ -563,15 +589,16 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
 
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-neutral-300 block">Upload Official Business Registration License (PDF/Image)</label>
+                        <label className="text-xs font-bold text-neutral-300 block">Upload Official Business Registration License (Required PDF/Image) *</label>
                         <div className="border border-dashed border-white/10 rounded-2xl p-5 text-center bg-white/5 hover:bg-white/10 transition-colors relative flex flex-col items-center justify-center">
                           <UploadCloud className="w-8 h-8 text-neutral-400 mb-2" />
                           <span className="text-xs font-bold text-white">
-                            {licenseFile ? `Attached: ${licenseFile.name}` : "Upload Business License Document"}
+                            {licenseFile ? `Attached: ${licenseFile.name}` : companyProfile?.businessRegistrationDocumentPath ? "Business license already uploaded" : "Upload Business License Document"}
                           </span>
                           <span className="text-[10px] text-neutral-500 font-mono mt-1">Our compliance team reviews license attachments within 24 hours.</span>
                           <input type="file" accept=".pdf,image/*" onChange={handleLicenseUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                         </div>
+                        {errors.businessRegistrationDocumentPath && <span className="text-[10px] text-rose-400 font-mono font-bold block">{errors.businessRegistrationDocumentPath}</span>}
                       </div>
 
                       <div className="space-y-3 pt-3 border-t border-white/10 text-xs font-sans text-neutral-400">
@@ -606,16 +633,6 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
               </button>
 
               <div className="flex gap-2">
-                {step < 5 && (
-                  <button
-                    type="button"
-                    onClick={handleSkip}
-                    className="px-4 h-11 text-neutral-400 hover:text-white font-sans text-xs font-bold cursor-pointer transition-colors"
-                  >
-                    Skip
-                  </button>
-                )}
-
                 <button
                   type="button"
                   onClick={handleNext}

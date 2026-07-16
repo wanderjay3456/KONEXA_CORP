@@ -30,6 +30,7 @@ import { useToast } from "../ui/Toast";
 import { eventSystem } from "../../lib/eventSystem";
 import { auth } from "../../lib/supabaseAuth";
 import { uploadPrivateFile } from "../../lib/privateStorage";
+import { firstValidationMessage, getStudentCompletionErrors } from "../../lib/profileCompletion";
 
 interface StudentOnboardingProps {
   onComplete: () => void;
@@ -114,22 +115,30 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
     setStep(prev => Math.max(1, prev - 1));
   };
 
-  const handleSkip = () => {
-    if (step < totalSteps) {
-      setStep(prev => prev + 1);
-    }
-  };
-
   const validateStep = (): boolean => {
     const nextErrors: { [key: string]: string } = {};
     if (step === 2) {
       if (!formData.name?.trim()) nextErrors.name = "Legal Name is required.";
+      if (!formData.nationality?.trim()) nextErrors.nationality = "Nationality is required.";
+      if (!formData.currentCountry?.trim()) nextErrors.currentCountry = "Current country is required.";
       if (!formData.timezone?.trim()) nextErrors.timezone = "TimeZone is required.";
     } else if (step === 3) {
       if (!formData.university?.trim()) nextErrors.university = "University Name is required.";
+      if (!formData.degree?.trim()) nextErrors.degree = "Degree level is required.";
       if (!formData.major?.trim()) nextErrors.major = "Academic major is required.";
+      if (!formData.graduationYear?.trim()) nextErrors.graduationYear = "Graduation year is required.";
+      if (!proofFile && !studentProfile?.identityDocumentPath) nextErrors.identityDocumentPath = "학적 증빙 서류를 업로드해 주세요.";
+    } else if (step === 4) {
+      if (!formData.englishLevel?.trim()) nextErrors.englishLevel = "English level is required.";
+    } else if (step === 5) {
+      if (!formData.skills?.length) nextErrors.skills = "At least one skill is required.";
+    } else if (step === 6) {
+      if (!formData.preferredJob?.trim()) nextErrors.preferredJob = "Preferred role is required.";
+      if (!formData.availability?.trim()) nextErrors.availability = "Availability is required.";
+      if (!Number.isFinite(formData.preferredWeeklyPayKrw) || Number(formData.preferredWeeklyPayKrw) <= 0) nextErrors.preferredWeeklyPayKrw = "희망 주급을 입력해 주세요.";
     } else if (step === 7) {
-      if (!formData.github?.trim()) nextErrors.github = "GitHub is essential for engineering verification.";
+      if (!formData.github?.trim() && !formData.portfolio?.trim()) nextErrors.github = "GitHub or a portfolio URL is required.";
+      if (!resumeFile && !studentProfile?.resumeUrl) nextErrors.resumeUrl = "PDF 이력서를 업로드해 주세요.";
     } else if (step === 8) {
       if (!formData.bio?.trim()) nextErrors.bio = "Biography pitch is required.";
     } else if (step === 9) {
@@ -158,15 +167,27 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
 
   const handleFinalize = async () => {
     setIsAiLoading(true);
-    setAiStep(true);
-    
+    let profileSaved = false;
+
     try {
       const uid = auth.currentUser?.uid;
+      if (!uid) throw new Error("로그인 세션을 확인할 수 없습니다. 다시 로그인해 주세요.");
+      const preflightProfile = {
+        ...formData,
+        identityDocumentPath: studentProfile?.identityDocumentPath || (proofFile ? "pending-upload" : ""),
+        resumeUrl: studentProfile?.resumeUrl || (resumeFile ? "pending-upload" : ""),
+      };
+      const preflightErrors = getStudentCompletionErrors(preflightProfile);
+      if (Object.keys(preflightErrors).length > 0) {
+        setErrors(preflightErrors);
+        throw new Error(firstValidationMessage(preflightErrors));
+      }
+
       const uploadedFields: Record<string, unknown> = {};
-      if (uid && proofFile) {
+      if (proofFile) {
         uploadedFields.identityDocumentPath = await uploadPrivateFile("identity-documents", uid, proofFile);
       }
-      if (uid && resumeFile) {
+      if (resumeFile) {
         uploadedFields.resumeUrl = await uploadPrivateFile("resumes", uid, resumeFile);
       }
       // First, save the complete profile fields to local state & database
@@ -178,7 +199,12 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
         trustScore: studentProfile?.trustScore ?? 0
       } as any;
 
+      const completionErrors = getStudentCompletionErrors(updatedProfile);
+      if (Object.keys(completionErrors).length > 0) throw new Error(firstValidationMessage(completionErrors));
+
       await updateStudentProfile(updatedProfile);
+      profileSaved = true;
+      setAiStep(true);
 
       // Emit platform synchronization events
       eventSystem.publish("StudentCreated", updatedProfile);
@@ -205,6 +231,11 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
       success("AI Analysis Complete", "Gemini successfully completed your talent vector audits.");
     } catch (err) {
       console.error(err);
+      if (!profileSaved) {
+        error("필수정보 등록 실패", err instanceof Error ? err.message : "필수정보와 업로드 파일을 확인해 주세요.");
+        setIsAiLoading(false);
+        return;
+      }
       // Keep the state honest when the AI service is unavailable.
       setAiReport({
         status: "unavailable",
@@ -483,11 +514,11 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-neutral-300 block">Proof of Enrollment / Academic Degree (Optional PDF/PNG)</label>
+                      <label className="text-xs font-bold text-neutral-300 block">Proof of Enrollment / Academic Degree (Required PDF/PNG) *</label>
                       <div className="border border-dashed border-white/10 rounded-2xl p-5 text-center bg-white/5 hover:bg-white/10 transition-colors relative flex flex-col items-center justify-center">
                         <UploadCloud className="w-6 h-6 text-neutral-400 mb-1" />
                         <span className="text-xs font-bold text-white">
-                          {proofFile ? `Attached: ${proofFile}` : "Upload Transcript or Degree Proof"}
+                          {proofFile ? `Attached: ${proofFile.name}` : studentProfile?.identityDocumentPath ? "Verified document already uploaded" : "Upload Transcript or Degree Proof"}
                         </span>
                         <input 
                           type="file" 
@@ -496,6 +527,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                           className="absolute inset-0 opacity-0 cursor-pointer" 
                         />
                       </div>
+                      {errors.identityDocumentPath && <span className="text-[10px] text-rose-400 font-mono font-bold block">{errors.identityDocumentPath}</span>}
                     </div>
                   </div>
                 )}
@@ -665,7 +697,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-300">희망 주급 (선택, 원)</label>
+                        <label className="text-xs font-bold text-neutral-300">희망 주급 (필수, 원) *</label>
                         <input
                           type="number"
                           min="0"
@@ -675,7 +707,8 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                           onChange={(e) => updateField("preferredWeeklyPayKrw", e.target.value === "" ? undefined : Number(e.target.value))}
                           className="w-full h-11 bg-white/5 border border-white/10 rounded-xl px-4 text-xs font-sans focus:outline-hidden text-white"
                         />
-                        <p className="text-[10px] leading-4 text-neutral-500">프로젝트는 주 단위로 정산합니다. 희망 금액이 없으면 비워두세요.</p>
+                        <p className="text-[10px] leading-4 text-neutral-500">프로젝트는 주 단위로 정산합니다.</p>
+                        {errors.preferredWeeklyPayKrw && <span className="text-[10px] text-rose-400 font-mono font-bold block">{errors.preferredWeeklyPayKrw}</span>}
                       </div>
 
                       <div className="space-y-1">
@@ -747,11 +780,11 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                       </div>
 
                       <div className="space-y-2 pt-2">
-                        <label className="text-xs font-bold text-neutral-300 block">Professional Engineering Resume (PDF format)</label>
+                        <label className="text-xs font-bold text-neutral-300 block">Professional Engineering Resume (Required PDF) *</label>
                         <div className="border border-dashed border-white/10 rounded-2xl p-6 text-center bg-white/5 hover:bg-white/10 transition-colors relative flex flex-col items-center justify-center">
                           <UploadCloud className="w-8 h-8 text-neutral-400 mb-2" />
                           <span className="text-xs font-bold text-white">
-                            {resumeFile ? `Attached Resume: ${resumeFile}` : "Click to select or drag Resume PDF here"}
+                            {resumeFile ? `Attached Resume: ${resumeFile.name}` : studentProfile?.resumeUrl ? "Resume already uploaded" : "Click to select or drag Resume PDF here"}
                           </span>
                           <span className="text-[10px] text-neutral-500 font-mono mt-1">Our server-side Gemini system will immediately index this document.</span>
                           <input 
@@ -761,6 +794,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                             className="absolute inset-0 opacity-0 cursor-pointer" 
                           />
                         </div>
+                        {errors.resumeUrl && <span className="text-[10px] text-rose-400 font-mono font-bold block">{errors.resumeUrl}</span>}
                       </div>
                     </div>
                   </div>
@@ -859,16 +893,6 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
               </button>
 
               <div className="flex gap-2">
-                {step < totalSteps && (
-                  <button
-                    type="button"
-                    onClick={handleSkip}
-                    className="px-4 h-11 text-neutral-400 hover:text-white font-sans text-xs font-bold cursor-pointer transition-colors"
-                  >
-                    Skip
-                  </button>
-                )}
-
                 <button
                   type="button"
                   onClick={handleNext}

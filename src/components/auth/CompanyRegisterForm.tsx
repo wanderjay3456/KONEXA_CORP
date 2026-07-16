@@ -144,8 +144,13 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
       if (!formData.companyName?.trim()) nextErrors.companyName = "Corporate Legal Entity Name is required.";
       if (!formData.businessRegistrationNumber?.trim()) nextErrors.businessRegistrationNumber = "Business Registration Number is vital for corporate compliance audits.";
       if (!formData.website?.trim()) nextErrors.website = "Company website URL is required.";
+      if (!formData.country?.trim()) nextErrors.country = "Headquarters country is required.";
+      if (!formData.industry?.trim()) nextErrors.industry = "Industry is required.";
+      if (!formData.companySize?.trim()) nextErrors.companySize = "Company size is required.";
+      if (!formData.officeLocation?.trim()) nextErrors.officeLocation = "Headquarters address is required.";
     } else if (step === 2) {
       if (!formData.contactPerson?.trim()) nextErrors.contactPerson = "Contact Person Representative Name is required.";
+      if (!formData.position?.trim()) nextErrors.position = "Representative position is required.";
       if (authMethod === "email" && (!formData.corporateEmail?.trim() || !formData.corporateEmail.includes("@"))) {
         nextErrors.corporateEmail = "A valid corporate workspace email is required.";
       }
@@ -153,7 +158,9 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
         nextErrors.password = "A password of at least 6 characters is required for your credential account.";
       }
       if (!formData.companyIntroduction?.trim()) nextErrors.companyIntroduction = "Please write a brief corporate overview introduction.";
+      if (!formData.phoneNumber?.trim()) nextErrors.phoneNumber = "Representative phone is required.";
     } else if (step === 3) {
+      if (!formData.requiredSkills?.length) nextErrors.requiredSkills = "At least one required skill is needed.";
       if (!termsAgreement || !nonCircumventionAgreement || !privacyTransferConsent) nextErrors.terms = "필수 이용약관, 소개요금·이탈거래 약정, 메시지 분석·국외이전 고지에 모두 동의해야 합니다.";
     }
     setErrors(nextErrors);
@@ -375,7 +382,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Corporate HQ Country</label>
+                    <label className="text-xs font-bold text-neutral-700">Corporate HQ Country *</label>
                     <input
                       type="text"
                       value={formData.country || ""}
@@ -386,7 +393,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Primary Industry Sector</label>
+                    <label className="text-xs font-bold text-neutral-700">Primary Industry Sector *</label>
                     <input
                       type="text"
                       value={formData.industry || ""}
@@ -397,7 +404,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Company Size Bracket</label>
+                    <label className="text-xs font-bold text-neutral-700">Company Size Bracket *</label>
                     <select
                       value={formData.companySize || ""}
                       onChange={(e) => updateField("companySize", e.target.value)}
@@ -424,7 +431,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Office Physical Location Address</label>
+                    <label className="text-xs font-bold text-neutral-700">Office Physical Location Address *</label>
                     <input
                       type="text"
                       value={formData.officeLocation || ""}
@@ -467,7 +474,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Job Title Position</label>
+                    <label className="text-xs font-bold text-neutral-700">Job Title Position *</label>
                     <input
                       type="text"
                       value={formData.position || ""}
@@ -508,7 +515,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                 </div> : <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">마지막 단계에서 Google 계정으로 인증합니다. 기업 인증은 별도로 사업자등록 확인 후 완료됩니다.</div>}
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-neutral-700 font-sans">Corporate Mobile Phone</label>
+                  <label className="text-xs font-bold text-neutral-700 font-sans">Corporate Mobile Phone *</label>
                   <div className="relative">
                     <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                     <input
@@ -570,7 +577,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
 
                 {/* Required Tech Skills Tags */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-700 block">Required Skill Competencies (e.g. React, PyTorch)</label>
+                  <label className="text-xs font-bold text-neutral-700 block">Required Skill Competencies * (e.g. React, PyTorch)</label>
                   <div className="flex gap-2">
                     <input
                       type="text"

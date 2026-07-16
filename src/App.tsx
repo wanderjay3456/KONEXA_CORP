@@ -26,7 +26,7 @@ function WorkspaceLoading() {
 }
 
 function AppContent() {
-  const { activeRole, setActiveRole, currentUser, studentProfile, companyProfile, updateStudentProfile, updateCompanyProfile, logoutUser } = useApp();
+  const { activeRole, setActiveRole, currentUser, studentProfile, companyProfile, logoutUser } = useApp();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   // Track active tab within each dashboard role
@@ -70,13 +70,7 @@ function AppContent() {
   if (showStudentOnboarding) {
     return (
       <Suspense fallback={<WorkspaceLoading />}>
-        <StudentOnboarding
-          onComplete={async () => {
-            if (studentProfile) {
-              await updateStudentProfile({ onboardingCompleted: true } as any);
-            }
-          }}
-        />
+        <StudentOnboarding onComplete={() => undefined} />
       </Suspense>
     );
   }
@@ -84,13 +78,7 @@ function AppContent() {
   if (showCompanyOnboarding) {
     return (
       <Suspense fallback={<WorkspaceLoading />}>
-        <CompanyOnboarding
-          onComplete={async () => {
-            if (companyProfile) {
-              await updateCompanyProfile({ onboardingCompleted: true } as any);
-            }
-          }}
-        />
+        <CompanyOnboarding onComplete={() => undefined} />
       </Suspense>
     );
   }
@@ -98,7 +86,7 @@ function AppContent() {
   return (
     <div id="app-workspace" className="min-h-screen bg-neutral-50 flex flex-col">
       {/* Top Navigation */}
-      <Navbar onLogout={handleLogout} />
+      <Navbar onLogout={handleLogout} onNavigate={setActiveTab} />
 
       {/* Main Body split */}
       <div className="flex-1 flex relative">

@@ -137,14 +137,25 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     const nextErrors: { [key: string]: string } = {};
     if (step === 1) {
       if (!formData.name?.trim()) nextErrors.name = "Full legal name is required.";
+      if (!formData.nationality?.trim()) nextErrors.nationality = "Nationality is required.";
+      if (!formData.currentCountry?.trim()) nextErrors.currentCountry = "Current country is required.";
+      if (!formData.timezone?.trim()) nextErrors.timezone = "Time zone is required.";
       if (!formData.bio?.trim()) nextErrors.bio = "A brief biographical pitch is required.";
       if (authMethod === "email" && (!email.trim() || !email.includes("@"))) nextErrors.email = "A valid email is required.";
       if (authMethod === "email" && (!password.trim() || password.length < 6)) nextErrors.password = "A password of at least 6 characters is required.";
     } else if (step === 2) {
       if (!formData.university?.trim()) nextErrors.university = "University Name is required.";
+      if (!formData.degree?.trim()) nextErrors.degree = "Degree level is required.";
       if (!formData.major?.trim()) nextErrors.major = "Academic major study field is required.";
+      if (!formData.graduationYear?.trim()) nextErrors.graduationYear = "Graduation year is required.";
+      if (!formData.englishLevel?.trim()) nextErrors.englishLevel = "English level is required.";
     } else if (step === 3) {
-      if (!formData.github?.trim()) nextErrors.github = "GitHub is crucial for global technical validation.";
+      if (!formData.github?.trim() && !formData.portfolio?.trim()) nextErrors.github = "GitHub or a portfolio URL is required.";
+    } else if (step === 4) {
+      if (!formData.availability?.trim()) nextErrors.availability = "Availability is required.";
+      if (!formData.preferredJob?.trim()) nextErrors.preferredJob = "Preferred role is required.";
+      if (!formData.skills?.length) nextErrors.skills = "At least one skill is required.";
+      if (!Number.isFinite(formData.preferredWeeklyPayKrw) || Number(formData.preferredWeeklyPayKrw) <= 0) nextErrors.preferredWeeklyPayKrw = "희망 주급을 입력해 주세요.";
     } else if (step === 5) {
       if (!termsAgreement || !nonCircumventionAgreement || !privacyTransferConsent) nextErrors.terms = "필수 이용약관, 이탈거래 방지, 메시지 분석·국외이전 고지에 모두 동의해야 합니다.";
     }
@@ -371,7 +382,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-700 font-sans">Nationality</label>
+                    <label className="text-xs font-bold text-neutral-700 font-sans">Nationality *</label>
                         <input
                           type="text"
                           value={formData.nationality || ""}
@@ -382,7 +393,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-700 font-sans">Current Country Location</label>
+                        <label className="text-xs font-bold text-neutral-700 font-sans">Current Country Location *</label>
                         <input
                           type="text"
                           value={formData.currentCountry || ""}
@@ -397,7 +408,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">Time Zone Offset</label>
+                    <label className="text-xs font-bold text-neutral-700 font-sans">Time Zone Offset *</label>
                     <input
                       type="text"
                       value={formData.timezone || ""}
@@ -472,7 +483,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Degree Focus Level</label>
+                    <label className="text-xs font-bold text-neutral-700">Degree Focus Level *</label>
                     <select
                       value={formData.degree || ""}
                       onChange={(e) => updateField("degree", e.target.value)}
@@ -486,7 +497,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">Graduation Year</label>
+                    <label className="text-xs font-bold text-neutral-700 font-sans">Graduation Year *</label>
                     <input
                       type="text"
                       value={formData.graduationYear || ""}
@@ -510,7 +521,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-neutral-100">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">English Competency Level</label>
+                    <label className="text-xs font-bold text-neutral-700">English Competency Level *</label>
                     <select
                       value={formData.englishLevel || ""}
                       onChange={(e) => updateField("englishLevel", e.target.value)}
@@ -596,7 +607,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
 
                   {/* Resume selection; authenticated upload is completed from profile onboarding. */}
                   <div className="pt-2">
-                    <label className="text-xs font-bold text-neutral-700 font-sans block mb-1.5">Official Professional Resume (PDF format)</label>
+                    <label className="text-xs font-bold text-neutral-700 font-sans block mb-1.5">Official Professional Resume (required after email verification)</label>
                     <div className="border border-dashed border-neutral-200 rounded-2xl p-6 text-center bg-neutral-50 hover:bg-neutral-100/50 transition-colors relative flex flex-col items-center justify-center">
                       <UploadCloud className="w-8 h-8 text-neutral-400 mb-2" />
                       <span className="text-xs font-sans font-bold text-neutral-700">
@@ -638,7 +649,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Employment Availability</label>
+                    <label className="text-xs font-bold text-neutral-700">Employment Availability *</label>
                     <input
                       type="text"
                       value={formData.availability || ""}
@@ -662,7 +673,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Preferred Target Role</label>
+                    <label className="text-xs font-bold text-neutral-700">Preferred Target Role *</label>
                     <input
                       type="text"
                       value={formData.preferredJob || ""}
@@ -675,7 +686,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">희망 주급 (선택, 원)</label>
+                    <label className="text-xs font-bold text-neutral-700 font-sans">희망 주급 (필수, 원) *</label>
                     <input
                       type="number"
                       min="0"
@@ -702,7 +713,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
 
                 {/* Technical Skills selection list */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-700">Core Technical Specialities (comma-separated list)</label>
+                  <label className="text-xs font-bold text-neutral-700">Core Technical Specialities (required, comma-separated)</label>
                   <input
                     type="text"
                     value={formData.skills?.join(", ") || ""}
