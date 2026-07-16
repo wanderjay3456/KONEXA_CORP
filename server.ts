@@ -35,6 +35,31 @@ function getAIClient(): GoogleGenAI {
   return aiClient;
 }
 
+function normalizeAiProfileAnalysis(value: unknown) {
+  if (!value || typeof value !== "object") throw new Error("Invalid AI analysis response");
+  const input = value as Record<string, unknown>;
+  const text = (key: string) => typeof input[key] === "string" ? input[key] as string : "";
+  const list = (key: string) => Array.isArray(input[key])
+    ? (input[key] as unknown[]).filter((item): item is string => typeof item === "string").slice(0, 12)
+    : [];
+  const score = (key: string) => Math.max(0, Math.min(100, Math.round(Number(input[key]) || 0)));
+  const strengthSummary = text("strengthSummary");
+  const weaknessSummary = text("weaknessSummary");
+  if (!strengthSummary || !weaknessSummary) throw new Error("Incomplete AI analysis response");
+  return {
+    status: "completed" as const,
+    strengthSummary,
+    weaknessSummary,
+    skillGap: list("skillGap"),
+    recommendedSkills: list("recommendedSkills"),
+    recommendedProjects: list("recommendedProjects"),
+    recommendedCompanies: list("recommendedCompanies"),
+    recommendedLearningPath: list("recommendedLearningPath"),
+    careerReadiness: score("careerReadiness"),
+    employabilityScore: score("employabilityScore"),
+  };
+}
+
 function validateProductionConfiguration() {
   if (process.env.NODE_ENV !== "production") return;
   const required = ["APP_URL"];
@@ -228,10 +253,19 @@ export function createApp() {
 
   // API Route: AI Profile Analysis
   app.post("/api/gemini/analyze-profile", async (req, res) => {
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn("[KONEXA] AI profile analysis skipped: Gemini is not configured");
+      res.status(503).json({ code: "AI_NOT_CONFIGURED", error: "AI analysis is not configured" });
+      return;
+    }
     try {
       const { profile, role } = req.body;
-      if (!profile) {
+      if (!profile || typeof profile !== "object") {
         res.status(400).json({ error: "Profile data is required" });
+        return;
+      }
+      if (role !== "student" && role !== "company") {
+        res.status(400).json({ error: "Role must be student or company" });
         return;
       }
 
@@ -297,14 +331,11 @@ export function createApp() {
         throw new Error("Empty response from Gemini API");
       }
 
-      const analysis = JSON.parse(text);
+      const analysis = normalizeAiProfileAnalysis(JSON.parse(text));
       res.json(analysis);
     } catch (error: any) {
       console.error("Gemini Profile Analysis Error:", error);
-      res.status(500).json({
-        error: "Failed to analyze profile",
-        details: error.message || error
-      });
+      res.status(502).json({ code: "AI_PROVIDER_ERROR", error: "AI analysis is temporarily unavailable" });
     }
   });
 

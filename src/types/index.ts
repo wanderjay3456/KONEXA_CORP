@@ -36,6 +36,21 @@ export interface UserProfile {
   createdAt: number;
 }
 
+export interface AiProfileAnalysis {
+  status: "completed";
+  strengthSummary: string;
+  weaknessSummary: string;
+  skillGap: string[];
+  recommendedSkills: string[];
+  recommendedProjects: string[];
+  recommendedCompanies: string[];
+  recommendedLearningPath: string[];
+  careerReadiness: number;
+  employabilityScore: number;
+}
+
+export type AiAnalysisStatus = "pending" | "completed" | "failed";
+
 export interface StudentProfile {
   uid: string;
   name: string;
@@ -81,6 +96,11 @@ export interface StudentProfile {
   completedProjects: number;
   createdAt: number;
   onboardingCompleted?: boolean;
+  aiAnalysisStatus?: AiAnalysisStatus;
+  aiAnalysis?: AiProfileAnalysis;
+  aiCareerReadiness?: number;
+  aiEmployabilityScore?: number;
+  aiAnalyzedAt?: number;
 }
 
 export interface CompanyProfile {
@@ -117,6 +137,11 @@ export interface CompanyProfile {
   companyLogoPath?: string;
   businessRegistrationDocumentPath?: string;
   onboardingCompleted?: boolean;
+  aiAnalysisStatus?: AiAnalysisStatus;
+  aiAnalysis?: AiProfileAnalysis;
+  aiCareerReadiness?: number;
+  aiEmployabilityScore?: number;
+  aiAnalyzedAt?: number;
 }
 
 export type NotificationKind =

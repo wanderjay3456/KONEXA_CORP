@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useApp } from "../../context/AppContext";
-import { StudentProfile } from "../../types";
+import { AiProfileAnalysis, StudentProfile } from "../../types";
 import { 
   User, 
   MapPin, 
@@ -84,7 +84,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
   const [resumeFile, setResumeFile] = useState<File | null>(null);
 
   // AI analysis state for the very end
-  const [aiReport, setAiReport] = useState<any>(null);
+  const [aiReport, setAiReport] = useState<AiProfileAnalysis | { status: "pending"; message: string } | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiStep, setAiStep] = useState(false);
 
@@ -196,13 +196,15 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
         ...uploadedFields,
         // Mark onboarding completed!
         onboardingCompleted: true,
-        trustScore: studentProfile?.trustScore ?? 0
+        trustScore: studentProfile?.trustScore ?? 0,
+        aiAnalysisStatus: "pending"
       } as any;
 
       const completionErrors = getStudentCompletionErrors(updatedProfile);
       if (Object.keys(completionErrors).length > 0) throw new Error(firstValidationMessage(completionErrors));
 
-      await updateStudentProfile(updatedProfile);
+      const saved = await updateStudentProfile(updatedProfile);
+      if (!saved) throw new Error("프로필 저장을 완료하지 못했습니다. 입력 내용과 업로드 파일을 확인해 주세요.");
       profileSaved = true;
       setAiStep(true);
 
@@ -213,6 +215,14 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
       eventSystem.publish("LanguageUpdated", { languages: formData.languages });
       eventSystem.publish("SkillUpdated", { skills: formData.skills });
       eventSystem.publish("CareerGoalUpdated", { job: formData.preferredJob });
+
+      const healthResponse = await fetch("/api/health");
+      const health = healthResponse.ok ? await healthResponse.json() : null;
+      if (!health?.configuration?.gemini) {
+        setAiReport({ status: "pending", message: "필수정보 등록이 완료되었습니다. AI 점수는 서비스 연결 후 생성됩니다." });
+        info("프로필 등록 완료", "AI 점수는 서비스 연결 후 생성됩니다.");
+        return;
+      }
 
       // Run server-side Gemini AI Profile Analysis in real-time
       const response = await fetch("/api/gemini/analyze-profile", {
@@ -225,23 +235,31 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
         throw new Error("AI engine connection issues");
       }
 
-      const analysisResult = await response.json();
+      const analysisResult = await response.json() as AiProfileAnalysis;
+      const analysisSaved = await updateStudentProfile({
+        aiAnalysisStatus: "completed",
+        aiAnalysis: analysisResult,
+        aiCareerReadiness: analysisResult.careerReadiness,
+        aiEmployabilityScore: analysisResult.employabilityScore,
+        aiAnalyzedAt: Date.now(),
+      });
+      if (!analysisSaved) throw new Error("AI 분석 결과를 프로필에 저장하지 못했습니다.");
       setAiReport(analysisResult);
       eventSystem.publish("AIAnalysisCompleted", analysisResult);
       success("AI Analysis Complete", "Gemini successfully completed your talent vector audits.");
     } catch (err) {
-      console.error(err);
       if (!profileSaved) {
+        console.error(err);
         error("필수정보 등록 실패", err instanceof Error ? err.message : "필수정보와 업로드 파일을 확인해 주세요.");
         setIsAiLoading(false);
         return;
       }
-      // Keep the state honest when the AI service is unavailable.
+      console.warn("[KONEXA] Student profile saved; AI analysis remains pending", err);
       setAiReport({
-        status: "unavailable",
-        message: "Gemini 분석 서버에 연결되지 않아 프로필 분석을 완료하지 못했습니다. 서버 연결 후 다시 실행해 주세요.",
+        status: "pending",
+        message: "필수정보 등록이 완료되었습니다. AI 점수는 서비스 연결 후 생성됩니다.",
       });
-      error("AI 서비스 연결 필요", "프로필은 저장됐지만 실제 AI 분석은 완료되지 않았습니다.");
+      info("프로필 등록 완료", "AI 점수는 서비스 연결 후 생성됩니다.");
     } finally {
       setIsAiLoading(false);
     }
@@ -253,7 +271,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
   };
 
   return (
-    <div className="onboarding-readable min-h-screen bg-neutral-950 text-white flex flex-col justify-center items-center py-16 px-6 font-sans relative overflow-y-auto">
+    <div className="onboarding-readable min-h-screen bg-neutral-950 text-white flex flex-col justify-center items-center px-5 py-10 sm:px-6 sm:py-14 font-sans relative overflow-y-auto">
       <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
       
       {!aiStep ? (
@@ -907,13 +925,13 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
         </div>
       ) : (
         /* AI CORE HANDSHAKE LOADER & COMPREHENSIVE RECOMMENDATIONS DASHBOARD */
-        <div className="w-full max-w-3xl space-y-8 relative z-10">
-          <div className="text-center py-6 space-y-3">
+        <div className="w-full max-w-3xl space-y-7 relative z-10">
+          <div className="text-center py-4 space-y-4">
             <div className="w-14 h-14 rounded-2xl bg-teal-950/50 border border-teal-500/30 flex items-center justify-center mx-auto shadow-lg animate-pulse">
               <Sparkles className="w-8 h-8 text-teal-400" />
             </div>
-            <h3 className="font-display font-black text-3xl tracking-tight text-white">KONEXA AI Onboarding Analytics</h3>
-            <p className="text-neutral-400 text-xs font-light max-w-md mx-auto">
+            <h3 className="font-display font-black text-2xl sm:text-[1.75rem] leading-tight tracking-tight text-white">KONEXA AI Onboarding Analytics</h3>
+            <p className="text-neutral-400 text-sm leading-6 font-light max-w-lg mx-auto">
               Our server-side Gemini LLM is actively indexing your credentials, portfolio, resume syntax, and work vectors.
             </p>
           </div>
@@ -930,6 +948,13 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                 <span>Synchronizing platform engines</span>
               </div>
             </div>
+          ) : aiReport?.status === "pending" ? (
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-teal-500/20 bg-neutral-900 p-6 text-center sm:p-8">
+              <CheckCircle className="mx-auto h-9 w-9 text-teal-400" />
+              <h4 className="mt-5 text-lg font-bold text-white">프로필 등록이 완료되었습니다</h4>
+              <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-neutral-300">{aiReport.message}</p>
+              <button onClick={onComplete} className="mt-7 h-11 rounded-xl bg-white px-6 text-sm font-bold text-black transition hover:bg-neutral-200">대시보드로 이동</button>
+            </motion.div>
           ) : (
             aiReport && (
               <motion.div
@@ -942,15 +967,15 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-neutral-900 border border-white/10 p-5 rounded-2xl text-center space-y-1">
                     <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-widest block">Employability Index</span>
-                    <div className="text-4xl font-display font-black text-teal-400">{aiReport.employabilityScore}%</div>
+                    <div className="text-3xl font-display font-black text-teal-400">{aiReport.employabilityScore}%</div>
                   </div>
                   <div className="bg-neutral-900 border border-white/10 p-5 rounded-2xl text-center space-y-1">
                     <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-widest block">Career Readiness</span>
-                    <div className="text-4xl font-display font-black text-purple-400">{aiReport.careerReadiness}%</div>
+                    <div className="text-3xl font-display font-black text-purple-400">{aiReport.careerReadiness}%</div>
                   </div>
                   <div className="bg-neutral-900 border border-white/10 p-5 rounded-2xl text-center space-y-1">
-                    <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-widest block">Trust Quotient Boost</span>
-                    <div className="text-4xl font-display font-black text-amber-400">+15 pts</div>
+                    <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-widest block">Analysis Status</span>
+                    <div className="mt-2 text-lg font-display font-black text-amber-400">Completed</div>
                   </div>
                 </div>
 
