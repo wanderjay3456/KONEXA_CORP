@@ -35,7 +35,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     <>
     <aside className="sticky top-16 hidden h-[calc(100vh-64px)] w-64 shrink-0 flex-col justify-between border-r border-neutral-200 bg-white p-6 md:flex">
       <div>
-        <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-neutral-400">Workspace</div>
+        <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-neutral-600">Workspace</div>
         <nav className="mt-2 space-y-1" aria-label="Workspace navigation">
           {items.map((item) => {
             const Icon = item.icon;
@@ -50,16 +50,16 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         </nav>
       </div>
       <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Authenticated account</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-neutral-600">Authenticated account</div>
         <div className="mt-2 truncate text-sm font-black text-neutral-900">{displayName || "Profile pending"}</div>
-        <p className="mt-1 text-[10px] leading-4 text-neutral-500">운영 데이터가 확인된 메뉴만 표시됩니다.</p>
+        <p className="mt-1 text-xs leading-5 text-neutral-700">운영 데이터가 확인된 메뉴만 표시됩니다.</p>
       </div>
     </aside>
     <nav className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-2xl border border-neutral-200 bg-white/95 p-2 shadow-2xl backdrop-blur-xl md:hidden" aria-label="모바일 워크스페이스 메뉴">
       {items.map((item) => {
         const Icon = item.icon;
         const selected = activeTab === item.id;
-        return <button key={item.id} onClick={() => setActiveTab(item.id)} aria-current={selected ? "page" : undefined} className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[9px] font-bold ${selected ? "bg-neutral-950 text-white" : "text-neutral-500"}`}><Icon className="h-4 w-4" /><span className="max-w-full truncate">{item.label}</span></button>;
+        return <button key={item.id} onClick={() => setActiveTab(item.id)} aria-current={selected ? "page" : undefined} className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] font-bold ${selected ? "bg-neutral-950 text-white" : "text-neutral-700"}`}><Icon className="h-4 w-4" /><span className="max-w-full truncate">{item.label}</span></button>;
       })}
     </nav>
     </>
