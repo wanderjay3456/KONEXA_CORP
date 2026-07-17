@@ -3,6 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (() => {
+        const primaryHost = "konexa.co.kr";
+        const redirectHosts = new Set([
+          "www.konexa.co.kr",
+          "konexa-corp.wanderjay3456899007.chatgpt.site",
+        ]);
+        if (redirectHosts.has(window.location.hostname)) {
+          const target = new URL(window.location.href);
+          target.protocol = "https:";
+          target.hostname = primaryHost;
+          target.port = "";
+          window.location.replace(target.toString());
+        }
+      })();
+    </script>
     
     <!-- Primary SEO Metadata -->
     <title>KONEXA | 검증된 글로벌 프로젝트 협업</title>
