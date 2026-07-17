@@ -108,7 +108,7 @@ export function createApp() {
   app.use("/api/admin", requireAuth, requireRole("admin"));
 
   // API Route: Health check
-  app.get("/api/health", (req, res) => {
+  app.get(["/api/health", "/api/system-status"], (req, res) => {
     res.json({
       status: "healthy",
       timestamp: Date.now(),

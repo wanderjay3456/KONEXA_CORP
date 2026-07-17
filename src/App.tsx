@@ -5,6 +5,7 @@ import { UserRole } from "./types";
 import LandingHero from "./components/landing/LandingHero";
 import Navbar from "./components/layout/Navbar";
 import Sidebar from "./components/layout/Sidebar";
+import { StatusPage } from "./components/status/StatusPage";
 
 const StudentDashboard = lazy(() => import("./components/dashboard/StudentDashboard"));
 const CompanyDashboard = lazy(() => import("./components/dashboard/CompanyDashboard"));
@@ -117,6 +118,10 @@ function AppContent() {
 }
 
 export default function App() {
+  if (window.location.pathname === "/status") {
+    return <StatusPage />;
+  }
+
   return (
     <ToastProvider>
       <AppProvider>
