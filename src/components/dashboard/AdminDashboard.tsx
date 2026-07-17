@@ -72,7 +72,7 @@ const PERMISSIONS_LIST = [
 
 export default function AdminDashboard() {
   const { success, error, info } = useToast();
-  const { projects, applications, logs, studentProfile } = useApp();
+  const { projects, applications, logs } = useApp();
 
   // Selected administrative tab
   const [activeTab, setActiveTab] = useState<
@@ -89,6 +89,8 @@ export default function AdminDashboard() {
   const [systemSettings, setSystemSettings] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [contentPages, setContentPages] = useState<any[]>([]);
+  const [userDirectory, setUserDirectory] = useState<any[]>([]);
+  const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
 
   // Filtering / interactive states
   const [isLoading, setIsLoading] = useState(true);
@@ -119,7 +121,9 @@ export default function AdminDashboard() {
         ticketsRes,
         settingsRes,
         contentRes,
-        notifRes
+        notifRes,
+        directoryRes,
+        verificationsRes
       ] = await Promise.all([
         fetch("/api/admin/metrics").then(r => r.json()),
         fetch("/api/admin/audit").then(r => r.json()),
@@ -127,7 +131,9 @@ export default function AdminDashboard() {
         fetch("/api/admin/support/tickets").then(r => r.json()),
         fetch("/api/admin/settings").then(r => r.json()),
         fetch("/api/admin/content").then(r => r.json()),
-        fetch("/api/admin/notifications").then(r => r.json())
+        fetch("/api/admin/notifications").then(r => r.json()),
+        fetch("/api/admin/directory").then(r => r.json()),
+        fetch("/api/admin/verifications").then(r => r.json())
       ]);
 
       setMetrics(metricsRes);
@@ -138,6 +144,8 @@ export default function AdminDashboard() {
       setFeatureFlags(settingsRes.flags);
       setContentPages(contentRes);
       setNotifications(notifRes);
+      setUserDirectory(Array.isArray(directoryRes.users) ? directoryRes.users : []);
+      setVerificationRequests(Array.isArray(verificationsRes.requests) ? verificationsRes.requests : []);
 
       // Default the AI prompt state
       const promptsRes = await fetch("/api/admin/ai/prompts").then(r => r.json());
@@ -147,6 +155,50 @@ export default function AdminDashboard() {
       error("Administrative Sync Error", "Could not synchronize some real-time enterprise streams.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleVerificationReview = async (requestId: string, status: "Approved" | "Rejected") => {
+    const adminNotes = status === "Rejected"
+      ? window.prompt("반려 사유 또는 보완 요청을 입력해 주세요.", "제출 서류를 다시 확인해 주세요.") || ""
+      : "제출 정보와 증빙 서류를 확인했습니다.";
+    if (status === "Rejected" && !adminNotes.trim()) return;
+    try {
+      setIsUpdating(true);
+      const response = await fetch(`/api/admin/verifications/${encodeURIComponent(requestId)}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, adminNotes }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Verification review failed");
+      success(status === "Approved" ? "인증 승인 완료" : "보완 요청 전송", "프로필 상태와 사용자 알림이 함께 갱신되었습니다.");
+      await loadAdminState();
+    } catch (cause: any) {
+      error("인증 처리 실패", cause.message || "다시 시도해 주세요.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleAccountStatus = async (user: any) => {
+    const nextStatus = user.accountStatus === "Suspended" ? "Active" : "Suspended";
+    try {
+      setIsUpdating(true);
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accountStatus: nextStatus }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Account update failed");
+      success("계정 상태 변경", `${user.displayName || user.email} 계정을 ${nextStatus} 상태로 변경했습니다.`);
+      setSelectedUser(null);
+      await loadAdminState();
+    } catch (cause: any) {
+      error("계정 상태 변경 실패", cause.message || "다시 시도해 주세요.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -692,22 +744,16 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-50 text-neutral-700">
-                    {/* Simulated Student List */}
-                    {[(studentProfile ? { id: "std-prod", name: studentProfile.name, email: studentProfile.github + "@edu", role: "student", status: "Active", trust: studentProfile.trustScore } : null),
-                      { id: "student-102", name: "Alex Mercer", email: "amercer@mit.edu", role: "student", status: "Suspended", trust: 45 },
-                      { id: "student-103", name: "Sophia Park", email: "spark@snu.ac.kr", role: "student", status: "Active", trust: 95 },
-                      { id: "company-55", name: "Samsung Recruiting Group", email: "hr@samsung.co.kr", role: "company", status: "Active", trust: 92 },
-                      { id: "mentor-2", name: "David Heinemeier", email: "dhh@basecamp.com", role: "mentor", status: "Active", trust: 88 }
-                    ]
-                    .filter(Boolean)
+                    {userDirectory
                     .filter((u: any) => {
                       if (userRoleFilter !== "all" && u.role !== userRoleFilter) return false;
-                      return u.name.toLowerCase().includes(userSearch.toLowerCase()) || u.email.toLowerCase().includes(userSearch.toLowerCase());
+                      const name = String(u.displayName || u.profile?.name || u.profile?.companyName || "");
+                      return name.toLowerCase().includes(userSearch.toLowerCase()) || String(u.email || "").toLowerCase().includes(userSearch.toLowerCase());
                     })
                     .map((user: any) => (
                       <tr key={user.id} className="hover:bg-neutral-50/50 transition-colors">
                         <td className="p-4">
-                          <div className="font-bold text-neutral-900">{user.name}</div>
+                          <div className="font-bold text-neutral-900">{user.displayName || user.profile?.name || user.profile?.companyName || "이름 미등록"}</div>
                           <div className="text-[10px] text-neutral-400 font-mono mt-0.5">{user.email}</div>
                         </td>
                         <td className="p-4">
@@ -716,21 +762,21 @@ export default function AdminDashboard() {
                           </span>
                         </td>
                         <td className="p-4">
-                          <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${user.status === "Active" ? "text-green-700" : "text-amber-700"}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${user.status === "Active" ? "bg-green-500" : "bg-amber-500"}`} />
-                            {user.status} (MFA Active)
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${user.accountStatus !== "Suspended" ? "text-green-700" : "text-amber-700"}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${user.accountStatus !== "Suspended" ? "bg-green-500" : "bg-amber-500"}`} />
+                            {user.accountStatus || "Active"}
                           </span>
                         </td>
                         <td className="p-4">
                           <div className="font-mono text-[10px] text-neutral-400">
-                            Trust Score: <span className="font-bold text-neutral-800">{user.trust}/100</span>
+                            Trust Score: <span className="font-bold text-neutral-800">{user.profile?.trustScore ?? "-"}</span>
                           </div>
                         </td>
                         <td className="p-4 text-right space-x-2 whitespace-nowrap">
                           <button
                             onClick={() => {
                               setSelectedUser(user);
-                              success("Loaded Account Details", `Acquiring system trace for ${user.name}`);
+                              success("계정 정보 불러오기", `${user.displayName || user.email} 계정 관리 패널을 열었습니다.`);
                             }}
                             className="px-2.5 py-1 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 text-[10px] font-semibold rounded-lg text-neutral-700 transition-colors cursor-pointer"
                           >
@@ -751,7 +797,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-2">
                     <Sliders className="w-5 h-5 text-neutral-900" />
                     <h4 className="font-display font-bold text-sm text-neutral-900">
-                      SaaS Supervisor Controls: {selectedUser.name} ({selectedUser.id})
+                      계정 관리: {selectedUser.displayName || selectedUser.email} ({selectedUser.id})
                     </h4>
                   </div>
                   <button onClick={() => setSelectedUser(null)} className="text-neutral-400 hover:text-black text-xs font-semibold">
@@ -761,31 +807,13 @@ export default function AdminDashboard() {
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <button
-                    onClick={async () => {
-                      try {
-                        const newStatus = selectedUser.status === "Active" ? "Suspended" : "Active";
-                        // Post a manual audit log
-                        await fetch("/api/admin/audit/log", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            action: "USER_STATUS_CHANGE",
-                            object: selectedUser.id,
-                            previousValue: selectedUser.status,
-                            newValue: newStatus,
-                            reason: "Manual admin override action initiated in supervisor panel."
-                          })
-                        });
-                        success("Status Toggled", `User accounts locked out. Log created.`);
-                        loadAdminState();
-                        setSelectedUser(null);
-                      } catch (e) {}
-                    }}
+                    onClick={() => handleAccountStatus(selectedUser)}
+                    disabled={isUpdating}
                     className="p-3 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 text-left rounded-xl space-y-1 group transition-colors cursor-pointer"
                   >
                     <div className="text-xs font-bold text-neutral-900 flex items-center gap-1.5">
                       <Lock className="w-3.5 h-3.5 text-neutral-500" />
-                      Suspend / Activate Account
+                      {selectedUser.accountStatus === "Suspended" ? "계정 재활성화" : "계정 정지"}
                     </div>
                     <p className="text-[10px] text-neutral-400">Lock users out of platform dashboard immediately.</p>
                   </button>
@@ -847,54 +875,51 @@ export default function AdminDashboard() {
 
               {/* List of Pending Corporate Clients */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {[
-                  { name: "Global Tech Consultants Inc.", regNo: "105-82-44109", risk: 12, country: "Seoul, Korea", status: "Pending" },
-                  { name: "Apex Alpha Software", regNo: "982-12-00452", risk: 28, country: "San Francisco, USA", status: "Verified" }
-                ].map((co) => (
-                  <div key={co.name} className="border border-neutral-200 rounded-xl p-4 bg-neutral-50/50 space-y-3">
+                {userDirectory.filter((user) => user.role === "company").map((co) => {
+                  const profile = co.profile || {};
+                  const pendingRequest = verificationRequests.find((request) => request.userId === co.id && request.status === "Pending");
+                  const status = profile.verifiedStatus || "Pending";
+                  return <div key={co.id} className="border border-neutral-200 rounded-xl p-4 bg-neutral-50/50 space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h4 className="font-bold text-neutral-900 text-sm">{co.name}</h4>
-                        <span className="text-[10px] text-neutral-400 font-mono">Reg #: {co.regNo} | {co.country}</span>
+                        <h4 className="font-bold text-neutral-900 text-sm">{profile.companyName || co.displayName}</h4>
+                        <span className="text-[10px] text-neutral-400 font-mono">Reg #: {profile.businessRegistrationNumber || "미등록"} | {profile.country || profile.officeLocation || "-"}</span>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${co.status === "Pending" ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-800"}`}>
-                        {co.status}
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${status === "Pending" ? "bg-amber-100 text-amber-800" : status === "Verified" ? "bg-green-100 text-green-800" : "bg-rose-100 text-rose-800"}`}>
+                        {status}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-3 gap-3 py-2 border-y border-neutral-100 text-center">
                       <div>
-                        <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Risk Index</div>
-                        <div className="text-sm font-display font-bold text-neutral-900">{co.risk}%</div>
+                        <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Industry</div>
+                        <div className="text-sm font-display font-bold text-neutral-900">{profile.industry || "-"}</div>
                       </div>
                       <div>
-                        <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Hiring Limit</div>
-                        <div className="text-sm font-display font-bold text-neutral-900">Unlimited</div>
+                        <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Company Size</div>
+                        <div className="text-sm font-display font-bold text-neutral-900">{profile.companySize || "-"}</div>
                       </div>
                       <div>
-                        <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Doc Score</div>
-                        <div className="text-sm font-display font-bold text-neutral-900">98/100</div>
+                        <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Document</div>
+                        <div className="text-sm font-display font-bold text-neutral-900">{profile.businessRegistrationDocumentPath ? "Uploaded" : "Missing"}</div>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-1">
-                      <span className="text-[10px] font-medium text-neutral-500">Business Registration File: <span className="font-mono text-black font-semibold underline">view_license.pdf</span></span>
+                      <span className="text-[10px] font-medium text-neutral-500">{pendingRequest ? "승인 대기 요청이 있습니다." : "인증 요청이 아직 제출되지 않았습니다."}</span>
                       
-                      {co.status === "Pending" && (
+                      {pendingRequest && (
                         <div className="space-x-1.5">
                           <button
-                            onClick={() => {
-                              success("Company Approved", `${co.name} verified successfully.`);
-                              loadAdminState();
-                            }}
+                            onClick={() => handleVerificationReview(pendingRequest.id, "Approved")}
+                            disabled={isUpdating}
                             className="px-2 py-1 bg-black text-white rounded text-[10px] font-bold cursor-pointer hover:bg-neutral-800"
                           >
                             Verify Partner
                           </button>
                           <button
-                            onClick={() => {
-                              error("Registration Rejected", "Sent notice of verification document clarification.");
-                            }}
+                            onClick={() => handleVerificationReview(pendingRequest.id, "Rejected")}
+                            disabled={isUpdating}
                             className="px-2 py-1 bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 rounded text-[10px] font-bold cursor-pointer"
                           >
                             Reject
@@ -903,7 +928,10 @@ export default function AdminDashboard() {
                       )}
                     </div>
                   </div>
-                ))}
+                })}
+                {!userDirectory.some((user) => user.role === "company") && (
+                  <div className="col-span-full rounded-xl border border-dashed border-neutral-300 p-8 text-center text-xs text-neutral-500">등록된 기업 계정이 없습니다.</div>
+                )}
               </div>
             </div>
           </div>
@@ -1149,26 +1177,25 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="space-y-3">
-                  {[
-                    { id: "appr-1", name: "MIT University Accreditation Request", type: "University Status", doc: "accreditation_MIT_2026.pdf" },
-                    { id: "appr-2", name: "AWS Cloud Practitioner Badge Claim", type: "Badge Verification", doc: "cert_claim_aws_101.pdf" }
-                  ].map((item) => (
+                  {verificationRequests.filter((item) => item.status === "Pending").map((item) => (
                     <div key={item.id} className="p-3.5 bg-neutral-50/70 border border-neutral-200 rounded-xl flex items-center justify-between gap-4 text-xs font-sans">
                       <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{item.type}</span>
-                        <h4 className="font-bold text-neutral-900">{item.name}</h4>
-                        <span className="block font-mono text-[9px] text-black underline">Document: {item.doc}</span>
+                        <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">{item.verificationType || "identity"} · {item.role}</span>
+                        <h4 className="font-bold text-neutral-900">{item.userName || item.userEmail || item.userId}</h4>
+                        <span className="block font-mono text-[9px] text-black">{item.documentUrl ? "Document submitted" : "Document path is stored in the private profile"}</span>
                       </div>
 
                       <div className="flex flex-col gap-1 shrink-0">
                         <button
-                          onClick={() => success("Item Approved", `${item.name} has been processed successfully.`)}
+                          onClick={() => handleVerificationReview(item.id, "Approved")}
+                          disabled={isUpdating}
                           className="px-2 py-1 bg-black text-white text-[9px] font-bold rounded cursor-pointer"
                         >
                           Approve Claim
                         </button>
                         <button
-                          onClick={() => error("Item Rejected", "Rejected claim and notified user for update.")}
+                          onClick={() => handleVerificationReview(item.id, "Rejected")}
+                          disabled={isUpdating}
                           className="px-2 py-1 bg-white hover:bg-neutral-100 border border-neutral-200 text-neutral-700 text-[9px] font-bold rounded cursor-pointer"
                         >
                           Reject
@@ -1176,6 +1203,9 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ))}
+                  {!verificationRequests.some((item) => item.status === "Pending") && (
+                    <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-xs text-neutral-500">현재 승인 대기 중인 인증 요청이 없습니다.</div>
+                  )}
                 </div>
               </div>
 

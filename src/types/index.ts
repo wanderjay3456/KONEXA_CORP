@@ -34,6 +34,7 @@ export interface UserProfile {
   displayName: string;
   role: UserRole;
   createdAt: number;
+  accountStatus?: "Active" | "Suspended";
 }
 
 export interface AiProfileAnalysis {

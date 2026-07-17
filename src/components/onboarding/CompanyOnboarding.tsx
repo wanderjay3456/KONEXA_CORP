@@ -25,7 +25,8 @@ import {
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
 import { eventSystem } from "../../lib/eventSystem";
-import { auth } from "../../lib/supabaseAuth";
+import { auth, db } from "../../lib/supabaseAuth";
+import { doc, setDoc } from "../../lib/supabaseStore";
 import { uploadPrivateFile } from "../../lib/privateStorage";
 import { firstValidationMessage, getCompanyCompletionErrors } from "../../lib/profileCompletion";
 
@@ -231,6 +232,18 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
 
       const saved = await updateCompanyProfile(updatedProfile);
       if (!saved) throw new Error("기업 프로필 저장을 완료하지 못했습니다. 입력 내용과 업로드 파일을 확인해 주세요.");
+      await setDoc(doc(db, "verification_requests", `${uid}-business-registration`), {
+        userId: uid,
+        userEmail: auth.currentUser?.email || formData.corporateEmail || "",
+        userName: formData.companyName || "Company",
+        role: "company",
+        verificationType: "business_registration",
+        status: "Pending",
+        documentUrl: updatedProfile.businessRegistrationDocumentPath,
+        adminNotes: "",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      }, { merge: true });
       profileSaved = true;
       setAiStep(true);
 

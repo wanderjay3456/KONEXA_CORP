@@ -28,7 +28,8 @@ import {
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
 import { eventSystem } from "../../lib/eventSystem";
-import { auth } from "../../lib/supabaseAuth";
+import { auth, db } from "../../lib/supabaseAuth";
+import { doc, setDoc } from "../../lib/supabaseStore";
 import { uploadPrivateFile } from "../../lib/privateStorage";
 import { firstValidationMessage, getStudentCompletionErrors } from "../../lib/profileCompletion";
 
@@ -205,6 +206,18 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
 
       const saved = await updateStudentProfile(updatedProfile);
       if (!saved) throw new Error("프로필 저장을 완료하지 못했습니다. 입력 내용과 업로드 파일을 확인해 주세요.");
+      await setDoc(doc(db, "verification_requests", `${uid}-student-identity`), {
+        userId: uid,
+        userEmail: auth.currentUser?.email || "",
+        userName: formData.name || "Student",
+        role: "student",
+        verificationType: "identity",
+        status: "Pending",
+        documentUrl: updatedProfile.identityDocumentPath,
+        adminNotes: "",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      }, { merge: true });
       profileSaved = true;
       setAiStep(true);
 

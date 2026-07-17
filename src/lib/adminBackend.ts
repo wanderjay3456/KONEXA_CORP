@@ -1,4 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
+import { randomUUID } from "node:crypto";
+import { getSupabaseAdmin } from "../server/supabaseAdmin";
 
 // ==========================================
 // IN-MEMORY DATA STORES & FAILSAFES
@@ -193,6 +195,127 @@ let localContentPages: any[] = [
 ];
 
 export function registerAdminRoutes(app: any, getAIClient: () => GoogleGenAI) {
+
+  // Production-backed identity directory and verification queue.
+  app.get("/api/admin/directory", async (_req: any, res: any) => {
+    try {
+      const supabase = getSupabaseAdmin();
+      const [{ data: users, error: usersError }, { data: students, error: studentsError }, { data: companies, error: companiesError }] = await Promise.all([
+        supabase.from("app_records").select("record_id,data,updated_at").eq("collection_name", "users"),
+        supabase.from("app_records").select("record_id,data,updated_at").eq("collection_name", "student_profiles"),
+        supabase.from("app_records").select("record_id,data,updated_at").eq("collection_name", "company_profiles"),
+      ]);
+      if (usersError || studentsError || companiesError) throw usersError || studentsError || companiesError;
+      const profiles = new Map<string, Record<string, any>>();
+      [...(students || []), ...(companies || [])].forEach((row: any) => profiles.set(row.record_id, row.data || {}));
+      const directory = (users || []).map((row: any) => ({
+        id: row.record_id,
+        ...(row.data || {}),
+        profile: profiles.get(row.record_id) || null,
+        updatedAt: row.updated_at,
+      }));
+      res.json({ users: directory });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to load the live user directory", details: error.message });
+    }
+  });
+
+  app.get("/api/admin/verifications", async (_req: any, res: any) => {
+    try {
+      const { data, error } = await getSupabaseAdmin()
+        .from("app_records")
+        .select("record_id,data,created_at,updated_at")
+        .eq("collection_name", "verification_requests")
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      res.json({ requests: (data || []).map((row: any) => ({ id: row.record_id, ...(row.data || {}), createdAt: row.created_at, updatedAt: row.updated_at })) });
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to load verification requests", details: error.message });
+    }
+  });
+
+  app.post("/api/admin/verifications/:requestId/review", async (req: any, res: any) => {
+    try {
+      const status = String(req.body?.status || "");
+      const adminNotes = String(req.body?.adminNotes || "").trim().slice(0, 1_000);
+      if (!["Approved", "Rejected"].includes(status)) return res.status(400).json({ error: "Status must be Approved or Rejected" });
+
+      const supabase = getSupabaseAdmin();
+      const { data: row, error: requestError } = await supabase
+        .from("app_records")
+        .select("data")
+        .eq("collection_name", "verification_requests")
+        .eq("record_id", req.params.requestId)
+        .single();
+      if (requestError || !row) return res.status(404).json({ error: "Verification request not found" });
+
+      const requestData = row.data as Record<string, any>;
+      const userId = String(requestData.userId || "");
+      const role = String(requestData.role || "");
+      if (!/^[0-9a-f-]{36}$/i.test(userId) || !["student", "company"].includes(role)) {
+        return res.status(400).json({ error: "Verification request has an invalid account reference" });
+      }
+
+      const reviewedAt = Date.now();
+      const reviewedRequest = {
+        ...requestData,
+        status,
+        adminNotes,
+        reviewedAt,
+        reviewedBy: req.user?.uid,
+      };
+      const profileCollection = role === "company" ? "company_profiles" : "student_profiles";
+      const { data: profileRow, error: profileReadError } = await supabase
+        .from("app_records")
+        .select("data")
+        .eq("collection_name", profileCollection)
+        .eq("record_id", userId)
+        .single();
+      if (profileReadError || !profileRow) throw profileReadError || new Error("Profile not found");
+      const profileStatus = status === "Approved" ? "Verified" : "Rejected";
+
+      const notificationId = randomUUID();
+      const notification = {
+        id: notificationId,
+        recipientId: userId,
+        kind: "verification",
+        title: status === "Approved" ? "인증이 승인되었습니다" : "인증 보완이 필요합니다",
+        message: status === "Approved" ? "제출하신 필수정보와 증빙이 승인되었습니다." : (adminNotes || "제출 서류를 확인하고 다시 제출해 주세요."),
+        entityType: "verification_request",
+        entityId: req.params.requestId,
+        actionTab: "profile-settings",
+        createdAt: reviewedAt,
+        readAt: null,
+      };
+
+      const { error: updateRequestError } = await supabase.from("app_records").update({ data: reviewedRequest }).eq("collection_name", "verification_requests").eq("record_id", req.params.requestId);
+      if (updateRequestError) throw updateRequestError;
+      const { error: updateProfileError } = await supabase.from("app_records").update({ data: { ...(profileRow.data as Record<string, any>), verified: status === "Approved", verifiedStatus: profileStatus, verificationReviewedAt: reviewedAt } }).eq("collection_name", profileCollection).eq("record_id", userId);
+      if (updateProfileError) throw updateProfileError;
+      const { error: notificationError } = await supabase.from("app_records").insert({ collection_name: "notifications", record_id: notificationId, owner_id: userId, data: notification, is_public: false });
+      if (notificationError) throw notificationError;
+
+      res.json({ success: true, request: reviewedRequest, profileStatus });
+    } catch (error: any) {
+      res.status(500).json({ error: "Could not review the verification request", details: error.message });
+    }
+  });
+
+  app.post("/api/admin/users/:userId/status", async (req: any, res: any) => {
+    try {
+      const accountStatus = String(req.body?.accountStatus || "");
+      if (!["Active", "Suspended"].includes(accountStatus)) return res.status(400).json({ error: "Invalid account status" });
+      if (req.params.userId === req.user?.uid && accountStatus === "Suspended") return res.status(400).json({ error: "Administrators cannot suspend their own active session" });
+      const supabase = getSupabaseAdmin();
+      const { data: row, error: readError } = await supabase.from("app_records").select("data").eq("collection_name", "users").eq("record_id", req.params.userId).single();
+      if (readError || !row) return res.status(404).json({ error: "User not found" });
+      const { error } = await supabase.from("app_records").update({ data: { ...(row.data as Record<string, any>), accountStatus, statusUpdatedAt: Date.now(), statusUpdatedBy: req.user?.uid } }).eq("collection_name", "users").eq("record_id", req.params.userId);
+      if (error) throw error;
+      res.json({ success: true, accountStatus });
+    } catch (error: any) {
+      res.status(500).json({ error: "Could not update account status", details: error.message });
+    }
+  });
   
   // 1. GLOBAL SYSTEM METRICS (SAAS TELEMETRY)
   app.get("/api/admin/metrics", async (req: any, res: any) => {

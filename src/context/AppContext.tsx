@@ -87,6 +87,7 @@ function handleSupabaseError(error: unknown, operationType: OperationType, path:
 // --- END FIRESTORE ERROR HANDLING PROTOCOL ---
 
 interface AppContextType {
+  isAuthReady: boolean;
   currentUser: UserProfile | null;
   setCurrentUser: React.Dispatch<React.SetStateAction<UserProfile | null>>;
   studentProfile: StudentProfile | null;
@@ -213,7 +214,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               }
 
               const uProfile = userSnapshot.data() as UserProfile;
+              if (uProfile.accountStatus === "Suspended") {
+                await signOut(auth);
+                setCurrentUser(null);
+                setStudentProfile(null);
+                setCompanyProfile(null);
+                error("계정 이용이 제한되었습니다", "관리자 검토가 필요한 계정입니다. KONEXA 운영팀에 문의해 주세요.");
+                setIsAuthReady(true);
+                return;
+              }
               setCurrentUser(uProfile);
+              setActiveRole(uProfile.role);
               
               if (uProfile.role === UserRole.STUDENT) {
                 const sRef = doc(db, "student_profiles", user.uid);
@@ -281,7 +292,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [activeRole]);
+  }, []);
 
   // 3. Real-time Supabase listeners
   useEffect(() => {
@@ -637,7 +648,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loginUser = async (email: string, role: UserRole, password?: string) => {
     try {
-      if (![UserRole.STUDENT, UserRole.COMPANY].includes(role)) {
+      if (![UserRole.STUDENT, UserRole.COMPANY, UserRole.ADMIN].includes(role)) {
         throw new Error("This account type cannot use self-service login.");
       }
       if (!password) throw new Error("A password is required for login.");
@@ -654,6 +665,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (userSnapshot.exists()) {
         profile = userSnapshot.data() as UserProfile;
       } else {
+        if (role === UserRole.ADMIN) {
+          await signOut(auth);
+          throw new Error("승인된 관리자 계정이 아닙니다. 기존 관리자가 먼저 권한을 부여해야 합니다.");
+        }
         profile = {
           uid: authUid,
           email,
@@ -662,6 +677,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           createdAt: now
         };
         await setDoc(userDocRef, profile);
+      }
+
+      if (role === UserRole.ADMIN && profile.role !== UserRole.ADMIN) {
+        await signOut(auth);
+        throw new Error("이 계정에는 관리자 권한이 없습니다.");
+      }
+      if (profile.accountStatus === "Suspended") {
+        await signOut(auth);
+        throw new Error("관리자 검토로 이용이 제한된 계정입니다. KONEXA 운영팀에 문의해 주세요.");
       }
 
       setCurrentUser(profile);
@@ -802,6 +826,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider
       value={{
+        isAuthReady,
         currentUser,
         setCurrentUser,
         studentProfile,

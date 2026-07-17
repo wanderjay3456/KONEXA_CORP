@@ -109,7 +109,7 @@ export default function AuthModal({
   };
 
   return (
-    <div id="auth-modal-overlay" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div id="auth-modal-overlay" data-auto-translate className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Dark overlay with premium blur */}
       <motion.div 
         className="absolute inset-0 bg-neutral-950/45 backdrop-blur-md"
@@ -163,29 +163,35 @@ export default function AuthModal({
                 transition={{ duration: 0.2 }}
                 className="space-y-4"
               >
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">
-                  Google 계정 또는 이메일·비밀번호로 로그인할 수 있습니다.
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  disabled={isSubmitting}
-                  className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-neutral-200 bg-white text-xs font-bold text-neutral-800 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-200 font-black text-blue-600">G</span>
-                  <span>Google로 로그인</span>
-                </button>
-
-                <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-neutral-300">
-                  <span className="h-px flex-1 bg-neutral-200" />
-                  <span>또는 이메일</span>
-                  <span className="h-px flex-1 bg-neutral-200" />
-                </div>
+                {role !== UserRole.ADMIN ? (
+                  <>
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">
+                      Google 계정 또는 이메일·비밀번호로 로그인할 수 있습니다.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleGoogleLogin}
+                      disabled={isSubmitting}
+                      className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-neutral-200 bg-white text-xs font-bold text-neutral-800 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-200 font-black text-blue-600">G</span>
+                      <span>Google로 로그인</span>
+                    </button>
+                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-neutral-300">
+                      <span className="h-px flex-1 bg-neutral-200" />
+                      <span>또는 이메일</span>
+                      <span className="h-px flex-1 bg-neutral-200" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-amber-900">
+                    관리자 계정은 사전에 승인된 이메일과 비밀번호로만 로그인할 수 있습니다.
+                  </div>
+                )}
 
                 <form onSubmit={handleLoginSubmit} className="space-y-3">
                   {/* Role selection */}
-                  <div className="grid grid-cols-2 gap-1 bg-neutral-100 p-1 rounded-xl border border-neutral-200/50">
+                  <div className="grid grid-cols-3 gap-1 bg-neutral-100 p-1 rounded-xl border border-neutral-200/50">
                     <button
                       type="button"
                       onClick={() => setRole(UserRole.STUDENT)}
@@ -207,6 +213,17 @@ export default function AuthModal({
                       }`}
                     >
                       Company Partner
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole(UserRole.ADMIN)}
+                      className={`py-1.5 rounded-lg text-[11px] font-sans font-bold transition-all cursor-pointer ${
+                        role === UserRole.ADMIN
+                          ? "bg-white text-neutral-900 shadow-sm"
+                          : "text-neutral-500 hover:text-neutral-900"
+                      }`}
+                    >
+                      Admin
                     </button>
                   </div>
 
@@ -274,7 +291,7 @@ export default function AuthModal({
                 </form>
 
                 {/* Switch to Register */}
-                <div className="text-center pt-3 border-t border-neutral-100 mt-4">
+                {role !== UserRole.ADMIN && <div className="text-center pt-3 border-t border-neutral-100 mt-4">
                   <span className="text-xs text-neutral-400">First time here? </span>
                   <button
                     onClick={() => {
@@ -285,7 +302,7 @@ export default function AuthModal({
                   >
                     Join {role === UserRole.STUDENT ? "as Student" : "as Corporate Partner"}
                   </button>
-                </div>
+                </div>}
               </motion.div>
             )}
 

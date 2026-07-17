@@ -6,12 +6,16 @@ import LandingHero from "./components/landing/LandingHero";
 import Navbar from "./components/layout/Navbar";
 import Sidebar from "./components/layout/Sidebar";
 import { StatusPage } from "./components/status/StatusPage";
+import LanguageSwitcher from "./components/layout/LanguageSwitcher";
+import AutoTranslator from "./i18n/AutoTranslator";
+import { LocaleProvider } from "./i18n/LocaleContext";
 
 const StudentDashboard = lazy(() => import("./components/dashboard/StudentDashboard"));
 const CompanyDashboard = lazy(() => import("./components/dashboard/CompanyDashboard"));
 const StudentOnboarding = lazy(() => import("./components/onboarding/StudentOnboarding"));
 const CompanyOnboarding = lazy(() => import("./components/onboarding/CompanyOnboarding"));
 const TrustOperationsCenter = lazy(() => import("./components/trust/TrustOperationsCenter"));
+const AdminDashboard = lazy(() => import("./components/dashboard/AdminDashboard"));
 
 function WorkspaceLoading() {
   return (
@@ -27,15 +31,10 @@ function WorkspaceLoading() {
 }
 
 function AppContent() {
-  const { activeRole, setActiveRole, currentUser, studentProfile, companyProfile, logoutUser } = useApp();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { activeRole, setActiveRole, currentUser, studentProfile, companyProfile, logoutUser, isAuthReady } = useApp();
   
   // Track active tab within each dashboard role
   const [activeTab, setActiveTab] = useState("project-marketplace");
-
-  React.useEffect(() => {
-    if (currentUser) setIsLoggedIn(true);
-  }, [currentUser]);
 
   const handleEnterApp = (role: UserRole) => {
     setActiveRole(role);
@@ -44,12 +43,10 @@ function AppContent() {
     else if (role === UserRole.COMPANY) setActiveTab("create-challenge");
     else if (role === UserRole.ADMIN) setActiveTab("admin-logs");
     else if (role === UserRole.AI) setActiveTab("ai-overview");
-    setIsLoggedIn(true);
   };
 
   const handleLogout = async () => {
     await logoutUser();
-    setIsLoggedIn(false);
   };
 
   // Sync default tabs when role is switched from Navbar dropdown
@@ -60,7 +57,11 @@ function AppContent() {
     else if (activeRole === UserRole.AI) setActiveTab("ai-overview");
   }, [activeRole]);
 
-  if (!isLoggedIn) {
+  if (!isAuthReady) {
+    return <WorkspaceLoading />;
+  }
+
+  if (!currentUser) {
     return <LandingHero onEnterApp={handleEnterApp} />;
   }
 
@@ -70,29 +71,37 @@ function AppContent() {
 
   if (showStudentOnboarding) {
     return (
-      <Suspense fallback={<WorkspaceLoading />}>
-        <StudentOnboarding onComplete={() => undefined} />
-      </Suspense>
+      <div data-auto-translate>
+        <LanguageSwitcher floating />
+        <Suspense fallback={<WorkspaceLoading />}>
+          <StudentOnboarding onComplete={() => undefined} />
+        </Suspense>
+      </div>
     );
   }
 
   if (showCompanyOnboarding) {
     return (
-      <Suspense fallback={<WorkspaceLoading />}>
-        <CompanyOnboarding onComplete={() => undefined} />
-      </Suspense>
+      <div data-auto-translate>
+        <LanguageSwitcher floating />
+        <Suspense fallback={<WorkspaceLoading />}>
+          <CompanyOnboarding onComplete={() => undefined} />
+        </Suspense>
+      </div>
     );
   }
 
   return (
-    <div id="app-workspace" className="min-h-screen bg-neutral-50 flex flex-col">
+    <div id="app-workspace" data-auto-translate className="min-h-screen bg-neutral-50 flex flex-col">
       {/* Top Navigation */}
       <Navbar onLogout={handleLogout} onNavigate={setActiveTab} />
 
       {/* Main Body split */}
       <div className="flex-1 flex relative">
         {/* Left collapsable sidebar */}
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        {(activeRole === UserRole.STUDENT || activeRole === UserRole.COMPANY) && (
+          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        )}
 
         {/* Dynamic central workspace */}
         <main className="flex min-w-0 flex-1 flex-col pb-24 md:pb-0">
@@ -107,7 +116,8 @@ function AppContent() {
               {activeRole === UserRole.COMPANY && (
                 <CompanyDashboard activeTab={activeTab} onNavigate={setActiveTab} />
               )}
-              {activeRole !== UserRole.STUDENT && activeRole !== UserRole.COMPANY && <TrustOperationsCenter />}
+              {activeRole === UserRole.ADMIN && <AdminDashboard />}
+              {activeRole !== UserRole.STUDENT && activeRole !== UserRole.COMPANY && activeRole !== UserRole.ADMIN && <TrustOperationsCenter />}
             </>
           )}
           </Suspense>
@@ -124,9 +134,12 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
+      <LocaleProvider>
+        <AppProvider>
+          <AutoTranslator />
+          <AppContent />
+        </AppProvider>
+      </LocaleProvider>
     </ToastProvider>
   );
 }

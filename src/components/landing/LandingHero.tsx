@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, useScroll, useSpring, useTransform } from "motion/react";
 import {
   ArrowRight, BadgeCheck, BriefcaseBusiness, Building2, Check, ChevronDown,
@@ -12,9 +12,9 @@ import CompanyRegisterForm from "../auth/CompanyRegisterForm";
 import { db } from "../../config/supabase";
 import { addDoc, collection } from "../../lib/supabaseStore";
 import { useToast } from "../ui/Toast";
+import { type Locale, useLocale } from "../../i18n/LocaleContext";
 
 interface LandingHeroProps { onEnterApp: (role: UserRole) => void }
-type Locale = "ko" | "en" | "vi";
 
 const copy = {
   ko: {
@@ -138,12 +138,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
   const heroVisualY = useTransform(heroProgress, [0, 1], [0, reduced ? 0 : -80]);
   const heroVisualRotate = useTransform(heroProgress, [0, 1], [0, reduced ? 0 : -4]);
   const heroVisualScale = useTransform(heroProgress, [0, 1], [1, reduced ? 1 : 0.92]);
-  const [locale, setLocale] = useState<Locale>(() => {
-    if (typeof window === "undefined") return "ko";
-    const saved = localStorage.getItem("konexa_locale") as Locale | null;
-    if (saved && ["ko", "en", "vi"].includes(saved)) return saved;
-    return navigator.language.startsWith("ko") ? "ko" : navigator.language.startsWith("vi") ? "vi" : "en";
-  });
+  const { locale, setLocale } = useLocale();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(() => typeof window !== "undefined" && (location.hash.includes("type=recovery") || location.search.includes("type=recovery")));
   const [activeRegisterRole, setActiveRegisterRole] = useState<UserRole | null>(null);
   const [openFaq, setOpenFaq] = useState(0);
@@ -151,11 +146,6 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
   const [isWaitlistSubmitting, setIsWaitlistSubmitting] = useState(false);
   const { success, error } = useToast();
   const t = copy[locale];
-
-  useEffect(() => {
-    localStorage.setItem("konexa_locale", locale);
-    document.documentElement.lang = locale;
-  }, [locale]);
 
   const modules = useMemo(() => [LockKeyhole, FileSignature, CircleDollarSign, UserRoundCheck], []);
   const submitWaitlist = async (event: React.FormEvent) => {
@@ -172,7 +162,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
 
   return <div id="landing-master" className="konexa-light min-h-screen overflow-hidden text-[#17342d] selection:bg-[#b9f4d0] selection:text-[#17342d]">
     <AnimatePresence mode="wait">
-      {activeRegisterRole ? <motion.main key="registration" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="min-h-screen bg-[#f7f6f1] text-neutral-900">
+      {activeRegisterRole ? <motion.main data-auto-translate key="registration" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="min-h-screen bg-[#f7f6f1] text-neutral-900">
         {activeRegisterRole === UserRole.STUDENT
           ? <StudentRegisterForm onCancel={() => setActiveRegisterRole(null)} onSuccess={() => onEnterApp(UserRole.STUDENT)} />
           : <CompanyRegisterForm onCancel={() => setActiveRegisterRole(null)} onSuccess={() => onEnterApp(UserRole.COMPANY)} />}
