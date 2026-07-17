@@ -9,7 +9,7 @@ import { registerAiWorkforceRoutes } from "./src/lib/aiServerBackend";
 import { registerIntelligenceRoutes } from "./src/lib/intelligenceBackend";
 import { registerAdminRoutes } from "./src/lib/adminBackend";
 import { registerBillingRoutes, registerStripeWebhook } from "./src/server/billing";
-import { registerEmailRoutes, registerResendWebhook } from "./src/server/email";
+import { isTransactionalEmailConfigured, registerEmailRoutes, registerResendWebhook } from "./src/server/email";
 import { registerPortOnePaymentRoutes, registerPortOneWebhook } from "./src/server/payments";
 import { requireAuth, requireRole, type AuthenticatedRequest } from "./src/server/security";
 import { adminDb, FieldValue } from "./src/server/supabaseAdmin";
@@ -117,7 +117,7 @@ export function createApp() {
         gemini: Boolean(process.env.GEMINI_API_KEY),
         stripeSubscription: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET && process.env.STRIPE_PRICE_PRO_MONTHLY),
         portoneProjectPayments: Boolean(process.env.PORTONE_API_SECRET && process.env.PORTONE_WEBHOOK_SECRET && process.env.PORTONE_STORE_ID && process.env.PORTONE_CHANNEL_KEY),
-        email: Boolean(process.env.RESEND_API_KEY && process.env.RESEND_WEBHOOK_SECRET && process.env.EMAIL_FROM),
+        email: isTransactionalEmailConfigured(),
         modusign: Boolean(process.env.MODUSIGN_API_KEY && process.env.MODUSIGN_WEBHOOK_SECRET),
       },
     });

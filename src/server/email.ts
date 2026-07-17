@@ -1,4 +1,6 @@
 import express, { type Express, type Response } from "express";
+import { createHash } from "node:crypto";
+import nodemailer, { type Transporter } from "nodemailer";
 import { Resend } from "resend";
 import { adminDb, FieldValue } from "./supabaseAdmin";
 import type { AuthenticatedRequest } from "./security";
@@ -18,12 +20,41 @@ interface SendEmailInput {
 }
 
 let resendClient: Resend | null = null;
+let smtpClient: Transporter | null = null;
 
 function getResend() {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("RESEND_API_KEY is not configured");
   resendClient ||= new Resend(apiKey);
   return resendClient;
+}
+
+function getSmtp() {
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASSWORD;
+  const port = Number(process.env.SMTP_PORT || 465);
+  if (!host || !user || !pass || !Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error("SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASSWORD must be configured");
+  }
+
+  smtpClient ||= nodemailer.createTransport({
+    host,
+    port,
+    secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : port === 465,
+    auth: { user, pass },
+    tls: { minVersion: "TLSv1.2" },
+    disableFileAccess: true,
+    disableUrlAccess: true,
+  });
+  return smtpClient;
+}
+
+export function isTransactionalEmailConfigured() {
+  const hasFrom = Boolean(process.env.EMAIL_FROM);
+  const hasResend = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_WEBHOOK_SECRET);
+  const hasSmtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD);
+  return hasFrom && (hasResend || hasSmtp);
 }
 
 function escapeHtml(value: unknown) {
@@ -79,31 +110,80 @@ export async function sendTransactionalEmail(input: SendEmailInput) {
   if (!from) throw new Error("EMAIL_FROM is not configured");
 
   const { subject, html } = renderEmail(input.template, input.data);
-  const { data, error } = await getResend().emails.send(
-    {
+  if (process.env.RESEND_API_KEY) {
+    const { data, error } = await getResend().emails.send(
+      {
+        from,
+        to: [input.to],
+        replyTo: process.env.EMAIL_REPLY_TO,
+        subject,
+        html,
+      },
+      { idempotencyKey: input.idempotencyKey.slice(0, 256) },
+    );
+
+    if (error || !data?.id) {
+      throw new Error(error?.message || "Resend did not return an email ID");
+    }
+
+    await adminDb.collection("email_deliveries").doc(data.id).set({
+      userId: input.userId || null,
+      to: input.to,
+      template: input.template,
+      status: "sent",
+      provider: "resend",
+      createdAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    return { id: data.id };
+  }
+
+  const deliveryId = `smtp_${createHash("sha256").update(input.idempotencyKey).digest("hex").slice(0, 48)}`;
+  const deliveryRef = adminDb.collection("email_deliveries").doc(deliveryId);
+  try {
+    await deliveryRef.create({
+      userId: input.userId || null,
+      to: input.to,
+      template: input.template,
+      status: "sending",
+      provider: "smtp",
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  } catch (error: any) {
+    if (error?.code === 6 || error?.code === "already-exists") {
+      const existing = await deliveryRef.get();
+      if (["sending", "sent"].includes(String(existing.data()?.status))) return { id: deliveryId };
+      await deliveryRef.set({ status: "sending", retryAt: FieldValue.serverTimestamp() }, { merge: true });
+    } else {
+      throw error;
+    }
+  }
+
+  try {
+    const info = await getSmtp().sendMail({
       from,
-      to: [input.to],
+      to: input.to,
       replyTo: process.env.EMAIL_REPLY_TO,
       subject,
       html,
-    },
-    { idempotencyKey: input.idempotencyKey.slice(0, 256) },
-  );
-
-  if (error || !data?.id) {
-    throw new Error(error?.message || "Resend did not return an email ID");
+      messageId: `<${deliveryId}@konexa.co.kr>`,
+      disableFileAccess: true,
+      disableUrlAccess: true,
+    });
+    await deliveryRef.set({
+      status: "sent",
+      providerMessageId: info.messageId,
+      sentAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return { id: deliveryId };
+  } catch (error) {
+    await deliveryRef.set({
+      status: "failed",
+      failedAt: FieldValue.serverTimestamp(),
+      error: error instanceof Error ? error.message.slice(0, 500) : "SMTP send failed",
+    }, { merge: true });
+    throw error;
   }
-
-  await adminDb.collection("email_deliveries").doc(data.id).set({
-    userId: input.userId || null,
-    to: input.to,
-    template: input.template,
-    status: "sent",
-    provider: "resend",
-    createdAt: FieldValue.serverTimestamp(),
-  }, { merge: true });
-
-  return { id: data.id };
 }
 
 export function registerResendWebhook(app: Express) {

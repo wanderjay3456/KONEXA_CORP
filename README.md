@@ -41,8 +41,9 @@ The Express backend requires:
 - `STRIPE_PRICE_PRO_MONTHLY`
 - `RESEND_API_KEY`
 - `RESEND_WEBHOOK_SECRET`
-- `EMAIL_FROM` on a verified sending domain
-- `EMAIL_REPLY_TO` is recommended
+- `EMAIL_FROM` and `EMAIL_REPLY_TO`
+- Or Gmail SMTP: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, and `SMTP_PASSWORD` (Google App Password, never the account password)
+- For Resend, use a verified-domain `EMAIL_FROM`; for Gmail SMTP, use `KONEXA <konexa.corp@gmail.com>`
 - `PORTONE_API_SECRET`, `PORTONE_WEBHOOK_SECRET`, `PORTONE_STORE_ID`
 - `PORTONE_PAYMENT_CHANNEL_KEY`, `PORTONE_IDENTITY_CHANNEL_KEY`
 - `MODUSIGN_API_KEY` and the three approved document template IDs
