@@ -200,6 +200,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   return;
                 }
                 userSnapshot = await getDoc(userDocRef);
+              } else if (pendingIntent?.role === "admin" && initialProfile.role !== UserRole.ADMIN) {
+                clearPendingGoogleAuthIntent();
+                if (rejectedGoogleUid !== user.uid) {
+                  rejectedGoogleUid = user.uid;
+                  await signOut(auth);
+                }
+                setCurrentUser(null);
+                setStudentProfile(null);
+                setCompanyProfile(null);
+                error("Admin access denied", "This Google account is not an approved KONEXA administrator.");
+                setIsAuthReady(true);
+                return;
               } else if (initialProfile.onboardingStatus === "pending_google") {
                 clearPendingGoogleAuthIntent();
                 if (rejectedGoogleUid !== user.uid) {
@@ -721,13 +733,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const googleLogin = async (role: UserRole, options: GoogleLoginOptions = {}) => {
     try {
-      if (![UserRole.STUDENT, UserRole.COMPANY].includes(role)) {
+      if (![UserRole.STUDENT, UserRole.COMPANY, UserRole.ADMIN].includes(role)) {
         throw new Error("This account type cannot use self-service login.");
       }
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider, {
         mode: options.mode || "login",
-        role: role === UserRole.COMPANY ? "company" : "student",
+        role: role === UserRole.COMPANY ? "company" : role === UserRole.ADMIN ? "admin" : "student",
         consentBundle: options.consentBundle,
         profileData: options.profileData,
       });

@@ -184,9 +184,31 @@ export default function AuthModal({
                     </div>
                   </>
                 ) : (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-amber-900">
+                  <div className="hidden">
                     관리자 계정은 사전에 승인된 이메일과 비밀번호로만 로그인할 수 있습니다.
                   </div>
+                )}
+
+                {role === UserRole.ADMIN && (
+                  <>
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-amber-900">
+                      Approved administrators can sign in with Google or with their email and password.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleGoogleLogin}
+                      disabled={isSubmitting}
+                      className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-neutral-200 bg-white text-xs font-bold text-neutral-800 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-200 font-black text-blue-600">G</span>
+                      <span>Sign in with Google as Admin</span>
+                    </button>
+                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-neutral-300">
+                      <span className="h-px flex-1 bg-neutral-200" />
+                      <span>or use email</span>
+                      <span className="h-px flex-1 bg-neutral-200" />
+                    </div>
+                  </>
                 )}
 
                 <form onSubmit={handleLoginSubmit} className="space-y-3">

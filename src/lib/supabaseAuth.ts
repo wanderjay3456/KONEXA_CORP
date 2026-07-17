@@ -8,7 +8,7 @@ const GOOGLE_REGISTRATION_PARAM = "konexa_registration";
 
 export interface GoogleAuthIntent {
   mode: "login" | "register";
-  role: "student" | "company";
+  role: "student" | "company" | "admin";
   consentBundle?: Record<string, unknown>;
   profileData?: Record<string, unknown>;
   createdAt: number;
@@ -162,6 +162,12 @@ export async function signInWithPopup(
     }
   } else {
     clearPendingGoogleAuthIntent();
+    if (intent.role === "admin" && typeof window !== "undefined") {
+      window.sessionStorage.setItem(
+        GOOGLE_AUTH_INTENT_KEY,
+        JSON.stringify({ ...intent, createdAt: Date.now() }),
+      );
+    }
   }
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
