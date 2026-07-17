@@ -138,7 +138,7 @@ export function createApp() {
         const targetLanguage = locale === "ko" ? "Korean" : locale === "vi" ? "Vietnamese" : "English";
         const missingTexts = missingIndexes.map((index) => texts[index]);
         const response = await getAIClient().models.generateContent({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.5-flash",
           contents: JSON.stringify({ targetLanguage, texts: missingTexts }),
           config: {
             temperature: 0.1,
@@ -245,7 +245,7 @@ export function createApp() {
       `;
 
       const response = await client.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json"
@@ -303,7 +303,7 @@ export function createApp() {
       `;
 
       const response = await client.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: formattedContents,
         config: {
           systemInstruction: systemInstruction
@@ -389,7 +389,7 @@ export function createApp() {
       }
 
       const response = await client.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json"
@@ -421,7 +421,7 @@ export function createApp() {
       const prompt = `Extract skills, experience, education, links from this document. Return ONLY valid JSON: {"extractedSkills":["str"],"experienceSummary":"str","education":"str","portfolioLinks":["str"],"recommendation":"str"}`;
       
       const response = await client.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: [
           { role: "user", parts: [
             { inlineData: { data: pdfBase64, mimeType: "application/pdf" } },
