@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { CheckCircle2, Clock3, Search, ShieldCheck, XCircle } from "lucide-react";
+import { Award, CheckCircle2, Clock3, Search, ShieldCheck, XCircle } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { ApplicationStatus, type Application } from "../../types";
 import CandidateIntroVideo from "./CandidateIntroVideo";
@@ -46,7 +46,7 @@ export default function ApplicationManagement({ onSelectStudent, onSelectApplica
           {visible.map((application) => (
             <article key={application.id} className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                <button onClick={() => { onSelectStudent(application.studentId); onSelectApplication(application); }} className="text-left"><div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">{application.projectTitle}</div><h2 className="mt-1 text-lg font-black">{application.studentName}</h2><div className="mt-2 flex items-center gap-2 text-xs text-neutral-500"><ShieldCheck className="h-4 w-4" />상태: {application.status}</div></button>
+                <button onClick={() => { onSelectStudent(application.studentId); onSelectApplication(application); }} className="text-left"><div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">{application.projectTitle}</div><div className="mt-1 flex flex-wrap items-center gap-2"><h2 className="text-lg font-black">{application.studentName}</h2>{application.earlyPioneer && <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black text-amber-700"><Award className="h-3.5 w-3.5" />Early Pioneer</span>}</div><div className="mt-2 flex items-center gap-2 text-xs text-neutral-500"><ShieldCheck className="h-4 w-4" />상태: {application.status}</div></button>
                 <div className="flex gap-2"><button disabled={busyId === application.id} onClick={() => updateStatus(application, ApplicationStatus.APPROVED)} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-xs font-bold text-white disabled:opacity-50"><CheckCircle2 className="h-4 w-4" />승인</button><button disabled={busyId === application.id} onClick={() => updateStatus(application, ApplicationStatus.REJECTED)} className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 px-4 py-3 text-xs font-bold text-neutral-700 disabled:opacity-50"><XCircle className="h-4 w-4" />미선정</button></div>
               </div>
               <CandidateIntroVideo application={application} />

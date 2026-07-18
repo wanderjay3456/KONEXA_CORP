@@ -9,6 +9,7 @@ import { UserRole } from "../../types";
 import AuthModal from "../auth/AuthModal";
 import StudentRegisterForm from "../auth/StudentRegisterForm";
 import CompanyRegisterForm from "../auth/CompanyRegisterForm";
+import EarlyBirdCampaign from "./EarlyBirdCampaign";
 import { db } from "../../config/supabase";
 import { addDoc, collection } from "../../lib/supabaseStore";
 import { useToast } from "../ui/Toast";
@@ -210,6 +211,8 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
           </section>
 
           <div className="ticker border-y border-[#17342d]/10 bg-[#17342d] py-4 text-[#f8f5eb]"><div className="ticker-track">{[...t.ribbon, ...t.ribbon].map((item, index) => <span key={`${item}-${index}`}><Sparkles className="h-3 w-3 text-[#b9f4d0]" />{item}</span>)}</div></div>
+
+          <EarlyBirdCampaign locale={locale} onStudent={() => setActiveRegisterRole(UserRole.STUDENT)} onCompany={() => setActiveRegisterRole(UserRole.COMPANY)} />
 
           <section id="system" className="px-5 py-24 sm:px-8 lg:py-36"><div className="mx-auto max-w-7xl">
             <Reveal className="grid gap-9 lg:grid-cols-[.7fr_1.3fr]"><div className="font-mono text-[10px] font-bold tracking-[.18em] text-[#4361ee]">01 / {t.systemEyebrow}</div><div><h2 className="whitespace-pre-line font-display text-3xl font-bold leading-[1.1] tracking-[-.04em] sm:text-5xl">{t.systemTitle}</h2><p className="mt-7 max-w-2xl text-base leading-8 text-[#617972]">{t.systemLead}</p></div></Reveal>

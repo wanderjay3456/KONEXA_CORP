@@ -106,6 +106,10 @@ export interface StudentProfile {
   introVideoMimeType?: string | null;
   introVideoFileName?: string | null;
   introVideoUpdatedAt?: number | null;
+  earlyPioneerEligible?: boolean;
+  earlyPioneerQualifiedAt?: number;
+  resumeConsultingCredits?: number;
+  withdrawalFeePaybackWeeks?: number;
   aiAnalyzedAt?: number;
 }
 
@@ -148,6 +152,11 @@ export interface CompanyProfile {
   aiCareerReadiness?: number;
   aiEmployabilityScore?: number;
   aiAnalyzedAt?: number;
+  earlyBirdEligible?: boolean;
+  earlyBirdQualifiedAt?: number;
+  subscriptionDiscountPercent?: number;
+  subscriptionDiscountMonths?: number;
+  premiumTalentViewCredits?: number;
 }
 
 export type NotificationKind =
@@ -186,6 +195,15 @@ export interface Project {
   status: ProjectStatus;
   tags: string[];
   createdAt: number;
+  workType?: "Remote" | "Hybrid" | "Onsite";
+  durationWeeks?: number;
+  hoursPerWeek?: number;
+  weeklyPayKrw?: number;
+  requiredLanguage?: string;
+  applicationDeadline?: string;
+  hiringOpportunity?: boolean;
+  contactPolicyAccepted?: boolean;
+  earlyBirdQualified?: boolean;
 }
 
 export interface Application {
@@ -200,6 +218,7 @@ export interface Application {
   status: ApplicationStatus;
   score: number; // Evaluated score 0-100
   createdAt: number;
+  earlyPioneer?: boolean;
 }
 
 export interface SystemLog {

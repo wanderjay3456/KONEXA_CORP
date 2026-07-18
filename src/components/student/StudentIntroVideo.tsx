@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Camera, CheckCircle2, LoaderCircle, Play, ShieldCheck, Trash2, Upload } from "lucide-react";
+import { Award, Camera, CheckCircle2, LoaderCircle, Play, ShieldCheck, Trash2, Upload } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { supabase } from "../../config/supabase";
 import { uploadPrivateFile } from "../../lib/privateStorage";
@@ -146,6 +146,13 @@ export default function StudentIntroVideo() {
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">Upload an MP4, WebM, or MOV file up to 60 seconds. It stays private and is available only to KONEXA administrators and companies that approve your application.</p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800"><ShieldCheck className="h-4 w-4" />Private storage</div>
+      </div>
+
+      <div className={`mt-6 rounded-2xl border p-4 text-xs leading-5 ${studentProfile?.earlyPioneerEligible ? "border-amber-200 bg-amber-50 text-amber-900" : "border-indigo-200 bg-indigo-50 text-indigo-900"}`}>
+        <div className="flex items-start gap-2">
+          <Award className="mt-0.5 h-4 w-4 shrink-0" />
+          <div><b className="block">{studentProfile?.earlyPioneerEligible ? "Early Pioneer 자격이 기록되었습니다" : "8월 5일 얼리버드 조건"}</b><span>{studentProfile?.earlyPioneerEligible ? "첫 구직 완료 전까지 우선 노출, 이력서 컨설팅 1회, 첫 매칭 4주 수수료 페이백 대상입니다." : studentProfile?.resumeUrl ? "1분 영상을 업로드하면 두 가지 필수 조건을 모두 충족합니다." : "이력서 100% 등록과 1분 영상 업로드를 모두 완료해야 합니다."}</span></div>
+        </div>
       </div>
 
       <div className="mt-6 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-950">
