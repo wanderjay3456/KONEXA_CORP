@@ -286,6 +286,127 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
     }
   });
 
+  app.post("/api/ai/student-roadmap", async (req: any, res: any) => {
+    try {
+      if (req.user?.role !== "student" && req.user?.role !== "admin") {
+        res.status(403).json({ error: "Student access is required" });
+        return;
+      }
+      const studentId = req.user.uid;
+      const supabase = getSupabaseAdmin();
+      const [{ data: profileRow, error: profileError }, { data: projectRows, error: projectError }] = await Promise.all([
+        supabase.from("app_records").select("data").eq("collection_name", "student_profiles").eq("record_id", studentId).maybeSingle(),
+        supabase.from("app_records").select("record_id,data").eq("collection_name", "projects").eq("data->>status", "open").limit(20),
+      ]);
+      if (profileError) throw profileError;
+      if (projectError) throw projectError;
+      if (!profileRow?.data) {
+        res.status(404).json({ error: "Complete your student profile before generating a roadmap" });
+        return;
+      }
+      const profile = profileRow.data as Record<string, any>;
+      const projects = (projectRows || []).map((row: any) => ({
+        id: row.record_id,
+        title: String(row.data?.title || ""),
+        requirements: list(row.data?.requirements, 20),
+        tags: list(row.data?.tags, 20),
+      }));
+      const { response, model } = await generateGeminiContent({
+        contents: JSON.stringify({
+          careerGoal: String(req.body?.careerGoal || profile.preferredJob || "").slice(0, 500),
+          profile: {
+            major: profile.major,
+            skills: list(profile.skills, 30),
+            preferredJob: profile.preferredJob,
+            preferredIndustry: profile.preferredIndustry,
+            availability: profile.availability,
+            completedProjects: Math.max(0, Number(profile.completedProjects) || 0),
+          },
+          openProjects: projects,
+        }),
+        config: {
+          responseMimeType: "application/json",
+          systemInstruction: `You create evidence-based career roadmaps for KONEXA students.
+Use only the supplied profile and current open projects. Never invent employers, courses, credentials, deadlines, hiring probabilities, or score improvements.
+Missing data must be named as missing evidence. Return raw JSON:
+{"summary":"string","milestones":[{"title":"string","nextAction":"string","evidenceNeeded":"string"}],"skillGaps":["string"],"learningActions":["string"],"relevantProjectIds":["exact supplied project id"]}`,
+        },
+      });
+      const parsed = JSON.parse(response.text || "{}");
+      const projectIds = new Set(projects.map((project) => project.id));
+      res.json({
+        summary: String(parsed.summary || "").slice(0, 2_000),
+        milestones: Array.isArray(parsed.milestones) ? parsed.milestones.slice(0, 6).map((item: any) => ({
+          title: String(item?.title || "").slice(0, 160),
+          nextAction: String(item?.nextAction || "").slice(0, 600),
+          evidenceNeeded: String(item?.evidenceNeeded || "").slice(0, 400),
+        })).filter((item: any) => item.title) : [],
+        skillGaps: list(parsed.skillGaps, 10),
+        learningActions: list(parsed.learningActions, 10),
+        relevantProjectIds: list(parsed.relevantProjectIds, 10).filter((id) => projectIds.has(id)),
+        model,
+      });
+    } catch (error: any) {
+      console.error("Student Roadmap Error:", error);
+      res.status(502).json({ code: "AI_PROVIDER_ERROR", error: "The roadmap could not be generated. Please try again." });
+    }
+  });
+
+  app.post("/api/ai/resume-review", async (req: any, res: any) => {
+    try {
+      if (req.user?.role !== "student" && req.user?.role !== "admin") {
+        res.status(403).json({ error: "Student access is required" });
+        return;
+      }
+      const { data: profileRow, error } = await getSupabaseAdmin()
+        .from("app_records")
+        .select("data")
+        .eq("collection_name", "student_profiles")
+        .eq("record_id", req.user.uid)
+        .maybeSingle();
+      if (error) throw error;
+      if (!profileRow?.data) {
+        res.status(404).json({ error: "Complete your student profile before requesting a resume review" });
+        return;
+      }
+      const profile = profileRow.data as Record<string, any>;
+      const { response, model } = await generateGeminiContent({
+        contents: JSON.stringify({
+          targetRole: String(req.body?.targetRole || profile.preferredJob || "").slice(0, 300),
+          resumeEvidence: {
+            bio: String(profile.bio || "").slice(0, 2_000),
+            university: profile.university,
+            degree: profile.degree,
+            major: profile.major,
+            graduationYear: profile.graduationYear,
+            skills: list(profile.skills, 30),
+            githubAvailable: Boolean(profile.github),
+            portfolioAvailable: Boolean(profile.portfolio),
+            completedProjects: Math.max(0, Number(profile.completedProjects) || 0),
+          },
+        }),
+        config: {
+          responseMimeType: "application/json",
+          systemInstruction: `You are KONEXA's evidence-based resume reviewer.
+Evaluate only the supplied resume evidence. Do not claim ATS compatibility with a named employer, hiring probability, verified performance, or keyword gains without evidence.
+Return raw JSON: {"score":0,"summary":"string","strengths":["string"],"issues":["string"],"recommendedEdits":["string"]}. The score is an advisory completeness and evidence score from 0 to 100.`,
+        },
+      });
+      const parsed = JSON.parse(response.text || "{}");
+      res.json({
+        score: score(parsed.score),
+        summary: String(parsed.summary || "").slice(0, 2_000),
+        strengths: list(parsed.strengths, 10),
+        issues: list(parsed.issues, 10),
+        recommendedEdits: list(parsed.recommendedEdits, 10),
+        model,
+      });
+    } catch (error: any) {
+      console.error("Resume Review Error:", error);
+      res.status(502).json({ code: "AI_PROVIDER_ERROR", error: "The resume review could not be generated. Please try again." });
+    }
+  });
+
   // 4. SECURITY AUDIT ENDPOINT
   app.post("/api/ai/security", async (req: any, res: any) => {
     try {
