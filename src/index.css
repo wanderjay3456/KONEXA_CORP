@@ -21,6 +21,7 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    font-kerning: normal;
     text-rendering: optimizeLegibility;
   }
 
@@ -292,18 +293,37 @@ html[lang="vi"] .hero-heading {
 #app-workspace :is(p, li),
 [data-auto-translate] :is(p, li),
 .konexa-light :is(p, li) {
+  line-height: 1.68;
   text-wrap: pretty;
 }
 
 #app-workspace :is(button, a, label),
 [data-auto-translate] :is(button, a, label),
 .konexa-light :is(button, a, label) {
-  line-height: 1.4;
-  text-wrap: balance;
+  line-height: 1.45;
+  text-wrap: pretty;
 }
 
 html[lang="ko"] :is(#app-workspace, [data-auto-translate], .konexa-light) :is(h1, h2, h3, p, li, button, a, label) {
+  overflow-wrap: break-word;
   word-break: keep-all;
+}
+
+html[lang="ko"] :is(#app-workspace, [data-auto-translate], .konexa-light) :is(h1, h2, h3) {
+  letter-spacing: -.025em !important;
+}
+
+html[lang="vi"] :is(#app-workspace, [data-auto-translate], .konexa-light) :is(h1, h2, h3) {
+  letter-spacing: -.018em !important;
+}
+
+html[lang="en"] :is(#app-workspace, [data-auto-translate], .konexa-light) :is(h1, h2, h3) {
+  letter-spacing: -.032em !important;
+}
+
+html[lang="en"] :is(#app-workspace, [data-auto-translate], .konexa-light) :is(p, li),
+html[lang="vi"] :is(#app-workspace, [data-auto-translate], .konexa-light) :is(p, li) {
+  hyphens: auto;
 }
 
 #app-workspace [class~="text-[9px]"],
