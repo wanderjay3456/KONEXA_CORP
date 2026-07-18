@@ -531,7 +531,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...studentProfile,
         ...profile,
       };
-      if (isEarlyBirdOpen() && updated.resumeUrl && updated.introVideoPath && !updated.earlyPioneerEligible) {
+      if (isEarlyBirdOpen() && updated.onboardingCompleted === true && updated.resumeUrl && updated.introVideoPath && !updated.earlyPioneerEligible) {
         updated.earlyPioneerEligible = true;
         updated.earlyPioneerQualifiedAt = Date.now();
         updated.resumeConsultingCredits = 1;
