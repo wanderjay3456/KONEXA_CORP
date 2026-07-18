@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+supabase/.temp/
+.git/
+.npm-cache/
+konexa-sites-*.tar
+konexa-sites-*.tar.gz
+.env*
+*.log
