@@ -10,7 +10,7 @@ interface EarlyBirdCampaignProps {
 const campaignCopy = {
   ko: {
     eyebrow: "FOUNDING MEMBERS · 2026.08.05 마감",
-    title: "먼저 증명하는 팀과 인재에게,\n첫 번째 혜택을 드립니다.",
+    title: "먼저 증명하는 팀과 인재에게, 첫 번째 혜택을 드립니다.",
     lead: "결제 선납이 아니라 실제 행동으로 참여하는 얼리버드 프로그램입니다. 기업은 첫 공고를, 학생은 완성된 이력서와 1분 영상을 등록해 주세요.",
     company: "기업 얼리버드",
     companyTarget: "베트남 시장·글로벌 인재 채용을 준비하는 국내 기업",
@@ -26,7 +26,7 @@ const campaignCopy = {
   },
   en: {
     eyebrow: "FOUNDING MEMBERS · ENDS AUG 5, 2026",
-    title: "Early action earns\nfounding-member benefits.",
+    title: "Act early. Unlock founding benefits.",
     lead: "No pre-launch payment. Companies publish a real first role, while talent completes a resume and a one-minute introduction video.",
     company: "Company early bird",
     companyTarget: "Korean SMEs exploring Vietnam and global talent",
@@ -42,7 +42,7 @@ const campaignCopy = {
   },
   vi: {
     eyebrow: "THÀNH VIÊN TIÊN PHONG · HẾT HẠN 05.08.2026",
-    title: "Hành động sớm,\nnhận quyền lợi tiên phong.",
+    title: "Hành động sớm, nhận quyền lợi tiên phong.",
     lead: "Không cần trả phí trước khi ra mắt. Doanh nghiệp đăng dự án thật; sinh viên hoàn thiện CV và video giới thiệu một phút.",
     company: "Ưu đãi doanh nghiệp",
     companyTarget: "Doanh nghiệp Hàn Quốc quan tâm thị trường Việt Nam và nhân tài quốc tế",

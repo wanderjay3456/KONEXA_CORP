@@ -19,8 +19,25 @@
 }
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-neutral-50 text-neutral-900 antialiased font-sans selection:bg-neutral-200 selection:text-neutral-900;
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p,
+  li {
+    text-wrap: pretty;
   }
 }
 
@@ -100,6 +117,68 @@ html {
   background: linear-gradient(135deg, rgba(185, 244, 208, .8), rgba(223, 230, 255, .78) 52%, rgba(255, 218, 194, .62));
   filter: blur(2px);
   animation: wash-shape 14s ease-in-out infinite alternate;
+}
+
+.hero-heading {
+  font-size: clamp(2.2rem, 4.25vw, 4.8rem);
+  line-height: 1.045;
+  text-wrap: balance;
+}
+
+html[lang="ko"] .hero-heading {
+  font-size: clamp(2.15rem, 4.4vw, 4.95rem);
+}
+
+html[lang="vi"] .hero-heading {
+  font-size: clamp(2.05rem, 3.9vw, 4.35rem);
+}
+
+.hero-title-line {
+  display: block;
+}
+
+.hero-title-line + .hero-title-line {
+  margin-top: .09em;
+}
+
+.hero-keep-together {
+  white-space: nowrap;
+}
+
+.hero-keyword {
+  position: relative;
+  z-index: 0;
+  display: inline-block;
+  font-weight: 850;
+  letter-spacing: -.065em;
+}
+
+.hero-keyword::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: -.06em;
+  bottom: .02em;
+  left: -.06em;
+  height: .18em;
+  border-radius: 999px;
+  transform: rotate(-1.5deg);
+}
+
+.hero-keyword-risk {
+  color: #c54b2a;
+}
+
+.hero-keyword-risk::after {
+  background: rgba(255, 143, 98, .5);
+}
+
+.hero-keyword-percent {
+  color: #4361ee;
+}
+
+.hero-keyword-percent::after {
+  background: rgba(185, 244, 208, .95);
 }
 
 .konexa-wordmark {
@@ -192,6 +271,50 @@ html {
 }
 .onboarding-readable .text-neutral-400 { color: #d4d4d4 !important; }
 .onboarding-readable .text-neutral-500 { color: #b8b8b8 !important; }
+
+/* Translation can expand labels substantially. Keep every workspace readable
+   without allowing a final keyword or percentage to become an orphaned line. */
+#app-workspace :is(h1, h2, h3),
+[data-auto-translate] :is(h1, h2, h3),
+.konexa-light :is(h1, h2, h3) {
+  line-height: 1.18;
+  text-wrap: balance;
+}
+
+.konexa-light h2 {
+  font-size: clamp(1.6rem, 6.6vw, 3rem);
+}
+
+.konexa-light .hero-heading {
+  line-height: 1.055;
+}
+
+#app-workspace :is(p, li),
+[data-auto-translate] :is(p, li),
+.konexa-light :is(p, li) {
+  text-wrap: pretty;
+}
+
+#app-workspace :is(button, a, label),
+[data-auto-translate] :is(button, a, label),
+.konexa-light :is(button, a, label) {
+  line-height: 1.4;
+  text-wrap: balance;
+}
+
+html[lang="ko"] :is(#app-workspace, [data-auto-translate], .konexa-light) :is(h1, h2, h3, p, li, button, a, label) {
+  word-break: keep-all;
+}
+
+#app-workspace [class~="text-[9px]"],
+#app-workspace [class~="text-[10px]"],
+#app-workspace [class~="text-[11px]"],
+.konexa-light [class~="text-[9px]"],
+.konexa-light [class~="text-[10px]"],
+.konexa-light [class~="text-[11px]"] {
+  font-size: .75rem !important;
+  line-height: 1.125rem !important;
+}
 
 .review-card { animation: card-breathe 7s ease-in-out infinite alternate; }
 .review-card + .review-card { animation-delay: -3.5s; }
