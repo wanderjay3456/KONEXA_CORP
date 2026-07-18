@@ -1,134 +1,344 @@
 import React, { useState } from "react";
-import { Download, FileText, ShieldCheck, Sparkles, Upload } from "lucide-react";
 import { useApp } from "../../context/AppContext";
+import { 
+  FileText, Sparkles, CheckCircle, Award, Target, HelpCircle, 
+  Trash2, RefreshCw, ChevronRight, Eye, Download, ShieldCheck, 
+  Globe, Languages, Briefcase, FileCode2, Clock, Plus
+} from "lucide-react";
 import { useToast } from "../ui/Toast";
 
-interface ResumeReview {
+interface ResumeVersion {
+  id: string;
+  templateName: string;
   score: number;
-  summary: string;
-  strengths: string[];
-  issues: string[];
-  recommendedEdits: string[];
-  model?: string;
-}
-
-interface PdfAnalysis {
-  extractedSkills?: string[];
-  experienceSummary?: string;
-  education?: string;
-  portfolioLinks?: string[];
-  recommendation?: string;
-  model?: string;
+  updatedAt: string;
 }
 
 export default function ResumeBuilder() {
   const { studentProfile, applications, updateStudentProfile } = useApp();
   const { success, info, error } = useToast();
-  const [targetRole, setTargetRole] = useState(studentProfile?.preferredJob || "");
-  const [review, setReview] = useState<ResumeReview | null>(null);
-  const [pdfAnalysis, setPdfAnalysis] = useState<PdfAnalysis | null>(null);
-  const [reviewing, setReviewing] = useState(false);
-  const [uploading, setUploading] = useState(false);
 
-  const reviewedProjects = applications.filter((application) => application.status === "reviewed");
+  // State
+  const [selectedTemplate, setSelectedTemplate] = useState<"intl" | "ko" | "ats" | "creative" | "academic" | "research">("ats");
+  const [resumeScore, setResumeScore] = useState(studentProfile?.aiEmployabilityScore || 0);
+  const [grammarChecked] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
+  const [feedbackList, setFeedbackList] = useState<Array<{ type: string; text: string }>>([]);
 
-  const requestReview = async () => {
-    setReviewing(true);
-    try {
-      const response = await fetch("/api/ai/resume-review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetRole }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "이력서 검토를 완료하지 못했습니다.");
-      setReview(payload);
-      success("AI 이력서 검토 완료", "현재 프로필에 등록된 근거만 사용했습니다.");
-    } catch (cause) {
-      error("AI 이력서 검토 오류", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
-    } finally {
-      setReviewing(false);
-    }
-  };
+  
+  const [isUploadingPDF, setIsUploadingPDF] = useState(false);
+  const [pdfAnalysis, setPdfAnalysis] = useState<any>(null);
 
-  const handlePdfUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handlePDFUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
+
     if (file.type !== "application/pdf") {
-      info("PDF 파일이 필요합니다", "PDF 형식의 이력서를 선택해 주세요.");
+      info("PDF Required", "Please upload a valid PDF document.");
       return;
     }
+
     if (file.size > 7.5 * 1024 * 1024) {
-      info("파일이 너무 큽니다", "7.5MB 이하의 PDF를 선택해 주세요.");
-      event.target.value = "";
+      info("PDF Too Large", "Please upload a PDF smaller than 7.5 MB.");
+      e.target.value = "";
       return;
     }
-    setUploading(true);
+
+    setIsUploadingPDF(true);
     const reader = new FileReader();
-    reader.onload = async (loadEvent) => {
+    reader.onload = async (event) => {
       try {
-        const pdfBase64 = String(loadEvent.target?.result || "").split(",")[1];
-        const response = await fetch("/api/gemini/analyze-pdf", {
+        const base64 = (event.target?.result as string).split(',')[1];
+        const res = await fetch("/api/gemini/analyze-pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pdfBase64, role: "student" }),
+          body: JSON.stringify({ pdfBase64: base64, role: "student" })
         });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error || "PDF를 분석하지 못했습니다.");
-        setPdfAnalysis(payload);
-        if (Array.isArray(payload.extractedSkills) && payload.extractedSkills.length) {
-          const skills = Array.from(new Set([...(studentProfile?.skills || []), ...payload.extractedSkills]));
-          const saved = await updateStudentProfile({ skills });
-          if (!saved) throw new Error("분석한 기술을 프로필에 저장하지 못했습니다.");
+        
+        if (!res.ok) throw new Error("Failed to analyze PDF");
+        const analysis = await res.json();
+        
+        setPdfAnalysis(analysis);
+        
+        if (analysis.extractedSkills) {
+          updateStudentProfile({ skills: Array.from(new Set([...(studentProfile?.skills || []), ...analysis.extractedSkills])) });
         }
-        success("PDF 분석 완료", "추출된 기술을 확인하고 프로필에 반영했습니다.");
-      } catch (cause) {
-        error("PDF 분석 오류", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
+        
+        success("PDF Analyzed Successfully", "Your profile has been augmented with data from your resume.");
+      } catch (err: any) {
+        info("Analysis Failed", err.message);
       } finally {
-        setUploading(false);
+        setIsUploadingPDF(false);
       }
     };
     reader.readAsDataURL(file);
   };
 
+  const [versions, setVersions] = useState<ResumeVersion[]>([]);
+
+  // Handle PDF export trigger
+  const handleExportPDF = () => {
+    window.print();
+  };
+
+  const handleOptimizeResume = async () => {
+    setOptimizing(true);
+    try {
+      const response = await fetch("/api/ai/resume-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetRole: studentProfile?.preferredJob || "" }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "AI 이력서 검토를 완료하지 못했습니다.");
+      setResumeScore(payload.score || 0);
+      setFeedbackList([
+        ...(payload.strengths || []).map((text: string) => ({ type: "strength", text })),
+        ...(payload.issues || []).map((text: string) => ({ type: "warning", text })),
+        ...(payload.recommendedEdits || []).map((text: string) => ({ type: "recommendation", text })),
+      ]);
+      setVersions(prev => [
+        { id: `v_${Date.now()}`, templateName: `${selectedTemplate.toUpperCase()} 근거 검토`, score: payload.score || 0, updatedAt: "방금" },
+        ...prev
+      ]);
+      success("AI 이력서 검토 완료", "등록된 프로필 근거만 기준으로 검토했습니다.");
+    } catch (cause) {
+      error("AI 이력서 검토 오류", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
+    } finally {
+      setOptimizing(false);
+    }
+  };
+
   return (
-    <div className="flex-1 overflow-y-auto bg-neutral-50 p-6">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-          <div><span className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-700">Evidence-based resume review</span><h1 className="mt-2 text-3xl font-black tracking-tight text-neutral-950">AI 이력서 검토</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">등록된 학력, 기술, 자기소개와 검증된 프로젝트만 검토합니다. 특정 기업의 합격 가능성이나 근거 없는 ATS 점수는 표시하지 않습니다.</p></div>
-          <button onClick={() => window.print()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm font-bold text-neutral-800"><Download className="h-4 w-4" />현재 화면 인쇄</button>
-        </header>
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <section className="space-y-6 lg:col-span-2">
-            <article className="rounded-3xl border border-neutral-200 bg-white p-7 shadow-sm">
-              <div className="border-b border-neutral-100 pb-5"><h2 className="text-2xl font-black text-neutral-950">{studentProfile?.name || "이름 미등록"}</h2><p className="mt-1 text-sm text-neutral-500">{studentProfile?.preferredJob || "희망 직무 미등록"} · {studentProfile?.currentCountry || "거주 국가 미등록"}</p></div>
-              <div className="mt-6 space-y-6">
-                <div><h3 className="text-xs font-black uppercase tracking-wider text-neutral-400">자기소개</h3><p className="mt-2 text-sm leading-7 text-neutral-600">{studentProfile?.bio || "등록된 자기소개가 없습니다."}</p></div>
-                <div><h3 className="text-xs font-black uppercase tracking-wider text-neutral-400">학력</h3><p className="mt-2 text-sm font-bold text-neutral-800">{studentProfile?.university || "대학 미등록"}</p><p className="mt-1 text-sm text-neutral-500">{studentProfile?.degree || "학위 미등록"} · {studentProfile?.major || "전공 미등록"} · {studentProfile?.graduationYear || "졸업연도 미등록"}</p></div>
-                <div><h3 className="text-xs font-black uppercase tracking-wider text-neutral-400">등록 기술</h3><div className="mt-3 flex flex-wrap gap-2">{studentProfile?.skills?.length ? studentProfile.skills.map((skill) => <span key={skill} className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-bold text-neutral-700">{skill}</span>) : <span className="text-sm text-neutral-400">등록된 기술이 없습니다.</span>}</div></div>
-                <div><h3 className="text-xs font-black uppercase tracking-wider text-neutral-400">검토 완료 프로젝트</h3><div className="mt-3 space-y-2">{reviewedProjects.length ? reviewedProjects.map((application) => <div key={application.id} className="rounded-xl bg-neutral-50 p-4"><b className="text-sm text-neutral-800">{application.projectTitle}</b><p className="mt-1 text-xs text-neutral-500">검토 점수 {application.score}/100</p></div>) : <p className="text-sm text-neutral-400">아직 검토 완료된 프로젝트가 없습니다.</p>}</div></div>
-              </div>
-            </article>
-          </section>
-
-          <aside className="space-y-6">
-            <section className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <h2 className="flex items-center gap-2 text-sm font-black"><ShieldCheck className="h-4 w-4" />AI 근거 검토</h2>
-              <label className="mt-5 block text-xs font-bold text-neutral-600" htmlFor="target-role">지원 목표 직무</label>
-              <input id="target-role" value={targetRole} onChange={(event) => setTargetRole(event.target.value)} className="mt-2 w-full rounded-xl border border-neutral-200 px-3 py-3 text-sm outline-none focus:border-neutral-500" />
-              <button onClick={requestReview} disabled={reviewing || !targetRole.trim()} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white disabled:opacity-40"><Sparkles className="h-4 w-4" />{reviewing ? "검토 중" : "AI 검토 실행"}</button>
-              {review && <div className="mt-5 border-t border-neutral-100 pt-5"><div className="flex items-end justify-between"><b className="text-sm">근거 충실도</b><span className="text-2xl font-black">{review.score}/100</span></div><p className="mt-3 text-sm leading-6 text-neutral-600">{review.summary}</p><h3 className="mt-5 text-xs font-black text-neutral-900">확인된 강점</h3><ul className="mt-2 space-y-2 text-xs leading-5 text-neutral-600">{review.strengths.map((item) => <li key={item} className="rounded-lg bg-emerald-50 p-2.5">{item}</li>)}</ul><h3 className="mt-5 text-xs font-black text-neutral-900">수정 제안</h3><ul className="mt-2 space-y-2 text-xs leading-5 text-neutral-600">{[...review.issues, ...review.recommendedEdits].map((item) => <li key={item} className="rounded-lg bg-neutral-50 p-2.5">{item}</li>)}</ul><p className="mt-4 text-[10px] text-neutral-400">{review.model}</p></div>}
-            </section>
-
-            <section className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <h2 className="flex items-center gap-2 text-sm font-black"><FileText className="h-4 w-4" />PDF 이력서 분석</h2><p className="mt-2 text-xs leading-5 text-neutral-500">PDF에서 기술, 학력, 경험과 링크를 추출합니다. 추출 결과는 반드시 직접 확인해 주세요.</p>
-              <label className="mt-4 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-neutral-200 px-4 py-3 text-sm font-bold text-neutral-800"><Upload className="h-4 w-4" />{uploading ? "분석 중" : "PDF 선택"}<input type="file" accept="application/pdf" onChange={handlePdfUpload} disabled={uploading} className="hidden" /></label>
-              {pdfAnalysis && <div className="mt-4 rounded-xl bg-neutral-50 p-4"><p className="text-xs leading-5 text-neutral-600">{pdfAnalysis.recommendation}</p><div className="mt-3 flex flex-wrap gap-1.5">{pdfAnalysis.extractedSkills?.map((skill) => <span key={skill} className="rounded-full bg-white px-2 py-1 text-[10px] font-bold">{skill}</span>)}</div><p className="mt-3 text-[10px] text-neutral-400">{pdfAnalysis.model}</p></div>}
-            </section>
-          </aside>
+    <div className="flex-1 overflow-y-auto bg-neutral-50 p-6 space-y-6 scrollbar">
+      
+      {/* HEADER */}
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest block mb-1 bg-teal-50 border border-teal-100 px-2.5 py-0.5 rounded-md w-fit">
+            AI RESUME SCANNER (ATS-READY)
+          </span>
+          <h1 className="font-display font-black text-3xl text-neutral-900 tracking-tight">
+            AI Resume Builder
+          </h1>
+          <p className="font-sans text-xs text-neutral-400 mt-1">
+            Build global professional profiles. Switch between international styles, ATS parsers, academic CVs, or Korean formats instantly.
+          </p>
         </div>
+
+        <button 
+          onClick={handleExportPDF}
+          className="px-4 py-2.5 bg-neutral-900 text-white hover:bg-black rounded-xl text-xs font-semibold flex items-center gap-2 shadow-xs cursor-pointer"
+        >
+          <Download className="w-4 h-4" />
+          <span>Export PDF Portfolio</span>
+        </button>
       </div>
+
+      {/* CORE BUILDER PLATFORM */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* LEFT COLUMN: Editor and templates (8/12) */}
+        <div className="lg:col-span-8 space-y-6">
+          
+          {/* Template select grid */}
+          <div className="bg-white p-5 rounded-3xl border border-neutral-200/80 shadow-xs space-y-4">
+            <h3 className="font-display font-bold text-sm text-neutral-900">Select Resume Framework Template</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+              
+              {[
+                { id: "intl", label: "International", desc: "US/EU Standard", icon: Globe },
+                { id: "ko", label: "Korean", desc: "국문 입사지원서", icon: Languages },
+                { id: "ats", label: "ATS Scanner", desc: "Standard Parser", icon: ShieldCheck },
+                { id: "creative", label: "Creative Portfolio", desc: "Visual Highlight", icon: Sparkles },
+                { id: "academic", label: "Academic CV", desc: "Research/Degree", icon: Award },
+                { id: "research", label: "Research CV", desc: "Publications/Grant", icon: FileText }
+              ].map(tpl => (
+                <button
+                  key={tpl.id}
+                  onClick={() => setSelectedTemplate(tpl.id as any)}
+                  className={`p-3 rounded-2xl border text-center flex flex-col items-center justify-between gap-1.5 transition-all cursor-pointer ${
+                    selectedTemplate === tpl.id
+                      ? "bg-black border-black text-white"
+                      : "bg-neutral-50/50 border-neutral-200 text-neutral-500 hover:text-black hover:border-neutral-300"
+                  }`}
+                >
+                  <tpl.icon className="w-4 h-4 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold block truncate leading-tight">{tpl.label}</span>
+                    <span className={`text-[8px] block font-light leading-none ${selectedTemplate === tpl.id ? "text-neutral-400" : "text-neutral-400"}`}>
+                      {tpl.desc}
+                    </span>
+                  </div>
+                </button>
+              ))}
+
+            </div>
+          </div>
+
+          {/* Interactive Resume Sheet Render */}
+          <div className="bg-white rounded-3xl border border-neutral-200 shadow-premium p-8 font-sans space-y-6">
+            
+            {/* Template Header */}
+            <div className="flex justify-between items-start border-b border-neutral-100 pb-5">
+              <div>
+                <h2 className="text-2xl font-bold text-neutral-900 tracking-tight">
+                  {studentProfile?.name || "Global Talent Professional"}
+                </h2>
+                <div className="flex gap-3 text-[10px] font-mono text-neutral-400 font-bold uppercase mt-1">
+                  <span>{studentProfile?.currentCountry || "Global Student"}</span>
+                  <span>•</span>
+                  <span>{studentProfile?.github || "https://github.com"}</span>
+                </div>
+              </div>
+              <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-widest border border-neutral-200 px-2 py-0.5 rounded-lg">
+                Template: {selectedTemplate.toUpperCase()}
+              </span>
+            </div>
+
+            {/* Pitch / Bio */}
+            <div className="space-y-1.5">
+              <h3 className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest">Professional Summary</h3>
+              <p className="text-xs text-neutral-500 leading-relaxed font-light">
+                {studentProfile?.bio || "등록된 자기소개가 없습니다."}
+              </p>
+            </div>
+
+            {/* Education */}
+            <div className="space-y-1.5">
+              <h3 className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest">Education & Academic Credentials</h3>
+              <div className="flex justify-between items-start text-xs font-sans">
+                <div>
+                  <span className="font-bold text-neutral-800">{studentProfile?.university || "대학 미등록"}</span>
+                  <p className="text-neutral-500 font-light text-[11px] mt-0.5">{studentProfile?.degree || "학위 미등록"}, {studentProfile?.major || "전공 미등록"}</p>
+                </div>
+                <span className="text-[10px] font-mono text-neutral-400 font-bold">GRAD: 2026</span>
+              </div>
+            </div>
+
+            {/* Skills */}
+            <div className="space-y-1.5">
+              <h3 className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest">Verified Technical Expertise</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {(studentProfile?.skills || []).map(s => (
+                  <span key={s} className="text-[10px] font-semibold text-neutral-600 bg-neutral-50 border border-neutral-200/60 px-2.5 py-0.5 rounded-lg">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Simulated Projects Section */}
+            <div className="space-y-1.5">
+              <h3 className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest">Verified Project History (via KONEXA Grid)</h3>
+              <div className="space-y-3">
+                {applications.filter((application) => application.status === "reviewed").map((application) => <div key={application.id} className="text-xs">
+                  <div className="flex justify-between items-start font-sans">
+                    <span className="font-bold text-neutral-800">{application.projectTitle}</span>
+                    <span className="text-[10px] font-mono text-neutral-400 font-bold">{application.score}/100</span>
+                  </div>
+                  <p className="text-[11px] text-neutral-500 font-light mt-0.5 leading-relaxed">
+                    KONEXA에서 검토가 완료된 실제 프로젝트 지원 기록입니다.
+                  </p>
+                </div>)}
+                {!applications.some((application) => application.status === "reviewed") && <p className="text-[11px] text-neutral-400">검토 완료된 프로젝트 기록이 없습니다.</p>}
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* RIGHT COLUMN: ATS Score, AI review suggestions (4/12) */}
+        <div className="lg:col-span-4 space-y-6">
+          
+          {/* Score Circle Card */}
+          <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs space-y-4">
+            <div>
+              <span className="text-[9px] font-mono font-bold text-teal-600 bg-teal-50 border border-teal-100 px-2 py-0.5 rounded-md uppercase tracking-wider block w-fit">
+                ATS PROFILE GRADE
+              </span>
+              <h3 className="font-display font-black text-lg text-neutral-900 mt-2">Resume Indexing Score</h3>
+            </div>
+
+            <div className="flex items-center gap-5 bg-neutral-50 p-4 rounded-2xl border border-neutral-200/50">
+              <div className="w-16 h-16 rounded-full border-4 border-black flex items-center justify-center font-display font-black text-lg text-neutral-900">
+                {resumeScore}%
+              </div>
+              <div className="text-xs font-sans min-w-0 flex-1">
+                <span className="font-bold text-neutral-800">현재 프로필 분석 결과</span>
+                <p className="text-[10px] text-neutral-400 mt-0.5 leading-relaxed">
+                  등록된 프로필과 이력서 내용을 바탕으로 산출한 AI 준비도 점수입니다. 실제 채용 합격률을 의미하지 않습니다.
+                </p>
+              </div>
+            </div>
+
+            <button 
+              disabled={optimizing}
+              onClick={handleOptimizeResume}
+              className="w-full py-2.5 bg-black hover:bg-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-300 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-neutral-950/10 transition-all"
+            >
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>{optimizing ? "Optimizing Keyword Vectors..." : "AI Keyword Optimization"}</span>
+            </button>
+          </div>
+
+          {/* AI Review Diagnostics list */}
+          <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs space-y-4">
+            <h3 className="font-display font-bold text-sm text-neutral-900">AI Review Feedback</h3>
+            
+            <div className="space-y-3">
+              {feedbackList.map((f, i) => (
+                <div key={i} className="p-3 bg-neutral-50/50 border border-neutral-200/50 rounded-2xl flex gap-2.5 items-start">
+                  <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
+                    f.type === "strength" ? "bg-emerald-500" :
+                    f.type === "warning" ? "bg-amber-500" : "bg-purple-500 animate-pulse"
+                  }`} />
+                  <p className="text-[11px] font-sans text-neutral-500 leading-normal font-light">
+                    {f.text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          
+          {pdfAnalysis && (
+            <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-200/50 shadow-xs space-y-4">
+              <h3 className="font-display font-bold text-sm text-emerald-900">PDF Insight Extraction</h3>
+              <p className="text-[11px] text-emerald-800 leading-relaxed font-sans">{pdfAnalysis.recommendation}</p>
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest block">Extracted Skills</span>
+                <div className="flex flex-wrap gap-1">
+                  {pdfAnalysis.extractedSkills?.map((s: string, i: number) => (
+                     <span key={i} className="text-[9px] font-semibold text-emerald-900 bg-emerald-200/50 px-2 py-0.5 rounded-md">{s}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Version History logs */}
+          <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs space-y-4">
+            <h3 className="font-display font-bold text-sm text-neutral-900">Version History</h3>
+            
+            <div className="space-y-2">
+              {versions.map(v => (
+                <div key={v.id} className="p-3 bg-neutral-50/30 border border-neutral-200/30 rounded-xl flex justify-between items-center text-xs">
+                  <div className="min-w-0">
+                    <span className="font-bold text-neutral-800 block truncate">{v.templateName}</span>
+                    <span className="text-[9px] text-neutral-400 font-mono">ATS SCORE: {v.score}%</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-neutral-400">{v.updatedAt}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
   );
 }

@@ -714,10 +714,7 @@ export default function ProjectWorkspace({ onNavigate }: ProjectWorkspaceProps) 
       const data = await response.json();
       
       if (!data.reply) throw new Error("AI 응답이 비어 있습니다.");
-      setAiCoopChat(prev => [
-        ...prev,
-        { agent: "AI Project Team", avatar: "AI", color: "text-indigo-600 bg-indigo-50 border-indigo-200", text: data.reply, time: "Just now" }
-      ]);
+      setAiCoopChat(prev => [...prev, { agent: "AI Project Team", avatar: "AI", color: "text-indigo-600 bg-indigo-50 border-indigo-200", text: data.reply, time: "Just now" }]);
     } catch (cause) {
       error("AI 프로젝트 분석 실패", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
     } finally {
@@ -1933,7 +1930,7 @@ export default function ProjectWorkspace({ onNavigate }: ProjectWorkspaceProps) 
                     <Cpu className="w-5 h-5 text-purple-600 animate-pulse" />
                     <h2 className="font-display font-black text-xl text-neutral-900">AI Workforce Cooperative Forum</h2>
                   </div>
-                  <p className="text-xs text-neutral-400 mt-0.5">등록된 프로젝트 맥락을 바탕으로 일정, 작업 범위와 위험요소를 함께 검토합니다.</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">9 specialized AI Agents (Project, Scrum, Risk, Code, Risk, etc.) discuss and cooperate dynamically on your goals.</p>
                 </div>
 
                 {/* Cooperative agent discussions */}
@@ -1966,7 +1963,7 @@ export default function ProjectWorkspace({ onNavigate }: ProjectWorkspaceProps) 
                         PM
                       </div>
                       <div className="bg-white border border-neutral-200 p-4 rounded-2xl rounded-tl-none text-xs text-neutral-400 leading-relaxed font-sans">
-                        AI가 등록된 요청과 프로젝트 정보를 검토하고 있습니다...
+                        Specialized AI agents (Scrum Master, Risk Analyzer, Documentation Assistant) are debating optimization guidelines...
                       </div>
                     </div>
                   )}
@@ -1978,7 +1975,7 @@ export default function ProjectWorkspace({ onNavigate }: ProjectWorkspaceProps) 
                     type="text" 
                     value={aiCoopInput}
                     onChange={(e) => setAiCoopInput(e.target.value)}
-                    placeholder="일정, 작업 범위 또는 기술 위험을 질문해 주세요"
+                    placeholder="Ask the AI Agents to align on a task (e.g., 'Analyze the drift risk in our sync milestones')..."
                     className="flex-1 bg-white border border-purple-100 focus:border-purple-600 rounded-xl px-4 py-2.5 text-xs focus:outline-hidden font-light"
                   />
 

@@ -34,13 +34,13 @@ function AppContent() {
   const { activeRole, setActiveRole, currentUser, studentProfile, companyProfile, logoutUser, isAuthReady } = useApp();
   
   // Track active tab within each dashboard role
-  const [activeTab, setActiveTab] = useState("project-marketplace");
+  const [activeTab, setActiveTab] = useState("career-home");
 
   const handleEnterApp = (role: UserRole) => {
     setActiveRole(role);
     // Set matching default tabs
-    if (role === UserRole.STUDENT) setActiveTab("project-marketplace");
-    else if (role === UserRole.COMPANY) setActiveTab("create-challenge");
+    if (role === UserRole.STUDENT) setActiveTab("career-home");
+    else if (role === UserRole.COMPANY) setActiveTab("company-home");
     else if (role === UserRole.ADMIN) setActiveTab("admin-logs");
     else if (role === UserRole.AI) setActiveTab("ai-overview");
   };
@@ -51,8 +51,8 @@ function AppContent() {
 
   // Sync default tabs when role is switched from Navbar dropdown
   React.useEffect(() => {
-    if (activeRole === UserRole.STUDENT) setActiveTab("project-marketplace");
-    else if (activeRole === UserRole.COMPANY) setActiveTab("create-challenge");
+    if (activeRole === UserRole.STUDENT) setActiveTab("career-home");
+    else if (activeRole === UserRole.COMPANY) setActiveTab("company-home");
     else if (activeRole === UserRole.ADMIN) setActiveTab("admin-logs");
     else if (activeRole === UserRole.AI) setActiveTab("ai-overview");
   }, [activeRole]);

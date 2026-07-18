@@ -4,6 +4,11 @@ import ProjectMarketplace from "../student/ProjectMarketplace";
 import ProfileSettingsView from "../profile/ProfileSettingsView";
 import StudentIntroVideo from "../student/StudentIntroVideo";
 import StudentMorBilling from "../student/StudentMorBilling";
+import CareerDashboard from "../student/CareerDashboard";
+import AiWorkspace from "../student/AiWorkspace";
+import CareerRoadmap from "../student/CareerRoadmap";
+import ResumeBuilder from "../student/ResumeBuilder";
+import ProjectWorkspace from "../student/ProjectWorkspace";
 
 interface StudentDashboardProps {
   activeTab: string;
@@ -22,7 +27,12 @@ function UnavailablePanel({ onNavigate }: { onNavigate: (tabId: string) => void 
 }
 
 export default function StudentDashboard({ activeTab, onNavigate }: StudentDashboardProps) {
+  if (activeTab === "career-home") return <CareerDashboard onNavigate={onNavigate} />;
   if (activeTab === "project-marketplace") return <ProjectMarketplace />;
+  if (activeTab === "ai-workspace") return <AiWorkspace />;
+  if (activeTab === "career-roadmap") return <CareerRoadmap />;
+  if (activeTab === "resume-builder") return <ResumeBuilder />;
+  if (activeTab === "workspace") return <ProjectWorkspace onNavigate={onNavigate} />;
   if (activeTab === "profile") return <ProfileSettingsView />;
   if (activeTab === "intro-video") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><div className="mx-auto max-w-5xl"><StudentIntroVideo /></div></div>;
   if (activeTab === "student-billing") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><StudentMorBilling /></div>;
