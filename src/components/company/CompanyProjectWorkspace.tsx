@@ -597,12 +597,8 @@ export default function CompanyProjectWorkspace({ onNavigate }: CompanyProjectWo
           { agent: "AI Scrum Master", avatar: "SM", color: "text-indigo-600 bg-indigo-50 border-indigo-200", text: data.reply, time: "Just now" }
         ]);
       }
-    } catch (err) {
-      setAiCoopChat(prev => [
-        ...prev,
-        { agent: "AI Project Manager", avatar: "PM", color: "text-blue-600 bg-blue-50 border-blue-200", text: `Understood! I will schedule the review for ${userPrompt} immediately.`, time: "Just now" },
-        { agent: "AI Scrum Master", avatar: "SM", color: "text-indigo-600 bg-indigo-50 border-indigo-200", text: "Adding the task cards to our active Kanban column.", time: "Just now" }
-      ]);
+    } catch (cause) {
+      error("AI 협업 분석 실패", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
     } finally {
       setAiGenerating(false);
     }

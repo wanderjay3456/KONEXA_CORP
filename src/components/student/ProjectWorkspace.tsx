@@ -785,6 +785,10 @@ export default function ProjectWorkspace({ onNavigate }: ProjectWorkspaceProps) 
     { name: "Day 25", Planned: 0, Actual: 0 }
   ];
 
+  if (activeApps.length === 0) {
+    return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><div className="mx-auto max-w-3xl rounded-3xl border border-neutral-200 bg-white p-10 text-center shadow-sm"><Layers className="mx-auto h-9 w-9 text-neutral-300" /><h1 className="mt-4 text-2xl font-black text-neutral-950">진행 중인 프로젝트가 없습니다</h1><p className="mt-2 text-sm leading-6 text-neutral-500">실제 공고에 지원하고 기업 승인을 받으면 프로젝트 작업 공간이 생성됩니다.</p><button onClick={() => onNavigate("marketplace")} className="mt-6 rounded-xl bg-neutral-950 px-5 py-3 text-sm font-bold text-white">공고 살펴보기</button></div></div>;
+  }
+
   return (
     <div className="flex-1 overflow-y-auto bg-neutral-50 p-6 space-y-6 scrollbar">
       

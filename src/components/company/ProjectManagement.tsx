@@ -171,16 +171,9 @@ export default function ProjectManagement({ onNavigate }: ProjectManagementProps
       const suggestions = data.reply.split("\n").filter((l: string) => l.trim().length > 0);
       setAiSuggestions(suggestions);
       success("AI Suggestions Drafted", "Use the suggestions to create your project challenge.");
-    } catch (err) {
-      // fallback suggestions
-      setAiSuggestions([
-        `Title: High-fidelity ${prompt} Challenge`,
-        "Constraint 1: Deliver clean, functional components in TypeScript",
-        "Constraint 2: Optimize render cycles with 0-flicker animations",
-        "Constraint 3: Secure all client-facing state inputs",
-        "Tags: TypeScript, React, TailwindCSS, State Optimization"
-      ]);
-      error("AI Service Fallback", "Using template drafting recommendations.");
+    } catch (cause) {
+      setAiSuggestions([]);
+      error("AI 초안 생성 실패", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
     } finally {
       setIsAiLoading(false);
     }
