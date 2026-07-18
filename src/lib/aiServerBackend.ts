@@ -1,6 +1,13 @@
-import { GoogleGenAI } from "@google/genai";
+import { getSupabaseAdmin } from "../server/supabaseAdmin";
 
-export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGenAI) {
+type GenerateGeminiContent = (request: Record<string, any>, models?: string[]) => Promise<{ response: any; model: string }>;
+
+const list = (value: unknown, limit = 12) => Array.isArray(value)
+  ? value.filter((item): item is string => typeof item === "string" && Boolean(item.trim())).slice(0, limit)
+  : [];
+const score = (value: unknown) => Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+
+export function registerAiWorkforceRoutes(app: any, generateGeminiContent: GenerateGeminiContent) {
   
   // 1. AI ORCHESTRATOR ENDPOINT
   app.post("/api/ai/orchestrator", async (req: any, res: any) => {
@@ -11,8 +18,6 @@ export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGen
         return;
       }
 
-      const client = getAIClient();
-      
       // Determine agent goals and prompt structure dynamically
       const systemInstruction = `
         You are an elite AI specialist employee on the KONEXA platform.
@@ -47,8 +52,7 @@ export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGen
         Important: Return ONLY valid, parsed raw JSON. Do not wrap in markdown code blocks.
       `;
 
-      const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+      const { response, model } = await generateGeminiContent({
         contents: `Execute your specific agent responsibilities and return the required JSON response. Task: "${taskTitle}"`,
         config: {
           systemInstruction,
@@ -62,7 +66,7 @@ export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGen
       }
 
       const parsedResult = JSON.parse(text.trim());
-      res.json(parsedResult);
+      res.json({ ...parsedResult, model });
 
     } catch (error: any) {
       console.error("AI Orchestration Core Error:", error);
@@ -74,8 +78,7 @@ export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGen
           `Error occurred: ${error.message || error}`,
           "Graceful fallback applied"
         ],
-        result: "Orchestration environment encountered a pipeline error, but operations have recovered. Please verify connection credentials.",
-        cost: 0.0001
+        code: "AI_PROVIDER_ERROR"
       });
     }
   });
@@ -89,7 +92,6 @@ export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGen
         return;
       }
 
-      const client = getAIClient();
       const systemInstruction = `
         You are Genesis, the lead AI Report Engine at KONEXA.
         Compile a highly detailed, professional, and visually spectacular corporate markdown report of type: "${type}".
@@ -108,8 +110,7 @@ export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGen
         Important: Return ONLY valid, parsed raw JSON. Do not wrap in markdown code blocks.
       `;
 
-      const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+      const { response, model } = await generateGeminiContent({
         contents: `Compile the requested report of type "${type}". Ensure executive-ready terminology.`,
         config: {
           systemInstruction,
@@ -123,58 +124,123 @@ export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGen
       }
 
       const parsedReport = JSON.parse(text.trim());
-      res.json(parsedReport);
+      res.json({ ...parsedReport, model });
 
     } catch (error: any) {
       console.error("AI Report Engine Error:", error);
-      res.status(500).json({
-        title: "Report Generation Offline",
-        content: `### System Notice: Report Pipeline Offline\n\nThe requested **${type}** report could not be generated dynamically due to a server connection timeout.\n\n*Please confirm that process.env.GEMINI_API_KEY is configured in your Secrets panel.*`,
-        metadata: {}
-      });
+      res.status(502).json({ code: "AI_PROVIDER_ERROR", error: "The report could not be generated. Please try again." });
     }
   });
 
   // 3. MATCHING ENGINE ENDPOINT
   app.get("/api/ai/matching", async (req: any, res: any) => {
     try {
-      const { projectId } = req.query;
-      
-      // We will perform smart live candidate matching against a preset student profile list.
-      // In a real database we would load the project and students from Supabase, but since we are dynamic,
-      // we generate extremely customized matching indexes using the Gemini SDK!
-      
-      const client = getAIClient();
+      if (req.user?.role !== "company" && req.user?.role !== "admin") {
+        res.status(403).json({ error: "Company or administrator access is required" });
+        return;
+      }
+      const projectId = String(req.query?.projectId || "").trim();
+      if (!projectId) {
+        res.status(400).json({ error: "A real project ID is required for matching" });
+        return;
+      }
+
+      const supabase = getSupabaseAdmin();
+      const { data: projectRecord, error: projectError } = await supabase
+        .from("app_records")
+        .select("record_id,data")
+        .eq("collection_name", "projects")
+        .eq("record_id", projectId)
+        .maybeSingle();
+      if (projectError) throw projectError;
+      if (!projectRecord) {
+        res.status(404).json({ error: "Project not found" });
+        return;
+      }
+      const project = projectRecord.data as Record<string, any>;
+      if (req.user.role !== "admin" && project.companyId !== req.user.uid) {
+        res.status(403).json({ error: "You can only match talent to your own project" });
+        return;
+      }
+
+      const { data: companyRecord, error: companyError } = await supabase
+        .from("app_records")
+        .select("data")
+        .eq("collection_name", "company_profiles")
+        .eq("record_id", req.user.uid)
+        .maybeSingle();
+      if (companyError) throw companyError;
+      const company = (companyRecord?.data || {}) as Record<string, any>;
+      if (req.user.role !== "admin" && (company.verified !== true || company.verifiedStatus !== "Verified")) {
+        res.status(403).json({ error: "Business verification is required before AI talent matching" });
+        return;
+      }
+
+      const { data: talentRows, error: talentError } = await supabase
+        .from("app_records")
+        .select("record_id,data")
+        .eq("collection_name", "talent_cards")
+        .limit(20);
+      if (talentError) throw talentError;
+      const candidates = (talentRows || []).map((row: any) => ({
+        id: row.record_id,
+        major: String(row.data?.major || row.data?.degree || ""),
+        skills: list(row.data?.skills, 30),
+        languages: list(row.data?.languages, 15),
+        preferredJob: String(row.data?.preferredJob || ""),
+        preferredIndustry: String(row.data?.preferredIndustry || ""),
+        availability: String(row.data?.availability || ""),
+        workPreference: String(row.data?.workPreference || ""),
+        timezone: String(row.data?.timezone || ""),
+        trustScore: score(row.data?.trustScore),
+        completedProjects: Math.max(0, Math.round(Number(row.data?.completedProjects) || 0)),
+        careerReadiness: score(row.data?.aiCareerReadiness),
+        employabilityScore: score(row.data?.aiEmployabilityScore),
+      }));
+      if (!candidates.length) {
+        res.json({ projectId, model: null, matches: [] });
+        return;
+      }
+
       const systemInstruction = `
-        You are Vortex, the AI Matching Engine.
-        Generate 3 mock student profiles matched against Project ID: "${projectId || "proj_core_performance_optimizer"}".
-        
-        For each student, compute:
-        1. suitabilityScore (between 70 and 98)
-        2. matchingFactors (an array of things matched, like skills, timezone, speed)
-        3. explanation (a brief 2-sentence thesis explaining the match)
-        
-        Respond with a valid JSON array matching this exact schema:
+        You are KONEXA's evidence-based talent matching assistant.
+        Rank only the supplied anonymized candidate records against the supplied real project.
+        Never invent candidates, credentials, project outcomes, performance history, or scores.
+        A missing field is missing evidence and must lower confidence. Scores may range from 0 to 100.
+        Return every candidate at most once and use the exact supplied candidate id.
+
+        Respond with a valid JSON array matching this schema:
         [
           {
-            "id": "string (unique identifier, e.g. 'matched_student_1')",
-            "name": "string (full name)",
-            "avatar": "string (unsplash url)",
-            "role": "string (current professional designation)",
+            "id": "exact supplied candidate id",
             "suitabilityScore": number,
-            "matchingFactors": ["string", "string", ...],
-            "explanation": "string",
-            "timezone": "string",
-            "trustScore": number
+            "confidence": number,
+            "matchingFactors": ["evidence-backed factor"],
+            "explanation": "two concise sentences distinguishing facts from inference",
+            "strengths": ["evidence-backed strength"],
+            "weaknesses": ["missing or weak evidence"],
+            "skillGaps": [{"skill":"string","severity":"High|Medium|Low","advice":"string"}],
+            "interviewQuestions": ["question tied to a project requirement"]
           }
         ]
-        
-        Important: Return ONLY valid, parsed raw JSON. Do not wrap in markdown code blocks.
+
+        Return raw JSON only.
       `;
 
-      const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: "Generate 3 matching candidate suitability records.",
+      const { response, model } = await generateGeminiContent({
+        contents: JSON.stringify({
+          project: {
+            id: projectId,
+            title: project.title,
+            description: project.description,
+            requirements: list(project.requirements, 30),
+            tags: list(project.tags, 30),
+            workMode: project.workMode,
+            location: project.location,
+            expectedDuration: project.expectedDuration,
+          },
+          candidates,
+        }),
         config: {
           systemInstruction,
           responseMimeType: "application/json"
@@ -186,36 +252,37 @@ export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGen
         throw new Error("Empty matching response");
       }
 
-      const matchedList = JSON.parse(text.trim());
-      res.json(matchedList);
+      const parsed = JSON.parse(text.trim());
+      if (!Array.isArray(parsed)) throw new Error("Invalid matching response shape");
+      const candidateMap = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+      const seen = new Set<string>();
+      const matches = parsed.flatMap((item: any) => {
+        const id = String(item?.id || "");
+        const candidate = candidateMap.get(id);
+        if (!candidate || seen.has(id)) return [];
+        seen.add(id);
+        const skillGaps = Array.isArray(item.skillGaps) ? item.skillGaps.slice(0, 8).map((gap: any) => ({
+          skill: String(gap?.skill || "").slice(0, 100),
+          severity: ["High", "Medium", "Low"].includes(gap?.severity) ? gap.severity : "Medium",
+          advice: String(gap?.advice || "").slice(0, 500),
+        })).filter((gap: any) => gap.skill) : [];
+        return [{
+          ...candidate,
+          suitabilityScore: score(item.suitabilityScore),
+          confidence: score(item.confidence),
+          matchingFactors: list(item.matchingFactors, 8),
+          explanation: String(item.explanation || "").slice(0, 1_500),
+          strengths: list(item.strengths, 8),
+          weaknesses: list(item.weaknesses, 8),
+          skillGaps,
+          interviewQuestions: list(item.interviewQuestions, 8),
+        }];
+      }).sort((left: any, right: any) => right.suitabilityScore - left.suitabilityScore);
+      res.json({ projectId, model, matches });
 
     } catch (error: any) {
       console.error("AI Matching Engine Error:", error);
-      // Clean fallback matched list
-      res.json([
-        {
-          id: "matched_alex",
-          name: "Alex Rivera",
-          avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120",
-          role: "Full-Stack Engineer",
-          suitabilityScore: 96,
-          matchingFactors: ["TypeScript expertise", "Vite profiling", "UTC-5 Timezone alignment"],
-          explanation: "Highest matching score based on stellar DOM layout optimizations and sandbox profile reviews.",
-          timezone: "UTC-5 (Remote)",
-          trustScore: 82
-        },
-        {
-          id: "matched_minjun",
-          name: "Min-jun Kim",
-          avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120",
-          role: "Backend Platform Engineer",
-          suitabilityScore: 91,
-          matchingFactors: ["Docker cluster experience", "Concurrency Locks", "UTC+9 alignment"],
-          explanation: "Excellent fit for core pipeline optimization tasks and database isolation algorithms.",
-          timezone: "UTC+9 (Seoul)",
-          trustScore: 88
-        }
-      ]);
+      res.status(502).json({ code: "AI_PROVIDER_ERROR", error: "Talent matching is temporarily unavailable" });
     }
   });
 
@@ -228,8 +295,6 @@ export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGen
         return;
       }
 
-      // Check if text looks like a prompt injection attack
-      const client = getAIClient();
       const prompt = `
         Analyze the following text submitted to an AI assistant for security issues.
         Identify any:
@@ -251,8 +316,7 @@ export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGen
         Important: Return ONLY valid, parsed raw JSON. Do not wrap in markdown code blocks.
       `;
 
-      const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+      const { response, model } = await generateGeminiContent({
         contents: prompt,
         config: {
           responseMimeType: "application/json"
@@ -263,11 +327,11 @@ export function registerAiWorkforceRoutes(app: any, getAIClient: () => GoogleGen
       if (!text) throw new Error("Empty security response");
 
       const parsedAudit = JSON.parse(text.trim());
-      res.json(parsedAudit);
+      res.json({ ...parsedAudit, model });
 
     } catch (error: any) {
       console.error("Security Audit Core Error:", error);
-      res.json({ safe: true, issues: [] }); // fall back to safe
+      res.status(502).json({ code: "AI_PROVIDER_ERROR", error: "Automated security screening is unavailable" });
     }
   });
 }

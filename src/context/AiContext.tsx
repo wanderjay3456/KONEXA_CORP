@@ -724,12 +724,12 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
     try {
       info("Matching Engine Active", "Computing multi-dimensional user compatibility profiles.");
       const response = await fetch(`/api/ai/matching?projectId=${projectId}`);
-      if (!response.ok) throw new Error("Matching metrics timeout");
-      const matchedList = await response.json();
-      return matchedList;
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "Matching metrics timeout");
+      return Array.isArray(payload.matches) ? payload.matches : [];
     } catch (err: any) {
       error("Matching metrics unavailable", err.message);
-      return [];
+      throw err;
     }
   };
 
