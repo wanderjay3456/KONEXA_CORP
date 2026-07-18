@@ -19,12 +19,7 @@ export default function CompanyBookmarks({ onNavigate, onSelectStudent }: Compan
   const [searchQuery, setSearchQuery] = useState("");
 
   // Stateful bookmarks listing
-  const [bookmarks, setBookmarks] = useState([
-    { id: "b_1", type: "student", targetId: "usr_fndtn_konexa_99", title: studentProfile?.name || "Alex Rivera", subtitle: "Seoul National University • Full-Stack Engineer", extra: "AI Match: 96%", dateSaved: "1 day ago" },
-    { id: "b_2", type: "university", targetId: "kaist", title: "KAIST Research Node", subtitle: "South Korea • Active Feed Feeder Pool", extra: "112 active students enrolled", dateSaved: "3 days ago" },
-    { id: "b_3", type: "project", targetId: "proj_svg_engine", title: "SVG Canvas state syncer challenge", subtitle: "Active Published Challenge", extra: "Reward: $2,500", dateSaved: "4 days ago" },
-    { id: "b_4", type: "report", targetId: "report_q2_roi", title: "Vetting cost analysis Q2 spreadsheet", subtitle: "Financial audit sheet report", extra: "8.4x spend reduction estimate", dateSaved: "1 week ago" }
-  ]);
+  const [bookmarks, setBookmarks] = useState<Array<{ id: string; type: string; targetId: string; title: string; subtitle: string; extra: string; dateSaved: string }>>([]);
 
   const handleRemoveBookmark = (id: string, title: string) => {
     setBookmarks(prev => prev.filter(b => b.id !== id));

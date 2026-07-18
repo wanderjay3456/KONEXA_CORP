@@ -8,36 +8,44 @@ import { useToast } from "../ui/Toast";
 
 export default function CareerRoadmap() {
   const { studentProfile } = useApp();
-  const { success, info } = useToast();
+  const { success, error } = useToast();
 
   const [visionText, setVisionText] = useState(
-    "Secure a high-trust Senior TypeScript Systems role at an elite cloud systems enterprise (Google/Vercel) within 18 months."
+    studentProfile?.preferredJob || ""
   );
   const [editingVision, setEditingVision] = useState(false);
   const [loadingRoadmap, setLoadingRoadmap] = useState(false);
 
-  const [milestones, setMilestones] = useState([
-    { id: "m1", term: "Q3 2026", title: "TS Sandbox Mastery", desc: "Acquire 90+ trust rank score. Complete 3 hard-difficulty sponsor projects.", status: "current" },
-    { id: "m2", term: "Q4 2026", title: "Full Stack Sync Architect", desc: "Earn verified skill certificates in WebSocket data streams and React Concurrent Fiber APIs.", status: "pending" },
-    { id: "m3", term: "Q1 2027", title: "Fortune-500 Placement", desc: "Receive fast-track internship interview matches with preseeded verified sponsor recommendations.", status: "pending" }
-  ]);
+  const [milestones, setMilestones] = useState<Array<{ id: string; term: string; title: string; desc: string; status: string }>>([]);
+  const [skillGaps, setSkillGaps] = useState<string[]>([]);
 
-  const [courses, setCourses] = useState([
-    { title: "Advanced React 19 Concurrent Fibers & Hydration", provider: "Vercel Engineering", duration: "10 hours", matchesSkill: "React 19" },
-    { title: "WebSocket State Multi-Client Synchronization Matrices", provider: "Framer Core Labs", duration: "8 hours", matchesSkill: "WebSockets" }
-  ]);
+  const [courses, setCourses] = useState<Array<{ title: string; provider: string; duration: string; matchesSkill: string }>>([]);
 
-  const handleRecalculateRoadmap = () => {
+  const handleRecalculateRoadmap = async () => {
     setLoadingRoadmap(true);
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/ai/student-roadmap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ careerGoal: visionText }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "AI 로드맵을 생성하지 못했습니다.");
+      setMilestones((payload.milestones || []).map((item: any, index: number) => ({
+        id: `m${index + 1}`,
+        term: `STEP ${index + 1}`,
+        title: item.title,
+        desc: `${item.nextAction}${item.evidenceNeeded ? ` 필요한 근거: ${item.evidenceNeeded}` : ""}`,
+        status: index === 0 ? "current" : "pending",
+      })));
+      setSkillGaps(Array.isArray(payload.skillGaps) ? payload.skillGaps : []);
+      setCourses((payload.learningActions || []).map((title: string) => ({ title, provider: "KONEXA AI 제안", duration: "직접 계획", matchesSkill: "" })));
+      success("AI 로드맵 생성 완료", "등록된 프로필과 실제 공개 프로젝트만 기준으로 분석했습니다.");
+    } catch (cause) {
+      error("AI 로드맵 오류", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
+    } finally {
       setLoadingRoadmap(false);
-      setMilestones([
-        { id: "m1", term: "Q3 2026", title: "TS Sandbox Mastery", desc: "Acquire 94+ trust rank score. Complete 4 hard-difficulty sponsor projects. (Updated!)", status: "current" },
-        { id: "m2", term: "Q4 2026", title: "Full Stack Sync Architect", desc: "Earn verified skill certificates in WebSocket data streams and React Concurrent Fiber APIs.", status: "pending" },
-        { id: "m3", term: "Q1 2027", title: "Fortune-500 Placement", desc: "Receive fast-track internship interview matches with preseeded verified sponsor recommendations.", status: "pending" }
-      ]);
-      success("Roadmap Updated", "Gemini neural model recalculation completed based on your profile completions.");
-    }, 1200);
+    }
   };
 
   return (
@@ -150,23 +158,16 @@ export default function CareerRoadmap() {
             <p className="text-[10px] text-neutral-400 font-sans mt-0.5">Highly requested by sponsor targets matching your vision.</p>
             
             <div className="space-y-2.5">
-              {[
-                { name: "WebSockets Sync Systems", count: "14 sponsor projects requirement", level: "Recommended" },
-                { name: "Advanced React 19 Concurrent Fibers", count: "8 sponsor projects requirement", level: "Highly Recommended" },
-                { name: "OAuth 2.0 Credentials Audits", count: "3 sponsor projects requirement", level: "Optional" }
-              ].map((skill, idx) => (
+              {skillGaps.map((name, idx) => (
                 <div key={idx} className="p-3 bg-neutral-50 rounded-2xl border border-neutral-200/40 flex justify-between items-start">
                   <div>
-                    <span className="text-xs font-bold text-neutral-800 block">{skill.name}</span>
-                    <span className="text-[9px] text-neutral-400 font-sans">{skill.count}</span>
+                    <span className="text-xs font-bold text-neutral-800 block">{name}</span>
+                    <span className="text-[9px] text-neutral-400 font-sans">프로필과 공개 공고의 차이</span>
                   </div>
-                  <span className={`text-[8px] font-mono font-bold uppercase px-2 py-0.5 rounded-md shrink-0 ${
-                    skill.level === "Highly Recommended" ? "bg-rose-50 text-rose-600" : "bg-teal-50 text-teal-600"
-                  }`}>
-                    {skill.level}
-                  </span>
+                  <span className="shrink-0 rounded-md bg-teal-50 px-2 py-0.5 text-[8px] font-mono font-bold uppercase text-teal-600">Review</span>
                 </div>
               ))}
+              {!skillGaps.length && <p className="py-4 text-center text-xs text-neutral-400">AI 분석을 실행하면 확인된 역량 차이가 표시됩니다.</p>}
             </div>
           </div>
 

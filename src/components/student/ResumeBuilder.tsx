@@ -15,19 +15,15 @@ interface ResumeVersion {
 }
 
 export default function ResumeBuilder() {
-  const { studentProfile, updateStudentProfile } = useApp();
-  const { success, info } = useToast();
+  const { studentProfile, applications, updateStudentProfile } = useApp();
+  const { success, info, error } = useToast();
 
   // State
   const [selectedTemplate, setSelectedTemplate] = useState<"intl" | "ko" | "ats" | "creative" | "academic" | "research">("ats");
-  const [resumeScore, setResumeScore] = useState(82);
-  const [grammarChecked, setGrammarChecked] = useState(true);
+  const [resumeScore, setResumeScore] = useState(studentProfile?.aiEmployabilityScore || 0);
+  const [grammarChecked] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
-  const [feedbackList, setFeedbackList] = useState([
-    { type: "strength", text: "Strong list of tech stack tags (React 19, TypeScript, Vite)." },
-    { type: "warning", text: "Missing action verbs in your pitch biography statement." },
-    { type: "recommendation", text: "Add your latest Vercel performance grade to boost ATS similarity matching. (+8 points)" }
-  ]);
+  const [feedbackList, setFeedbackList] = useState<Array<{ type: string; text: string }>>([]);
 
   
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
@@ -78,32 +74,39 @@ export default function ResumeBuilder() {
     reader.readAsDataURL(file);
   };
 
-  const [versions, setVersions] = useState<ResumeVersion[]>([
-    { id: "v1", templateName: "ATS Standard Core", score: 74, updatedAt: "2d ago" },
-    { id: "v2", templateName: "International Professional (English)", score: 82, updatedAt: "1d ago" }
-  ]);
+  const [versions, setVersions] = useState<ResumeVersion[]>([]);
 
   // Handle PDF export trigger
   const handleExportPDF = () => {
-    success("PDF Export Initiated", "Generating high-fidelity print margins. Your resume has been exported to PDF format.");
+    window.print();
   };
 
-  const handleOptimizeResume = () => {
+  const handleOptimizeResume = async () => {
     setOptimizing(true);
-    setTimeout(() => {
-      setResumeScore(94);
+    try {
+      const response = await fetch("/api/ai/resume-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetRole: studentProfile?.preferredJob || "" }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "AI 이력서 검토를 완료하지 못했습니다.");
+      setResumeScore(payload.score || 0);
       setFeedbackList([
-        { type: "strength", text: "Excellent list of tech stack tags (React 19, TypeScript, Vite)." },
-        { type: "strength", text: "ATS Keyword optimizations completed successfully. Similarity matches boosted to 94%." },
-        { type: "recommendation", text: "Connect your Github account to automatically append verified code check-ins." }
+        ...(payload.strengths || []).map((text: string) => ({ type: "strength", text })),
+        ...(payload.issues || []).map((text: string) => ({ type: "warning", text })),
+        ...(payload.recommendedEdits || []).map((text: string) => ({ type: "recommendation", text })),
       ]);
       setVersions(prev => [
-        { id: `v_${Date.now()}`, templateName: `${selectedTemplate.toUpperCase()} Premium Optimizer`, score: 94, updatedAt: "Just now" },
+        { id: `v_${Date.now()}`, templateName: `${selectedTemplate.toUpperCase()} 근거 검토`, score: payload.score || 0, updatedAt: "방금" },
         ...prev
       ]);
+      success("AI 이력서 검토 완료", "등록된 프로필 근거만 기준으로 검토했습니다.");
+    } catch (cause) {
+      error("AI 이력서 검토 오류", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
+    } finally {
       setOptimizing(false);
-      success("Resume Optimized", "AI Resume Reviewer optimized action verbs, corrected spelling, and boosted ATS keyword density.");
-    }, 1500);
+    }
   };
 
   return (
@@ -197,7 +200,7 @@ export default function ResumeBuilder() {
             <div className="space-y-1.5">
               <h3 className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest">Professional Summary</h3>
               <p className="text-xs text-neutral-500 leading-relaxed font-light">
-                {studentProfile?.bio || "Highly-motivated developer candidate equipped with full stack TypeScript expertise. Proven track record completing automated sponsor evaluations and building high-performance modules."}
+                {studentProfile?.bio || "등록된 자기소개가 없습니다."}
               </p>
             </div>
 
@@ -206,8 +209,8 @@ export default function ResumeBuilder() {
               <h3 className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest">Education & Academic Credentials</h3>
               <div className="flex justify-between items-start text-xs font-sans">
                 <div>
-                  <span className="font-bold text-neutral-800">{studentProfile?.university || "Verified University partner"}</span>
-                  <p className="text-neutral-500 font-light text-[11px] mt-0.5">{studentProfile?.degree || "Bachelor of Science"}, {studentProfile?.major || "Computer Science & Engineering"}</p>
+                  <span className="font-bold text-neutral-800">{studentProfile?.university || "대학 미등록"}</span>
+                  <p className="text-neutral-500 font-light text-[11px] mt-0.5">{studentProfile?.degree || "학위 미등록"}, {studentProfile?.major || "전공 미등록"}</p>
                 </div>
                 <span className="text-[10px] font-mono text-neutral-400 font-bold">GRAD: 2026</span>
               </div>
@@ -217,7 +220,7 @@ export default function ResumeBuilder() {
             <div className="space-y-1.5">
               <h3 className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest">Verified Technical Expertise</h3>
               <div className="flex flex-wrap gap-1.5">
-                {(studentProfile?.skills || ["React", "TypeScript", "Vite", "Tailwind"]).map(s => (
+                {(studentProfile?.skills || []).map(s => (
                   <span key={s} className="text-[10px] font-semibold text-neutral-600 bg-neutral-50 border border-neutral-200/60 px-2.5 py-0.5 rounded-lg">
                     {s}
                   </span>
@@ -229,15 +232,16 @@ export default function ResumeBuilder() {
             <div className="space-y-1.5">
               <h3 className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest">Verified Project History (via KONEXA Grid)</h3>
               <div className="space-y-3">
-                <div className="text-xs">
+                {applications.filter((application) => application.status === "reviewed").map((application) => <div key={application.id} className="text-xs">
                   <div className="flex justify-between items-start font-sans">
-                    <span className="font-bold text-neutral-800">SaaS Concurrent WebSocket Canvas Syncer</span>
-                    <span className="text-[10px] font-mono text-neutral-400 font-bold">JULY 2026</span>
+                    <span className="font-bold text-neutral-800">{application.projectTitle}</span>
+                    <span className="text-[10px] font-mono text-neutral-400 font-bold">{application.score}/100</span>
                   </div>
                   <p className="text-[11px] text-neutral-500 font-light mt-0.5 leading-relaxed">
-                    Designed sub-millisecond multi-client canvas sync layer using frame buffering. Evaluated automatically by Gemini AI grading system.
+                    KONEXA에서 검토가 완료된 실제 프로젝트 지원 기록입니다.
                   </p>
-                </div>
+                </div>)}
+                {!applications.some((application) => application.status === "reviewed") && <p className="text-[11px] text-neutral-400">검토 완료된 프로젝트 기록이 없습니다.</p>}
               </div>
             </div>
 
@@ -262,9 +266,9 @@ export default function ResumeBuilder() {
                 {resumeScore}%
               </div>
               <div className="text-xs font-sans min-w-0 flex-1">
-                <span className="font-bold text-neutral-800">Excellent Parser Density</span>
+                <span className="font-bold text-neutral-800">현재 프로필 분석 결과</span>
                 <p className="text-[10px] text-neutral-400 mt-0.5 leading-relaxed">
-                  Your resume matches <strong>{resumeScore}%</strong> of standard developer keywords listed by Fortune-500 corporate sponsors.
+                  등록된 프로필과 이력서 내용을 바탕으로 산출한 AI 준비도 점수입니다. 실제 채용 합격률을 의미하지 않습니다.
                 </p>
               </div>
             </div>

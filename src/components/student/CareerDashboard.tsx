@@ -14,56 +14,56 @@ interface CareerDashboardProps {
 }
 
 export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
-  const { studentProfile, projects, applications, updateStudentProfile } = useApp();
+  const { studentProfile, projects, applications, notifications: liveNotifications, markNotificationRead } = useApp();
   const { success, info } = useToast();
   const [dailyStreakChecked, setDailyStreakChecked] = useState(false);
 
   // Generate some state data
-  const trustScore = studentProfile?.trustScore ?? 85;
-  const performanceScore = 92;
-  const employabilityScore = 88;
-  const aiReadinessScore = 95;
-  const resumeScore = 82;
+  const reviewedApplications = applications.filter((application) => application.status === "reviewed");
+  const trustScore = studentProfile?.trustScore ?? 0;
+  const performanceScore = reviewedApplications.length
+    ? Math.round(reviewedApplications.reduce((total, application) => total + (Number(application.score) || 0), 0) / reviewedApplications.length)
+    : 0;
+  const employabilityScore = studentProfile?.aiEmployabilityScore ?? 0;
+  const aiReadinessScore = studentProfile?.aiCareerReadiness ?? 0;
 
   // Track achievements, badges, certificates
-  const [badges, setBadges] = useState([
-    { id: "1", name: "Alpha Builder", desc: "First clean challenge compile approved by Gemini AI", icon: Zap, color: "text-amber-500 bg-amber-50 border-amber-100" },
-    { id: "2", name: "Zero-Bug Hero", desc: "Completed a Hard difficulty challenge with 100/100 evaluation", icon: Shield, color: "text-teal-500 bg-teal-50 border-teal-100" },
-    { id: "3", name: "Security Guardian", desc: "Successfully resolved all RLS and access token constraints", icon: CheckCircle, color: "text-blue-500 bg-blue-50 border-blue-100" }
-  ]);
+  const badges = [
+    ...(reviewedApplications.length ? [{ id: "verified-project", name: "Verified Project", desc: `AI 또는 운영 검토가 완료된 프로젝트 ${reviewedApplications.length}건`, icon: Zap, color: "text-amber-500 bg-amber-50 border-amber-100" }] : []),
+    ...(studentProfile?.earlyPioneerEligible ? [{ id: "early-pioneer", name: "Early Pioneer", desc: "얼리버드 필수 조건을 완료한 실제 계정", icon: Shield, color: "text-teal-500 bg-teal-50 border-teal-100" }] : []),
+  ];
 
-  const [notifications, setNotifications] = useState([
-    { id: "n1", category: "AI", title: "Gemini Matchmaking Evaluation Complete", text: "Your Vite Optimizer solution scored 94/100. Employability Index boosted by 4 points!", priority: "high", time: "10m ago", read: false },
-    { id: "n2", category: "Project", title: "Milestone Deadline Approaching", text: "Linear Inc. challenge requires code check-in within 24 hours.", priority: "medium", time: "2h ago", read: false },
-    { id: "n3", category: "System", title: "Trust Rank Upgrade", text: "Congratulations! Your Trust Score reached 89, unlocking premium sponsor challenges.", priority: "low", time: "1d ago", read: true }
-  ]);
+  const notifications = liveNotifications.map((notification) => ({
+    id: notification.id,
+    category: notification.kind,
+    title: notification.title,
+    text: notification.message,
+    priority: notification.kind === "payment" || notification.kind === "contract" ? "high" : "medium",
+    time: new Date(notification.createdAt).toLocaleDateString(),
+    read: Boolean(notification.readAt),
+  }));
 
   const [weeklyGoals, setWeeklyGoals] = useState([
-    { id: "g1", text: "Complete 1 Hard-tier challenge", completed: false },
-    { id: "g2", text: "Optimize portfolio ATS keywords", completed: true },
-    { id: "g3", text: "Maintain a 5-day GitHub green-dot streak", completed: true }
+    { id: "g1", text: "이력서 등록 완료", completed: Boolean(studentProfile?.resumeUrl) },
+    { id: "g2", text: "1분 자기소개 영상 등록", completed: Boolean(studentProfile?.introVideoPath) },
+    { id: "g3", text: "실제 기업 프로젝트 지원", completed: applications.length > 0 }
   ]);
 
-  const [calendarEvents, setCalendarEvents] = useState([
-    { id: "e1", title: "Google Sidebar Project Milestone #2", date: "July 12", type: "milestone" },
-    { id: "e2", title: "Live Mentor Consultation with Google Architect", date: "July 15", type: "meeting" },
-    { id: "e3", title: "Framer WebSocket sync demo deadline", date: "July 18", type: "deadline" }
-  ]);
+  const calendarEvents = projects.filter((project) => project.applicationDeadline).slice(0, 5).map((project) => ({
+    id: project.id,
+    title: project.title,
+    date: new Date(project.applicationDeadline || "").toLocaleDateString("en-US", { month: "long", day: "numeric" }),
+    type: "deadline",
+  }));
 
   const handleClaimDailyEXP = () => {
     if (dailyStreakChecked) return;
     setDailyStreakChecked(true);
-    const currentStreak = studentProfile?.completedProjects ?? 0;
-    updateStudentProfile({
-      trustScore: Math.min(100, trustScore + 2),
-      completedProjects: currentStreak + 1
-    });
-    success("Daily Streak Claimed!", "+50 EXP, +2 Trust Score. Keep the flame active!");
+    info("확인 완료", "신뢰 점수와 프로젝트 실적은 검증된 활동에서만 변경됩니다.");
   };
 
-  const handleMarkNotificationRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    success("Notification", "Notification marked as read.");
+  const handleMarkNotificationRead = async (id: string) => {
+    await markNotificationRead(id);
   };
 
   const toggleGoal = (id: string) => {
@@ -83,19 +83,19 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
             Welcome back, {studentProfile?.preferredName || studentProfile?.name || "Global Talent"}
           </h1>
           <p className="font-sans text-xs text-neutral-500 max-w-xl leading-relaxed">
-            Your career node is connected to the sandbox evaluation grid. Build high-trust code, complete milestones, and get auto-matched with elite global corporate clients.
+            프로필과 실제 프로젝트 수행 기록을 완성하면 기업이 검증 가능한 근거를 바탕으로 인재를 살펴볼 수 있습니다.
           </p>
         </div>
 
         {/* Daily Streak & Gamified EXP Tracker */}
         <div className="md:col-span-4 bg-white p-5 rounded-3xl border border-neutral-200 shadow-sm flex items-center justify-between gap-4">
           <div className="space-y-1">
-            <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-wider block">LEVEL 4 BUILDER</span>
+            <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-wider block">VERIFIED ACTIVITY</span>
             <div className="flex items-center gap-1">
               <Flame className="w-5 h-5 text-rose-500 fill-rose-500 animate-pulse" />
-              <span className="font-display font-black text-2xl text-neutral-900">7 Day Streak</span>
+              <span className="font-display font-black text-2xl text-neutral-900">{reviewedApplications.length} Reviews</span>
             </div>
-            <p className="text-[10px] text-neutral-400">Claim daily EXP checks to boost search priority.</p>
+            <p className="text-[10px] text-neutral-400">검토가 완료된 프로젝트만 활동 기록에 반영됩니다.</p>
           </div>
           <button 
             disabled={dailyStreakChecked}
@@ -132,7 +132,7 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
             </div>
             <div className="flex justify-between text-[9px] text-neutral-400 font-mono">
               <span>MIN TRUST: 70</span>
-              <span className="text-blue-600 font-bold">Top 5% Builder</span>
+              <span className="text-blue-600 font-bold">Verified record</span>
             </div>
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
             </div>
             <div className="flex justify-between text-[9px] text-neutral-400 font-mono">
               <span>GRADES AVERAGE</span>
-              <span className="text-amber-600 font-bold">Excellent</span>
+              <span className="text-amber-600 font-bold">Reviewed data</span>
             </div>
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
             </div>
             <div className="flex justify-between text-[9px] text-neutral-400 font-mono">
               <span>SPONSOR INTEREST</span>
-              <span className="text-teal-600 font-bold">Extremely High</span>
+              <span className="text-teal-600 font-bold">Profile analysis</span>
             </div>
           </div>
         </div>
@@ -198,7 +198,7 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
             </div>
             <div className="flex justify-between text-[9px] text-neutral-400 font-mono">
               <span>COACH EVALUATION</span>
-              <span className="text-purple-600 font-bold">Elite Spec</span>
+              <span className="text-purple-600 font-bold">AI profile review</span>
             </div>
           </div>
         </div>
@@ -342,7 +342,7 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
               </div>
               <div className="mt-4 pt-3 border-t border-neutral-100 flex justify-between items-center text-[10px] text-neutral-400 font-sans">
                 <span>Total items: {calendarEvents.length}</span>
-                <span className="font-mono text-green-600 font-semibold underline cursor-pointer">Sync with Google Calendar</span>
+                <span className="font-mono text-neutral-400 font-semibold">Calendar connection coming soon</span>
               </div>
             </div>
 
@@ -357,15 +357,15 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
                   <BookOpen className="w-4 h-4" />
                   <span>Missing Skill Track</span>
                 </div>
-                <h4 className="text-xs font-bold text-neutral-800">Advanced React 19 Concurrent Fibers</h4>
+                <h4 className="text-xs font-bold text-neutral-800">프로필 기반 역량 보완 계획</h4>
                 <p className="text-[10px] text-neutral-500 mt-1 leading-relaxed">
-                  Required by <strong>Google Cloud</strong> and <strong>Vercel Core</strong>. Completing this mini-course triggers +4% matching score.
+                  AI 로드맵에서 등록된 기술과 실제 공개 프로젝트 요구사항을 비교해 다음 학습 항목을 확인하세요.
                 </p>
                 <button 
-                  onClick={() => onNavigate("skill-center")}
+                  onClick={() => onNavigate("career-roadmap")}
                   className="mt-3 text-[10px] font-semibold text-teal-700 hover:text-teal-800 underline flex items-center gap-0.5 cursor-pointer"
                 >
-                  <span>Explore Skill Center</span>
+                  <span>AI 로드맵 열기</span>
                   <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
@@ -375,15 +375,15 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
                   <Sparkles className="w-4 h-4" />
                   <span>Sponsor Suggestion</span>
                 </div>
-                <h4 className="text-xs font-bold text-neutral-800">Sub-millisecond Canvas Syncing</h4>
+                <h4 className="text-xs font-bold text-neutral-800">실제 공개 프로젝트 확인</h4>
                 <p className="text-[10px] text-neutral-500 mt-1 leading-relaxed">
-                  Framer Inc. is actively recruiting builders. Your TS performance score aligns with 94% of their candidate profile.
+                  현재 공개된 기업 프로젝트만 표시하며, 지원 전 요구 기술과 계약 조건을 직접 확인할 수 있습니다.
                 </p>
                 <button 
                   onClick={() => onNavigate("project-marketplace")}
                   className="mt-3 text-[10px] font-semibold text-purple-700 hover:text-purple-800 underline flex items-center gap-0.5 cursor-pointer"
                 >
-                  <span>Claim Framer Challenge</span>
+                  <span>프로젝트 살펴보기</span>
                   <ChevronRight className="w-3 h-3" />
                 </button>
               </div>

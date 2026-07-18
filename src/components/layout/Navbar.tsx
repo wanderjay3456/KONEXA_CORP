@@ -12,7 +12,7 @@ export default function Navbar({ onLogout, onNavigate }: NavbarProps) {
   const isCompany = activeRole === UserRole.COMPANY;
   const isAdmin = activeRole === UserRole.ADMIN;
   const RoleIcon = isAdmin ? ShieldCheck : isCompany ? Building2 : User;
-  const dashboardTab = isCompany ? "create-challenge" : "project-marketplace";
+  const dashboardTab = isCompany ? "company-home" : "career-home";
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b border-neutral-200 bg-white/90 backdrop-blur-xl">
