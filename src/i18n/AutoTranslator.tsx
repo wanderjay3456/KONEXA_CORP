@@ -4,11 +4,12 @@ import { useLocale, type Locale } from "./LocaleContext";
 type TranslationCache = Record<string, string>;
 type TextState = { original: string; lastApplied: string };
 type AttrState = { original: string; lastApplied: string };
+type TranslationContext = "heading" | "body" | "button" | "navigation" | "label" | "placeholder" | "status" | "other";
 type TranslationTarget =
-  | { kind: "text"; node: Text; source: string }
-  | { kind: "attribute"; node: HTMLElement; attribute: string; source: string };
+  | { kind: "text"; node: Text; source: string; context: TranslationContext }
+  | { kind: "attribute"; node: HTMLElement; attribute: string; source: string; context: TranslationContext };
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const TRANSLATABLE_ATTRIBUTES = ["placeholder", "title", "aria-label"];
 const textStates = new WeakMap<Text, TextState>();
 const attributeStates = new WeakMap<HTMLElement, Map<string, AttrState>>();
@@ -47,6 +48,21 @@ function isExcluded(element: Element | null) {
   return Boolean(element?.closest("[data-no-translate], script, style, code, pre, textarea, [contenteditable='true']"));
 }
 
+function textContext(element: HTMLElement | null): TranslationContext {
+  if (!element) return "other";
+  if (element.closest("h1, h2, h3, h4, h5, h6")) return "heading";
+  if (element.closest("nav")) return "navigation";
+  if (element.closest("button, [role='button']")) return "button";
+  if (element.closest("label")) return "label";
+  if (element.closest("[role='status'], [aria-live]")) return "status";
+  if (element.closest("p, li, blockquote")) return "body";
+  return "other";
+}
+
+function targetKey(target: TranslationTarget) {
+  return `${target.context}\u0000${target.source.replace(/\s+/g, " ").trim()}`;
+}
+
 function collectTargets(): TranslationTarget[] {
   const roots = Array.from(document.querySelectorAll<HTMLElement>("[data-auto-translate]"));
   const targets: TranslationTarget[] = [];
@@ -64,7 +80,7 @@ function collectTargets(): TranslationTarget[] {
         const source = previous && value === previous.lastApplied ? previous.original : value;
         if (shouldTranslate(source)) {
           textStates.set(node, { original: source, lastApplied: previous?.lastApplied || value });
-          targets.push({ kind: "text", node, source });
+          targets.push({ kind: "text", node, source, context: textContext(parent) });
         }
       }
       current = walker.nextNode();
@@ -81,7 +97,13 @@ function collectTargets(): TranslationTarget[] {
         if (!shouldTranslate(source)) continue;
         states.set(attribute, { original: source, lastApplied: previous?.lastApplied || value });
         attributeStates.set(element, states);
-        targets.push({ kind: "attribute", node: element, attribute, source });
+        targets.push({
+          kind: "attribute",
+          node: element,
+          attribute,
+          source,
+          context: attribute === "placeholder" ? "placeholder" : "label",
+        });
       }
     }
   }
@@ -125,32 +147,35 @@ export default function AutoTranslator() {
         const activeLocale = localeRef.current;
         const targets = collectTargets();
         const cache = readCache(activeLocale);
-        const bySource = new Map<string, TranslationTarget[]>();
+        const byKey = new Map<string, TranslationTarget[]>();
         for (const target of targets) {
-          const source = target.source.replace(/\s+/g, " ").trim();
-          bySource.set(source, [...(bySource.get(source) || []), target]);
+          const key = targetKey(target);
+          byKey.set(key, [...(byKey.get(key) || []), target]);
         }
 
-        for (const [source, sourceTargets] of bySource) {
-          if (cache[source]) sourceTargets.forEach((target) => applyTranslation(target, cache[source]));
+        for (const [key, keyTargets] of byKey) {
+          if (cache[key]) keyTargets.forEach((target) => applyTranslation(target, cache[key]));
         }
 
-        const missing = Array.from(bySource.keys()).filter((source) => !cache[source]);
+        const missing = Array.from(byKey.keys()).filter((key) => !cache[key]);
         for (let offset = 0; offset < missing.length && !cancelled; offset += 55) {
-          const batch = missing.slice(offset, offset + 55);
+          const batchKeys = missing.slice(offset, offset + 55);
+          const batchTargets = batchKeys.map((key) => byKey.get(key)![0]);
+          const batch = batchTargets.map((target) => target.source.replace(/\s+/g, " ").trim());
+          const contexts = batchTargets.map((target) => target.context);
           const response = await fetch("/api/localization/translate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ locale: activeLocale, texts: batch }),
+            body: JSON.stringify({ locale: activeLocale, texts: batch, contexts }),
           });
           if (!response.ok) break;
           const payload = await response.json() as { translations?: string[] };
           if (localeRef.current !== activeLocale) break;
-          batch.forEach((source, index) => {
+          batchKeys.forEach((key, index) => {
             const translated = payload.translations?.[index]?.trim();
             if (!translated) return;
-            cache[source] = translated;
-            bySource.get(source)?.forEach((target) => applyTranslation(target, translated));
+            cache[key] = translated;
+            byKey.get(key)?.forEach((target) => applyTranslation(target, translated));
           });
           writeCache(activeLocale, cache);
         }
