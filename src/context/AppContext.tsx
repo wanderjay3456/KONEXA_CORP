@@ -37,6 +37,7 @@ import {
 } from "../types";
 import { useToast } from "../components/ui/Toast";
 import { firstValidationMessage, getCompanyCompletionErrors, getStudentCompletionErrors } from "../lib/profileCompletion";
+import { isEarlyBirdOpen } from "../config/earlyBird";
 
 // --- START FIRESTORE ERROR HANDLING PROTOCOL ---
 enum OperationType {
@@ -104,7 +105,7 @@ interface AppContextType {
   activeRole: UserRole;
   setActiveRole: (role: UserRole) => void;
   applyToProject: (projectId: string, codeSubmission: string) => Promise<void>;
-  createProject: (title: string, description: string, requirements: string[], difficulty: ProjectDifficulty, reward: string, tags: string[]) => Promise<void>;
+  createProject: (title: string, description: string, requirements: string[], difficulty: ProjectDifficulty, reward: string, tags: string[], details?: Partial<Project>) => Promise<boolean>;
   updateStudentProfile: (profile: Partial<StudentProfile>) => Promise<boolean>;
   updateCompanyProfile: (profile: Partial<CompanyProfile>) => Promise<boolean>;
   registerUser: (email: string, displayName: string, role: UserRole, studentData?: Partial<StudentProfile>, companyData?: Partial<CompanyProfile>, password?: string, consentBundle?: Record<string, unknown>) => Promise<{ emailConfirmationRequired: boolean }>;
@@ -422,7 +423,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         feedback: "Pending AI analysis...",
         status: ApplicationStatus.SUBMITTED,
         score: 0,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        earlyPioneer: studentProfile.earlyPioneerEligible === true
       });
 
       try {
@@ -463,11 +465,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     requirements: string[],
     difficulty: ProjectDifficulty,
     reward: string,
-    tags: string[]
+    tags: string[],
+    details: Partial<Project> = {}
   ) => {
     try {
       if (!currentUser || !companyProfile) throw new Error("기업 계정으로 로그인한 뒤 프로젝트를 등록해 주세요.");
       const projectsCol = collection(db, "projects");
+      const createdAt = Date.now();
+      const earlyBirdQualified = isEarlyBirdOpen(createdAt);
       await addDoc(projectsCol, {
         title,
         description,
@@ -478,8 +483,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         reward,
         status: ProjectStatus.OPEN,
         tags,
-        createdAt: Date.now()
+        createdAt,
+        earlyBirdQualified,
+        workType: details.workType,
+        durationWeeks: details.durationWeeks,
+        hoursPerWeek: details.hoursPerWeek,
+        weeklyPayKrw: details.weeklyPayKrw,
+        requiredLanguage: details.requiredLanguage,
+        applicationDeadline: details.applicationDeadline,
+        hiringOpportunity: details.hiringOpportunity,
+        contactPolicyAccepted: details.contactPolicyAccepted === true
       });
+
+      if (earlyBirdQualified && !companyProfile.earlyBirdEligible) {
+        const earlyBirdProfile: CompanyProfile = {
+          ...companyProfile,
+          earlyBirdEligible: true,
+          earlyBirdQualifiedAt: createdAt,
+          subscriptionDiscountPercent: 30,
+          subscriptionDiscountMonths: 5,
+          premiumTalentViewCredits: 1,
+        };
+        await setDoc(doc(db, "company_profiles", companyProfile.uid), earlyBirdProfile, { merge: true });
+        setCompanyProfile(earlyBirdProfile);
+      }
 
       await logSystemAction(
         "PROJECT_CREATE",
@@ -487,8 +514,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
 
       success("Project Created!", "Your project challenge is now live on the platform.");
+      return true;
     } catch (err: any) {
       handleSupabaseError(err, OperationType.WRITE, "projects");
+      error("프로젝트 등록 실패", err?.message || "입력 내용을 확인하고 다시 시도해 주세요.");
+      return false;
     }
   };
 
@@ -497,10 +527,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ) => {
     try {
       if (!studentProfile) throw new Error("학생 프로필을 불러오지 못했습니다. 다시 로그인해 주세요.");
-      const updated = {
+      const updated: StudentProfile = {
         ...studentProfile,
-        ...profile
+        ...profile,
       };
+      if (isEarlyBirdOpen() && updated.resumeUrl && updated.introVideoPath && !updated.earlyPioneerEligible) {
+        updated.earlyPioneerEligible = true;
+        updated.earlyPioneerQualifiedAt = Date.now();
+        updated.resumeConsultingCredits = 1;
+        updated.withdrawalFeePaybackWeeks = 4;
+      }
       if (profile.onboardingCompleted === true) {
         const validationErrors = getStudentCompletionErrors(updated);
         if (Object.keys(validationErrors).length > 0) throw new Error(firstValidationMessage(validationErrors));

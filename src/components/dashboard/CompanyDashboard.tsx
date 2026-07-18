@@ -5,6 +5,7 @@ import ApplicationManagement from "../company/ApplicationManagement";
 import EmployeeConversion from "../company/EmployeeConversion";
 import type { Application } from "../../types";
 import CompanyBankTransferPayment from "../company/CompanyBankTransferPayment";
+import CompanyProjectList from "../company/CompanyProjectList";
 
 interface CompanyDashboardProps {
   activeTab: string;
@@ -16,6 +17,7 @@ export default function CompanyDashboard({ activeTab, onNavigate }: CompanyDashb
   const [, setSelectedApplication] = useState<Application | null>(null);
 
   if (activeTab === "create-challenge") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><ProjectCreationWizard onNavigate={onNavigate} /></div>;
+  if (activeTab === "company-projects") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><CompanyProjectList onNavigate={onNavigate} /></div>;
   if (activeTab === "company-applications") {
     return (
       <div className="flex-1 overflow-y-auto bg-neutral-50 p-6">

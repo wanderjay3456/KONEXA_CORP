@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useLocale, type Locale } from "./LocaleContext";
 
 type TranslationCache = Record<string, string>;
@@ -109,7 +109,6 @@ export default function AutoTranslator() {
   const localeRef = useRef(locale);
   const runningRef = useRef(false);
   const rerunRef = useRef(false);
-  const [translating, setTranslating] = useState(false);
 
   useEffect(() => {
     localeRef.current = locale;
@@ -122,7 +121,6 @@ export default function AutoTranslator() {
         return;
       }
       runningRef.current = true;
-      setTranslating(true);
       try {
         const activeLocale = localeRef.current;
         const targets = collectTargets();
@@ -160,7 +158,6 @@ export default function AutoTranslator() {
         console.warn("[KONEXA] UI localization fallback unavailable:", error);
       } finally {
         runningRef.current = false;
-        setTranslating(false);
         if (rerunRef.current && !cancelled) {
           rerunRef.current = false;
           window.setTimeout(translatePage, 80);
@@ -183,10 +180,6 @@ export default function AutoTranslator() {
     };
   }, [locale]);
 
-  return translating ? (
-    <div data-no-translate className="fixed bottom-20 right-4 z-[80] rounded-full border border-neutral-200 bg-white/95 px-3 py-2 text-[10px] font-bold text-neutral-600 shadow-lg backdrop-blur md:bottom-4" role="status">
-      {locale === "ko" ? "번역 중…" : locale === "vi" ? "Đang dịch…" : "Translating…"}
-    </div>
-  ) : null;
+  return null;
 }
 
