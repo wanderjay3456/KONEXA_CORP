@@ -1,137 +1,135 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Award, BriefcaseBusiness, CheckCircle, Clock, FileText, Languages, LockKeyhole, Search, Shield, Sparkles, Video } from "lucide-react";
 import { useApp } from "../../context/AppContext";
-import { 
-  Search, Shield, Star, Award, Zap, Code, Mail, Github, 
-  Linkedin, Globe, Calendar, MapPin, CheckCircle, FileText,
-  ChevronRight, ArrowUpRight, TrendingUp, Sparkles, BookOpen, Clock, LockKeyhole
-} from "lucide-react";
-import { useToast } from "../ui/Toast";
+import { collection, onSnapshot } from "../../lib/supabaseStore";
+import { db } from "../../lib/supabaseAuth";
 import { isContactUnlocked, loadProtectedContact, requestIntroduction, type ProtectedContact } from "../../lib/trustOperations";
 import { maskedTalentName } from "../../lib/offPlatformGuard";
+import { useToast } from "../ui/Toast";
 
 interface StudentProfileReviewProps {
   studentId?: string | null;
   onNavigate: (tabId: string) => void;
 }
 
+interface TalentCard {
+  id: string;
+  degree?: string;
+  major?: string;
+  graduationYear?: string;
+  skills: string[];
+  languages: string[];
+  englishLevel?: string;
+  koreanLevel?: string;
+  careerInterests: string[];
+  preferredIndustry?: string;
+  preferredJob?: string;
+  availability?: string;
+  workPreference?: string;
+  timezone?: string;
+  trustScore: number;
+  completedProjects: number;
+  aiCareerReadiness: number;
+  aiEmployabilityScore: number;
+  portfolioAvailable: boolean;
+  resumeAvailable: boolean;
+  introVideoAvailable: boolean;
+  earlyPioneerEligible: boolean;
+  createdAt: number;
+}
+
+const numberValue = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
+const stringList = (value: unknown) => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+
 export default function StudentProfileReview({ studentId, onNavigate }: StudentProfileReviewProps) {
-  const { studentProfile, currentUser, companyProfile } = useApp();
+  const { currentUser, companyProfile } = useApp();
   const { success, error, info } = useToast();
-
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Seed list of student candidates for search indexing
-  const candidates = [
-    {
-      id: "usr_fndtn_konexa_99",
-      name: studentProfile?.name || "Protected Candidate",
-      degree: "B.S. Computer Science & Engineering",
-      graduationYear: "2027",
-      bio: studentProfile?.bio || "Full-stack enthusiast focused on building high-performance interactive interfaces and clean software architectures.",
-      skills: studentProfile?.skills || ["React", "TypeScript", "Node.js", "TailwindCSS", "Framer Motion"],
-      languages: ["English (Native)", "Korean (Fluent)", "Spanish (Intermediate)"],
-      certificates: ["Google Professional Cloud Architect", "AWS Certified Developer"],
-      trustScore: studentProfile?.trustScore || 82,
-      performanceScore: 94,
-      aiMatchScore: 96,
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120",
-      careerGoals: "Aims to specialize in React layout optimization, compiler optimizations, and robust global SaaS deployments.",
-      achievements: [
-        { name: "Sponsor Approved", desc: "First clean challenge compilation approved by Vercel partner", icon: Zap },
-        { name: "Top-Tier Optimizer", desc: "Maintained render performance below 10ms under heavy stress tests", icon: Award }
-      ],
-      badges: ["Alpha Builder", "Zero-Bug Hero", "Trust Node"],
-      timeline: [
-        { date: "July 2026", title: "Completed Vercel Core Challenge", desc: "Evaluated 96/100 by Gemini AI audit." },
-        { date: "June 2026", title: "Joined KONEXA Platform", desc: "Verified business credentials and credentials logs." },
-        { date: "March 2026", title: "Open Source Contributor", desc: "Vite layout rendering engine optimizer fork approved." }
-      ]
-    },
-    {
-      id: "std_2",
-      name: "Protected Candidate",
-      degree: "M.S. Software Engineering",
-      graduationYear: "2026",
-      bio: "Focusing on highly-concurrent distributed engines, database transaction modeling, and low-latency API architectures.",
-      skills: ["Go", "gRPC", "Redis", "Docker", "PostgreSQL", "Kubernetes", "TypeScript"],
-      languages: ["Korean (Native)", "English (Professional)"],
-      certificates: ["Certified Kubernetes Administrator (CKA)", "Professional Scrum Master"],
-      trustScore: 89,
-      performanceScore: 91,
-      aiMatchScore: 88,
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120",
-      careerGoals: "Aims to architect transactional data pipelines handling sub-millisecond sync layers at global scale.",
-      achievements: [
-        { name: "Distributed Champion", desc: "Implemented concurrent transaction isolation queue matching", icon: Award }
-      ],
-      badges: ["Kube Master", "Algorithmic Master"],
-      timeline: [
-        { date: "July 2026", title: "Completed Framer Syncer Milestone", desc: "Sync latency tested below 5ms." },
-        { date: "April 2026", title: "KAIST Lab research project", desc: "Authored sub-millisecond socket ring buffer specs." }
-      ]
-    },
-    {
-      id: "std_3",
-      name: "Protected Candidate",
-      degree: "B.S. Artificial Intelligence & Analytics",
-      graduationYear: "2026",
-      bio: "Passionate about large language model alignment, semantic vector embedding compression, and generative AI proxy layers.",
-      skills: ["Python", "PyTorch", "Transformers", "FastAPI", "React", "PostgreSQL"],
-      languages: ["Mandarin (Native)", "English (Bilingual)", "Japanese (Intermediate)"],
-      certificates: ["TensorFlow Developer Certificate", "DeepLearning.AI Generative AI Specialist"],
-      trustScore: 78,
-      performanceScore: 88,
-      aiMatchScore: 87,
-      avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=120",
-      careerGoals: "Seeking to build light-weight fine-tuning routines for enterprise workflow automation.",
-      achievements: [
-        { name: "LLM Architect", desc: "Fine-tuned 7B parameters with 40% memory latency savings", icon: Zap }
-      ],
-      badges: ["AI Pioneer", "Embeddings Champion"],
-      timeline: [
-        { date: "June 2026", title: "Completed Google Sidebar AI Challenge", desc: "Scored 91/100 by sponsor verification team." }
-      ]
-    }
-  ];
-
-  // Active student selection state
-  const [activeId, setActiveId] = useState(studentId || "usr_fndtn_konexa_99");
-
-  // Search logic
-  const filteredCandidates = candidates.filter(cand => {
-    const term = searchQuery.toLowerCase();
-    return cand.skills.some(s => s.toLowerCase().includes(term)) ||
-           cand.degree.toLowerCase().includes(term) ||
-           cand.languages.some(language => language.toLowerCase().includes(term));
-  });
-
-  const activeCand = candidates.find(c => c.id === activeId) || candidates[0];
+  const [candidates, setCandidates] = useState<TalentCard[]>([]);
+  const [activeId, setActiveId] = useState(studentId || "");
+  const [loading, setLoading] = useState(true);
   const [contactUnlocked, setContactUnlocked] = useState(false);
   const [protectedContact, setProtectedContact] = useState<ProtectedContact | null>(null);
 
+  useEffect(() => onSnapshot(collection(db, "talent_cards"), (snapshot) => {
+    const items: TalentCard[] = [];
+    snapshot.forEach((entry) => {
+      const data = entry.data();
+      items.push({
+        id: entry.id,
+        degree: typeof data.degree === "string" ? data.degree : undefined,
+        major: typeof data.major === "string" ? data.major : undefined,
+        graduationYear: typeof data.graduationYear === "string" ? data.graduationYear : undefined,
+        skills: stringList(data.skills),
+        languages: stringList(data.languages),
+        englishLevel: typeof data.englishLevel === "string" ? data.englishLevel : undefined,
+        koreanLevel: typeof data.koreanLevel === "string" ? data.koreanLevel : undefined,
+        careerInterests: stringList(data.careerInterests),
+        preferredIndustry: typeof data.preferredIndustry === "string" ? data.preferredIndustry : undefined,
+        preferredJob: typeof data.preferredJob === "string" ? data.preferredJob : undefined,
+        availability: typeof data.availability === "string" ? data.availability : undefined,
+        workPreference: typeof data.workPreference === "string" ? data.workPreference : undefined,
+        timezone: typeof data.timezone === "string" ? data.timezone : undefined,
+        trustScore: numberValue(data.trustScore),
+        completedProjects: numberValue(data.completedProjects),
+        aiCareerReadiness: numberValue(data.aiCareerReadiness),
+        aiEmployabilityScore: numberValue(data.aiEmployabilityScore),
+        portfolioAvailable: data.portfolioAvailable === true,
+        resumeAvailable: data.resumeAvailable === true,
+        introVideoAvailable: data.introVideoAvailable === true,
+        earlyPioneerEligible: data.earlyPioneerEligible === true,
+        createdAt: numberValue(data.createdAt),
+      });
+    });
+    items.sort((left, right) => Number(right.earlyPioneerEligible) - Number(left.earlyPioneerEligible)
+      || right.trustScore - left.trustScore
+      || right.createdAt - left.createdAt);
+    setCandidates(items);
+    setActiveId((current) => items.some((item) => item.id === (studentId || current)) ? (studentId || current) : (items[0]?.id || ""));
+    setLoading(false);
+  }, () => {
+    setCandidates([]);
+    setLoading(false);
+    error("인재 목록을 불러오지 못했습니다", "잠시 후 다시 시도해 주세요.");
+  }), [companyProfile?.verified, companyProfile?.verifiedStatus, error, studentId]);
+
+  const filteredCandidates = useMemo(() => {
+    const term = searchQuery.trim().toLowerCase();
+    if (!term) return candidates;
+    return candidates.filter((candidate) => [
+      candidate.degree,
+      candidate.major,
+      candidate.preferredIndustry,
+      candidate.preferredJob,
+      ...candidate.skills,
+      ...candidate.languages,
+      ...candidate.careerInterests,
+    ].some((value) => value?.toLowerCase().includes(term)));
+  }, [candidates, searchQuery]);
+
+  const activeCandidate = candidates.find((candidate) => candidate.id === activeId) || filteredCandidates[0] || candidates[0];
+
   useEffect(() => {
     let active = true;
-    if (!currentUser?.uid) {
+    setProtectedContact(null);
+    if (!currentUser?.uid || !activeCandidate?.id) {
       setContactUnlocked(false);
       return;
     }
-    void isContactUnlocked(currentUser.uid, activeCand.id)
-      .then(async (value) => {
-        if (!active) return;
-        setContactUnlocked(value);
-        setProtectedContact(value ? await loadProtectedContact(activeCand.id) : null);
-      })
-      .catch(() => { if (active) setContactUnlocked(false); });
+    void isContactUnlocked(currentUser.uid, activeCandidate.id).then(async (unlocked) => {
+      if (!active) return;
+      setContactUnlocked(unlocked);
+      setProtectedContact(unlocked ? await loadProtectedContact(activeCandidate.id) : null);
+    }).catch(() => { if (active) setContactUnlocked(false); });
     return () => { active = false; };
-  }, [activeCand.id, currentUser?.uid]);
-
-  const displayName = (candidate: typeof activeCand) => contactUnlocked && candidate.id === activeCand.id ? candidate.name : maskedTalentName(candidate.id);
+  }, [activeCandidate?.id, currentUser?.uid]);
 
   const handleIntroductionRequest = async () => {
+    if (!activeCandidate) return;
     if (!currentUser?.uid || currentUser.email === "guest@konexa.dev") return info("로그인이 필요합니다", "기업 계정으로 로그인한 뒤 소개를 요청해 주세요.");
     if (!companyProfile?.verified || companyProfile.verifiedStatus !== "Verified") return error("사업자 확인 필요", "사업자등록 확인이 완료된 기업만 소개를 요청할 수 있습니다.");
     try {
-      await requestIntroduction({ talentId: activeCand.id, purpose: "interview" });
+      await requestIntroduction({ talentId: activeCandidate.id, purpose: "interview" });
       success("소개 요청 접수", "연락처는 계약·양측 서명·국내 PG 대금 확보 후 공개됩니다.");
       onNavigate("trust-operations");
     } catch (cause) {
@@ -139,268 +137,50 @@ export default function StudentProfileReview({ studentId, onNavigate }: StudentP
     }
   };
 
-  const handleBookmarkToggle = (name: string) => {
-    success("Student Bookmarked", `${name} added to your Saved Students list.`);
-  };
+  if (loading) return <div className="rounded-3xl border border-neutral-200 bg-white p-10 text-sm text-neutral-500">검증된 인재 목록을 불러오는 중입니다.</div>;
+  if (!companyProfile?.verified || companyProfile.verifiedStatus !== "Verified") return <div className="rounded-3xl border border-neutral-200 bg-white p-10 text-center"><Shield className="mx-auto h-8 w-8 text-neutral-300" /><h1 className="mt-4 text-xl font-black text-neutral-900">사업자 확인 후 인재를 열람할 수 있습니다</h1><p className="mt-2 text-sm text-neutral-500">검증된 기업 계정에만 연락처가 제거된 최소 인재 카드가 제공됩니다.</p><button onClick={() => onNavigate("identity")} className="mt-5 rounded-xl bg-neutral-950 px-4 py-2.5 text-xs font-bold text-white">기업 인증 진행하기</button></div>;
+  if (!activeCandidate) return <div className="rounded-3xl border border-neutral-200 bg-white p-10 text-center"><Shield className="mx-auto h-8 w-8 text-neutral-300" /><h1 className="mt-4 text-xl font-black text-neutral-900">현재 공개 가능한 검증 인재가 없습니다</h1><p className="mt-2 text-sm text-neutral-500">필수 프로필을 완료한 실제 학생만 이곳에 표시됩니다.</p></div>;
 
-  return (
-    <div className="max-w-7xl mx-auto pb-12 space-y-6">
-      
-      {/* Search Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest block">
-            Talent Search Engine
-          </span>
-          <h1 className="font-display font-black text-3xl text-neutral-900 tracking-tight mt-1">
-            Dynamic Candidate Portfolios
-          </h1>
-          <p className="text-xs text-neutral-500 mt-1">
-            Browse verified students, inspect sandbox milestones, and review cross-examined scorecards.
-          </p>
-        </div>
-      </div>
+  const displayName = maskedTalentName(activeCandidate.id);
+  const languageLabels = [...activeCandidate.languages, activeCandidate.englishLevel && `English · ${activeCandidate.englishLevel}`, activeCandidate.koreanLevel && `한국어 · ${activeCandidate.koreanLevel}`].filter(Boolean) as string[];
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* Left Side: Candidates list & search indexing (4/12) */}
-        <div className="lg:col-span-4 bg-white border border-neutral-200 rounded-3xl p-5 shadow-xs space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="기술·전공·언어로 검색..."
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-hidden font-light"
-            />
+  return <div className="mx-auto max-w-7xl space-y-6 pb-12">
+    <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+      <div><span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">Verified talent directory</span><h1 className="mt-2 text-3xl font-black tracking-tight text-neutral-950">실제 검증 인재</h1><p className="mt-2 text-sm text-neutral-500">연락처와 직접 검색 정보는 계약 전까지 숨기고, 직무 역량과 검증 데이터만 제공합니다.</p></div>
+      <div className="relative w-full md:w-80"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" /><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="기술·전공·언어·희망직무 검색" className="w-full rounded-xl border border-neutral-200 bg-white py-3 pl-10 pr-4 text-sm outline-none focus:border-neutral-500" /></div>
+    </header>
+
+    <div className="grid gap-7 lg:grid-cols-[360px_1fr]">
+      <aside className="space-y-2 rounded-3xl border border-neutral-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between px-2 pb-2 text-[10px] font-bold uppercase tracking-wider text-neutral-400"><span>Matching results</span><span>{filteredCandidates.length}</span></div>
+        {filteredCandidates.length === 0 ? <p className="rounded-2xl bg-neutral-50 p-5 text-center text-xs text-neutral-500">검색 조건에 맞는 인재가 없습니다.</p> : filteredCandidates.map((candidate) => <button key={candidate.id} onClick={() => setActiveId(candidate.id)} className={`w-full rounded-2xl border p-4 text-left transition ${candidate.id === activeCandidate.id ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 bg-white hover:border-neutral-400"}`}>
+          <div className="flex items-center gap-2"><b className="text-sm">{maskedTalentName(candidate.id)}</b>{candidate.earlyPioneerEligible && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black text-amber-800">Early Pioneer</span>}</div>
+          <p className={`mt-1 text-xs ${candidate.id === activeCandidate.id ? "text-neutral-300" : "text-neutral-500"}`}>{candidate.major || candidate.degree || "전공 정보 검증 중"}{candidate.graduationYear ? ` · ${candidate.graduationYear}` : ""}</p>
+          <div className="mt-3 flex flex-wrap gap-1">{candidate.skills.slice(0, 4).map((skill) => <span key={skill} className={`rounded-lg px-2 py-1 text-[9px] ${candidate.id === activeCandidate.id ? "bg-white/10" : "bg-neutral-100"}`}>{skill}</span>)}</div>
+        </button>)}
+      </aside>
+
+      <main className="space-y-7 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm md:p-8">
+        <section className="flex flex-col justify-between gap-5 border-b border-neutral-100 pb-7 sm:flex-row">
+          <div><div className="flex flex-wrap items-center gap-2"><h2 className="text-2xl font-black text-neutral-950">{displayName}</h2><span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700"><CheckCircle className="h-3.5 w-3.5" />필수정보 검증</span>{activeCandidate.earlyPioneerEligible && <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-800"><Award className="h-3.5 w-3.5" />Early Pioneer</span>}</div><p className="mt-2 text-sm text-neutral-500">{[activeCandidate.degree, activeCandidate.major, activeCandidate.graduationYear && `${activeCandidate.graduationYear} 졸업(예정)`].filter(Boolean).join(" · ") || "학력 정보 검증 중"}</p>
+            {contactUnlocked ? <div className="mt-4 text-xs text-emerald-700">승인된 연락처: {protectedContact?.email || "관리자 확인 중"}</div> : <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-[10px] font-bold text-amber-800"><LockKeyhole className="h-3.5 w-3.5" />이름·이메일·전화번호·SNS·상세주소 비공개</div>}
           </div>
+          <div className="flex shrink-0 flex-col gap-2"><button onClick={handleIntroductionRequest} className="rounded-xl bg-neutral-950 px-4 py-2.5 text-xs font-bold text-white">소개·면접 요청하기</button><button onClick={() => onNavigate("trust-operations")} className="rounded-xl bg-teal-600 px-4 py-2.5 text-xs font-bold text-white">채용 제안하기</button></div>
+        </section>
 
-          <div className="space-y-2">
-            <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-wider block">Index matching results</span>
-            <div className="space-y-1.5">
-              {filteredCandidates.map((cand) => (
-                <div 
-                  key={cand.id}
-                  onClick={() => setActiveId(cand.id)}
-                  className={`p-3 rounded-2xl border text-xs flex gap-3 items-center transition-all cursor-pointer ${
-                    activeId === cand.id 
-                      ? "bg-neutral-950 border-neutral-950 text-white shadow-sm" 
-                      : "bg-white border-neutral-200 hover:border-neutral-300 text-neutral-800"
-                  }`}
-                >
-                  <img 
-                    src={cand.avatar} 
-                    alt={displayName(cand)}
-                    className="w-10 h-10 rounded-full object-cover shrink-0 border border-neutral-200/50"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-bold truncate">{displayName(cand)}</div>
-                    <div className={`text-[10px] truncate font-light ${activeId === cand.id ? "text-neutral-300" : "text-neutral-400"}`}>
-                      {cand.degree} · {cand.graduationYear}
-                    </div>
-                  </div>
-                  <div className={`text-[10px] font-mono font-black shrink-0 px-2 py-0.5 rounded-lg border ${
-                    activeId === cand.id 
-                      ? "bg-neutral-800 border-neutral-700 text-white" 
-                      : "bg-neutral-50 border-neutral-200 text-neutral-800"
-                  }`}>
-                    {cand.aiMatchScore}%
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <section className="grid gap-3 sm:grid-cols-4">{[
+          ["Trust score", `${activeCandidate.trustScore}/100`, Shield],
+          ["Career readiness", `${activeCandidate.aiCareerReadiness}/100`, Sparkles],
+          ["Employability", `${activeCandidate.aiEmployabilityScore}/100`, BriefcaseBusiness],
+          ["Completed", `${activeCandidate.completedProjects} projects`, CheckCircle],
+        ].map(([label, value, Icon]) => <div key={String(label)} className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4"><div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-neutral-400"><span>{label as string}</span><Icon className="h-4 w-4" /></div><b className="mt-3 block text-lg text-neutral-950">{value as string}</b></div>)}</section>
 
-        {/* Right Side: Beautiful Profile details (8/12) */}
-        <div className="lg:col-span-8 bg-white border border-neutral-200 rounded-3xl p-8 shadow-premium space-y-8">
-          
-          {/* Header Portfolio banner */}
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-6 pb-6 border-b border-neutral-100">
-            <div className="flex items-start gap-4">
-              <img 
-                src={activeCand.avatar} 
-                alt={displayName(activeCand)}
-                className="w-20 h-20 rounded-full object-cover border border-neutral-200 shadow-xs shrink-0" 
-              />
-              <div className="space-y-1.5">
-                <div className="flex items-center flex-wrap gap-2">
-                  <h2 className="font-display font-black text-2xl text-neutral-900 tracking-tight">{displayName(activeCand)}</h2>
-                  <span className="bg-blue-50 border border-blue-100 text-blue-600 text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded">
-                    Verified ID
-                  </span>
-                </div>
-                <p className="text-xs text-neutral-500 font-light font-sans">{activeCand.degree} · {activeCand.graduationYear} 졸업예정</p>
-                
-                {/* Contact information is released only after bilateral signature and secured payment. */}
-                {contactUnlocked ? <div className="flex items-center gap-3 pt-1 text-neutral-400">
-                  {protectedContact?.github && <a href={protectedContact.github} target="_blank" rel="noreferrer" className="hover:text-black transition-colors">
-                    <Github className="w-4 h-4" />
-                  </a>}
-                  {protectedContact?.linkedin && <a href={protectedContact.linkedin} target="_blank" rel="noreferrer" className="hover:text-black transition-colors">
-                    <Linkedin className="w-4 h-4" />
-                  </a>}
-                  {protectedContact?.portfolio && <a href={protectedContact.portfolio} target="_blank" rel="noreferrer" className="hover:text-black transition-colors">
-                    <Globe className="w-4 h-4" />
-                  </a>}
-                  {protectedContact?.email && <a href={`mailto:${protectedContact.email}`} className="hover:text-black transition-colors">
-                    <Mail className="w-4 h-4" />
-                  </a>}
-                </div> : (
-                  <div className="mt-2 flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-[10px] font-bold text-amber-800">
-                    <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
-                    이메일·전화번호·SNS·상세 포트폴리오 주소 비공개
-                  </div>
-                )}
-              </div>
-            </div>
+        <section className="grid gap-6 md:grid-cols-2"><div><h3 className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Skills</h3><div className="mt-3 flex flex-wrap gap-2">{activeCandidate.skills.length ? activeCandidate.skills.map((skill) => <span key={skill} className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs text-neutral-700">{skill}</span>) : <span className="text-xs text-neutral-400">등록된 기술이 없습니다.</span>}</div></div><div><h3 className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Languages</h3><div className="mt-3 flex flex-wrap gap-2">{languageLabels.length ? languageLabels.map((language) => <span key={language} className="inline-flex items-center gap-1 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs text-neutral-700"><Languages className="h-3.5 w-3.5" />{language}</span>) : <span className="text-xs text-neutral-400">등록된 언어가 없습니다.</span>}</div></div></section>
 
-            <div className="flex flex-col gap-2 w-full sm:w-auto shrink-0">
-              <button 
-                onClick={() => handleBookmarkToggle(displayName(activeCand))}
-                className="w-full px-4 py-2 bg-neutral-900 hover:bg-black text-white text-xs font-semibold rounded-xl cursor-pointer shadow-xs transition-all flex items-center justify-center gap-1.5"
-              >
-                <span>Save to Bookmarks</span>
-              </button>
-              <button 
-                onClick={handleIntroductionRequest}
-                className="w-full px-4 py-2 bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-200 text-xs font-semibold rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5"
-              >
-                <span>소개·면접 요청하기</span>
-              </button>
-              <button
-                onClick={() => onNavigate("trust-operations")}
-                className="w-full px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-xl cursor-pointer transition-all"
-              >
-                이 인재에게 채용 제안하기
-              </button>
-            </div>
-          </div>
+        <section className="grid gap-4 sm:grid-cols-3"><div className="rounded-2xl border border-neutral-200 p-4"><FileText className="h-5 w-5 text-neutral-500" /><b className="mt-3 block text-sm">포트폴리오</b><span className="mt-1 block text-xs text-neutral-500">{activeCandidate.portfolioAvailable ? "검증 자료 보유 · 소개 승인 후 공개" : "미등록"}</span></div><div className="rounded-2xl border border-neutral-200 p-4"><Video className="h-5 w-5 text-neutral-500" /><b className="mt-3 block text-sm">1분 소개 영상</b><span className="mt-1 block text-xs text-neutral-500">{activeCandidate.introVideoAvailable ? "업로드 완료 · 매칭 기업에만 공개" : "미등록"}</span></div><div className="rounded-2xl border border-neutral-200 p-4"><Clock className="h-5 w-5 text-neutral-500" /><b className="mt-3 block text-sm">업무 가능 조건</b><span className="mt-1 block text-xs text-neutral-500">{[activeCandidate.availability, activeCandidate.workPreference, activeCandidate.timezone].filter(Boolean).join(" · ") || "협의 필요"}</span></div></section>
 
-          {/* Core score cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-200/50 space-y-1">
-              <div className="flex justify-between items-center text-neutral-400 font-mono text-[9px] uppercase tracking-wider">
-                <span>Trust Score</span>
-                <Shield className="w-3.5 h-3.5 text-blue-600" />
-              </div>
-              <div className="text-xl font-display font-black text-neutral-900">{activeCand.trustScore}/100</div>
-              <div className="w-full bg-neutral-200 h-1 rounded-full overflow-hidden mt-2">
-                <div className="bg-blue-600 h-full" style={{ width: `${activeCand.trustScore}%` }} />
-              </div>
-            </div>
-
-            <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-200/50 space-y-1">
-              <div className="flex justify-between items-center text-neutral-400 font-mono text-[9px] uppercase tracking-wider">
-                <span>Performance Index</span>
-                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-              </div>
-              <div className="text-xl font-display font-black text-neutral-900">{activeCand.performanceScore}/100</div>
-              <div className="w-full bg-neutral-200 h-1 rounded-full overflow-hidden mt-2">
-                <div className="bg-amber-500 h-full" style={{ width: `${activeCand.performanceScore}%` }} />
-              </div>
-            </div>
-
-            <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-200/50 space-y-1">
-              <div className="flex justify-between items-center text-neutral-400 font-mono text-[9px] uppercase tracking-wider">
-                <span>AI Match Alignment</span>
-                <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-              </div>
-              <div className="text-xl font-display font-black text-neutral-900">{activeCand.aiMatchScore}%</div>
-              <div className="w-full bg-neutral-200 h-1 rounded-full overflow-hidden mt-2">
-                <div className="bg-teal-500 h-full" style={{ width: `${activeCand.aiMatchScore}%` }} />
-              </div>
-            </div>
-          </div>
-
-          {/* Profile Bio & Goals */}
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest block">01. Candidate Pitch</span>
-              <p className="text-xs text-neutral-700 leading-relaxed font-light">{activeCand.bio}</p>
-            </div>
-
-            <div className="space-y-1.5">
-              <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest block">02. Career Interests & Goals</span>
-              <p className="text-xs text-neutral-600 leading-relaxed font-light">{activeCand.careerGoals}</p>
-            </div>
-          </div>
-
-          {/* Tech stack & Languages */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest block">03. Technology Stack</span>
-              <div className="flex flex-wrap gap-1">
-                {activeCand.skills.map((skill, idx) => (
-                  <span key={idx} className="text-xs bg-neutral-50 border border-neutral-200 px-2.5 py-1 rounded-xl text-neutral-700 font-medium">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest block">04. Languages</span>
-              <div className="flex flex-wrap gap-1">
-                {activeCand.languages.map((lang, idx) => (
-                  <span key={idx} className="text-xs bg-neutral-50 border border-neutral-200 px-2.5 py-1 rounded-xl text-neutral-600 font-light">
-                    {lang}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Achievements & Badges */}
-          <div className="space-y-4">
-            <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest block">05. Achievements & Badges</span>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {activeCand.achievements.map((ach, idx) => {
-                const Icon = ach.icon;
-                return (
-                  <div key={idx} className="p-4 border border-neutral-200/60 rounded-2xl bg-neutral-50/30 flex gap-3 items-start">
-                    <div className="p-2 bg-neutral-100 rounded-xl text-neutral-800">
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-neutral-900">{ach.name}</h4>
-                      <p className="text-[10px] text-neutral-400 font-light leading-normal mt-0.5">{ach.desc}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex flex-wrap gap-1.5 pt-2">
-              {activeCand.badges.map((badge, idx) => (
-                <span key={idx} className="text-[9px] font-mono bg-teal-50 text-teal-600 border border-teal-100 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
-                  {badge}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Timeline Feed */}
-          <div className="space-y-4">
-            <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest block">06. Verification Timeline</span>
-            
-            <div className="space-y-4 border-l border-neutral-100 pl-4 ml-2">
-              {activeCand.timeline.map((item, idx) => (
-                <div key={idx} className="relative space-y-1">
-                  <div className="absolute -left-[21px] top-1.5 w-2 h-2 rounded-full bg-neutral-900 border border-white" />
-                  <div className="text-[10px] font-mono text-neutral-400">{item.date}</div>
-                  <h4 className="text-xs font-bold text-neutral-900">{item.title}</h4>
-                  <p className="text-xs text-neutral-500 font-light">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
-
-      </div>
+        <section><h3 className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Career direction</h3><p className="mt-3 text-sm leading-6 text-neutral-600">{[activeCandidate.preferredJob, activeCandidate.preferredIndustry, ...activeCandidate.careerInterests].filter(Boolean).join(" · ") || "희망 직무 정보를 준비 중입니다."}</p></section>
+      </main>
     </div>
-  );
+  </div>;
 }
