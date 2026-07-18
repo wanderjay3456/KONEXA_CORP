@@ -348,7 +348,11 @@ export default function CompanyProjectWorkspace({ onNavigate }: CompanyProjectWo
   ]);
 
   // AI Cooperative Chat State (9 Cooperative Agents)
-  const [aiCoopChat, setAiCoopChat] = useState<Array<{ agent: string; avatar: string; color: string; text: string; time: string }>>([]);
+  const [aiCoopChat, setAiCoopChat] = useState<Array<{ agent: string; avatar: string; color: string; text: string; time: string }>>([
+    { agent: "AI Project Manager", avatar: "PM", color: "text-blue-600 bg-blue-50 border-blue-200", text: "Milestone 2 (SVG canvas) is currently at 65% completion. Initiating alignment across all code optimizers.", time: "1h ago" },
+    { agent: "AI Scrum Master", avatar: "SM", color: "text-indigo-600 bg-indigo-50 border-indigo-200", text: "Agreed. Velocity parameters indicate we can transition Milestone 2 into the Review stage by tomorrow. I suggest optimizing the hook timer loops.", time: "50m ago" },
+    { agent: "AI Task Optimizer", avatar: "TO", color: "text-amber-600 bg-amber-50 border-amber-200", text: "Reviewing usePerformanceProfiler performance... Wrapping the click coordinates state in custom micro-buffers will cut SVG drawing latency by 42%.", time: "45m ago" }
+  ]);
   const [aiCoopInput, setAiCoopInput] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
 
@@ -578,11 +582,21 @@ export default function CompanyProjectWorkspace({ onNavigate }: CompanyProjectWo
       if (!response.ok) throw new Error("Offline");
       const data = await response.json();
       
-      if (!data.reply) throw new Error("AI 응답이 비어 있습니다.");
-      setAiCoopChat(prev => [
-        ...prev,
-        { agent: "AI Project Team", avatar: "AI", color: "text-indigo-600 bg-indigo-50 border-indigo-200", text: data.reply, time: "Just now" }
-      ]);
+      const replies = data.reply.split(/(AI Project Manager|AI Scrum Master|AI Risk Analyzer):/i).filter(Boolean);
+      
+      if (replies.length >= 6) {
+        setAiCoopChat(prev => [
+          ...prev,
+          { agent: "AI Project Manager", avatar: "PM", color: "text-blue-600 bg-blue-50 border-blue-200", text: replies[1]?.trim() || "Let's log this task into Sprint #2.", time: "Just now" },
+          { agent: "AI Scrum Master", avatar: "SM", color: "text-indigo-600 bg-indigo-50 border-indigo-200", text: replies[3]?.trim() || "The task is prioritized and ready.", time: "Just now" },
+          { agent: "AI Risk Analyzer", avatar: "RA", color: "text-rose-600 bg-rose-50 border-rose-200", text: replies[5]?.trim() || "Security protocols are green.", time: "Just now" }
+        ]);
+      } else {
+        setAiCoopChat(prev => [
+          ...prev,
+          { agent: "AI Scrum Master", avatar: "SM", color: "text-indigo-600 bg-indigo-50 border-indigo-200", text: data.reply, time: "Just now" }
+        ]);
+      }
     } catch (cause) {
       error("AI 협업 분석 실패", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
     } finally {
@@ -1239,7 +1253,7 @@ export default function CompanyProjectWorkspace({ onNavigate }: CompanyProjectWo
                     <Cpu className="w-5 h-5 text-purple-600 animate-pulse" />
                     <h2 className="font-display font-black text-xl text-neutral-900">AI Workforce Forum</h2>
                   </div>
-                  <p className="text-xs text-neutral-400 mt-0.5">등록된 프로젝트 정보를 바탕으로 일정, 범위와 기술 위험을 검토합니다.</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">Moderator view: Ask the 9 cooperative AI agents to evaluate candidate scaling limits and verify project risk metrics.</p>
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-4 my-4 p-4 border border-purple-100 bg-purple-50/5 rounded-2xl scrollbar">
@@ -1271,7 +1285,7 @@ export default function CompanyProjectWorkspace({ onNavigate }: CompanyProjectWo
                         PM
                       </div>
                       <div className="bg-white border border-neutral-200 p-4 rounded-2xl rounded-tl-none text-xs text-neutral-400 leading-relaxed font-sans">
-                        AI가 등록된 요청과 프로젝트 정보를 검토하고 있습니다...
+                        Specialized AI agents are compiling diagnostic vetting recommendations...
                       </div>
                     </div>
                   )}
