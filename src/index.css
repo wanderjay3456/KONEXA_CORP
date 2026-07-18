@@ -326,6 +326,12 @@ html[lang="vi"] :is(#app-workspace, [data-auto-translate], .konexa-light) :is(p,
   hyphens: auto;
 }
 
+/* Marketing copy should never introduce mechanical breaks such as "feed-back".
+   The landing layout has enough responsive width to wrap at real word boundaries. */
+html[lang] #landing-master :is(p, li) {
+  hyphens: none;
+}
+
 #app-workspace [class~="text-[9px]"],
 #app-workspace [class~="text-[10px]"],
 #app-workspace [class~="text-[11px]"],
