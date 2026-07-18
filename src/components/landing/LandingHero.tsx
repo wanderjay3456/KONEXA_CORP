@@ -20,8 +20,8 @@ interface LandingHeroProps { onEnterApp: (role: UserRole) => void }
 const copy = {
   ko: {
     nav: ["운영 구조", "진행 방식", "상호 리뷰"], login: "로그인", start: "시작하기",
-    badge: "한국 기업 × 글로벌 인재를 위한 신뢰 인프라",
-    title: <><span className="whitespace-nowrap">실제 프로젝트가</span><br/><em>다음 커리어를 증명합니다.</em></>,
+    badge: "Zero Risk, Top 1% Talent",
+    title: <><span className="whitespace-nowrap">이력서라는 도박을</span><br/><em>끝내다</em></>,
     lead: "KONEXA는 기업과 글로벌 학생이 실제 결과물을 함께 만들고, 계약·결제·평가 기록을 검증 가능한 경력으로 연결하는 프로젝트 플랫폼입니다.",
     studentCta: "학생으로 프로젝트 시작", companyCta: "기업 프로젝트 등록",
     note: "연락처는 계약·양측 서명·PG 대금 확보 전까지 보호됩니다.",
@@ -53,8 +53,8 @@ const copy = {
   },
   en: {
     nav: ["Trust system", "How it works", "Mutual reviews"], login: "Log in", start: "Get started",
-    badge: "Trust infrastructure for Korean teams and global talent",
-    title: <>Real work proves<br/><em>what comes next.</em></>,
+    badge: "Zero Risk, Top 1% Talent",
+    title: <>Korea’s Top Companies<br/><em>Are Looking for the Top 1%</em></>,
     lead: "KONEXA connects Korean companies with global students through real projects—and turns contracts, payments and outcomes into verified career evidence.",
     studentCta: "Start as talent", companyCta: "Post a company project",
     note: "Contact details stay protected until contract, signatures and PG payment verification are complete.",
@@ -86,8 +86,8 @@ const copy = {
   },
   vi: {
     nav: ["Cơ chế tin cậy", "Quy trình", "Đánh giá hai chiều"], login: "Đăng nhập", start: "Bắt đầu",
-    badge: "Hạ tầng tin cậy cho doanh nghiệp Hàn Quốc và nhân tài toàn cầu",
-    title: <>Dự án thực chứng minh<br/><em>bước tiến tiếp theo.</em></>,
+    badge: "Rủi ro bằng 0, nhân tài top 1%",
+    title: <>Doanh nghiệp hàng đầu Hàn Quốc<br/><em>đang tìm kiếm 1% nhân tài xuất sắc nhất</em></>,
     lead: "KONEXA kết nối doanh nghiệp Hàn Quốc với sinh viên quốc tế qua dự án thật, biến hợp đồng, thanh toán và kết quả thành hồ sơ nghề nghiệp được xác minh.",
     studentCta: "Bắt đầu với vai trò sinh viên", companyCta: "Đăng dự án doanh nghiệp",
     note: "Thông tin liên hệ được bảo vệ cho đến khi hoàn tất hợp đồng, chữ ký hai bên và xác minh thanh toán PG.",
