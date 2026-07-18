@@ -21,14 +21,14 @@ const copy = {
   ko: {
     nav: ["운영 구조", "진행 방식", "상호 리뷰"], login: "로그인", start: "시작하기",
     badge: "Zero Risk, Top 1% Talent",
-    title: <><span className="whitespace-nowrap">이력서라는 도박을</span><br/><em>끝내다</em></>,
+    title: <><span className="hero-title-line">해외 인재 채용의</span><span className="hero-title-line"><strong className="hero-keyword hero-keyword-risk">도박</strong>의 마침표</span></>,
     lead: "KONEXA는 기업과 글로벌 학생이 실제 결과물을 함께 만들고, 계약·결제·평가 기록을 검증 가능한 경력으로 연결하는 프로젝트 플랫폼입니다.",
     studentCta: "학생으로 프로젝트 시작", companyCta: "기업 프로젝트 등록",
     note: "연락처는 계약·양측 서명·PG 대금 확보 전까지 보호됩니다.",
     ledger: "PROJECT TRUST TRAIL", live: "VERIFIED FLOW", candidate: "글로벌 제품 디자이너",
     stages: [["프로필", "보호됨"], ["계약", "양측 서명"], ["결제", "PG 검증"], ["리뷰", "상호 봉인"]],
     ribbon: ["검증된 업무 범위", "연락처 보호", "상호 봉인 리뷰", "공식 채용 전환"],
-    systemEyebrow: "TRUST, BY DESIGN", systemTitle: "좋은 매칭보다 중요한 건,\n좋은 협업이 남는 방식입니다.",
+    systemEyebrow: "TRUST, BY DESIGN", systemTitle: "좋은 매칭보다 중요한 건, 좋은 협업이 남는 방식입니다.",
     systemLead: "누구를 만났는지만 보여주지 않습니다. 무엇에 합의했고, 어떻게 일했고, 어떤 결과를 만들었는지 거래의 전 과정을 기록합니다.",
     modules: [
       ["01", "연락처 단계별 공개", "기본계약과 결제 검증 전에는 개인 이메일·전화번호·SNS를 숨겨 무단 접촉을 줄입니다."],
@@ -36,9 +36,9 @@ const copy = {
       ["03", "국내 PG 결제 검증", "KONEXA가 자금을 직접 보관하지 않고 등록 PG·에스크로의 결제 상태를 기준으로 진행합니다."],
       ["04", "경력과 채용 전환", "완료 프로젝트는 Work Passport에 반영되고, 기업은 플랫폼 안에서 공식 채용을 제안할 수 있습니다."],
     ],
-    flowEyebrow: "A CLEAR WAY TO WORK", flowTitle: "복잡한 국경 간 협업을\n네 단계로 단순하게.",
+    flowEyebrow: "A CLEAR WAY TO WORK", flowTitle: "복잡한 국경 간 협업을 네 단계로 단순하게.",
     flow: [["01", "찾기", "검증된 기술·전공·언어·수행평가로 후보를 탐색합니다."], ["02", "합의하기", "업무 범위와 주급, 결과물, 검수 기준을 계약에 담습니다."], ["03", "안전하게 실행", "PG 결제 확인 후 협업을 시작하고 마일스톤을 기록합니다."], ["04", "증명하기", "양측 리뷰와 결과물이 경력 및 채용 전환의 근거가 됩니다."]],
-    reviewEyebrow: "MUTUAL REVIEW", reviewTitle: "먼저 쓴 사람이\n불리하지 않은 리뷰.",
+    reviewEyebrow: "MUTUAL REVIEW", reviewTitle: "먼저 쓴 사람이 불리하지 않은 리뷰.",
     reviewLead: "기업과 학생의 평가는 서로 봉인됩니다. 양쪽이 모두 제출한 뒤 동시에 공개되며, 검증된 결제 관계에서만 작성할 수 있습니다.",
     companyReview: "업무 범위가 명확했고 피드백이 빨랐어요.", studentReview: "기대보다 완성도가 높고 소통이 안정적이었어요.", sealed: "상대방 제출 전까지 봉인", revealed: "양측 제출 후 동시 공개",
     safeguards: ["검증 거래만 작성", "종료 전 상대 평가 비공개", "관리자 이의신청", "차별·보복 리뷰 제한"],
@@ -54,14 +54,14 @@ const copy = {
   en: {
     nav: ["Trust system", "How it works", "Mutual reviews"], login: "Log in", start: "Get started",
     badge: "Zero Risk, Top 1% Talent",
-    title: <>Korea’s Top Companies<br/><em>Are Looking for the Top 1%</em></>,
+    title: <><span className="hero-title-line">Top Companies</span><span className="hero-title-line">Looking for the <span className="hero-keep-together">Top <strong className="hero-keyword hero-keyword-percent">1%</strong></span></span></>,
     lead: "KONEXA connects Korean companies with global students through real projects—and turns contracts, payments and outcomes into verified career evidence.",
     studentCta: "Start as talent", companyCta: "Post a company project",
     note: "Contact details stay protected until contract, signatures and PG payment verification are complete.",
     ledger: "PROJECT TRUST TRAIL", live: "VERIFIED FLOW", candidate: "Global product designer",
     stages: [["Profile", "Protected"], ["Contract", "Two-signed"], ["Payment", "PG verified"], ["Review", "Double-blind"]],
     ribbon: ["Verified scope", "Protected contact", "Mutual reviews", "Direct hiring path"],
-    systemEyebrow: "TRUST, BY DESIGN", systemTitle: "A great match matters.\nA trustworthy trail matters more.",
+    systemEyebrow: "TRUST, BY DESIGN", systemTitle: "A great match matters. A trustworthy trail matters more.",
     systemLead: "We go beyond introductions. Every agreement, milestone, payment and outcome becomes part of a clear operating record.",
     modules: [
       ["01", "Progressive contact access", "Personal email, phone and social details stay hidden until the contract and payment gates are met."],
@@ -69,9 +69,9 @@ const copy = {
       ["03", "Domestic PG verification", "Funds are handled through a registered Korean PG or escrow provider—not held directly by KONEXA."],
       ["04", "From proof to hiring", "Completed work builds a Work Passport and gives companies a compliant path to make a direct offer."],
     ],
-    flowEyebrow: "A CLEAR WAY TO WORK", flowTitle: "Cross-border collaboration,\nmade clear in four steps.",
+    flowEyebrow: "A CLEAR WAY TO WORK", flowTitle: "Cross-border collaboration, made clear in four steps.",
     flow: [["01", "Discover", "Search by verified skills, study, language and performance."], ["02", "Agree", "Set weekly pay, scope, deliverables and review terms."], ["03", "Work safely", "Begin after payment verification and trace every milestone."], ["04", "Prove it", "Mutual reviews and outcomes become evidence for the next role."]],
-    reviewEyebrow: "MUTUAL REVIEW", reviewTitle: "A review system that\ndoesn't punish honesty.",
+    reviewEyebrow: "MUTUAL REVIEW", reviewTitle: "A review system that doesn't punish honesty.",
     reviewLead: "Company and talent reviews stay sealed. They are revealed simultaneously only after both sides submit, and only for verified paid relationships.",
     companyReview: "The scope was clear and feedback arrived quickly.", studentReview: "The quality exceeded expectations and communication stayed reliable.", sealed: "Sealed until the other side submits", revealed: "Revealed together after both submit",
     safeguards: ["Verified transactions only", "Hidden before both submit", "Admin appeal route", "Anti-bias moderation"],
@@ -87,14 +87,14 @@ const copy = {
   vi: {
     nav: ["Cơ chế tin cậy", "Quy trình", "Đánh giá hai chiều"], login: "Đăng nhập", start: "Bắt đầu",
     badge: "Rủi ro bằng 0, nhân tài top 1%",
-    title: <>Doanh nghiệp hàng đầu Hàn Quốc<br/><em>đang tìm kiếm 1% nhân tài xuất sắc nhất</em></>,
+    title: <><span className="hero-title-line">Doanh nghiệp hàng đầu</span><span className="hero-title-line">đang tìm kiếm <span className="hero-keep-together"><strong className="hero-keyword hero-keyword-percent">1%</strong> nhân tài</span></span></>,
     lead: "KONEXA kết nối doanh nghiệp Hàn Quốc với sinh viên quốc tế qua dự án thật, biến hợp đồng, thanh toán và kết quả thành hồ sơ nghề nghiệp được xác minh.",
     studentCta: "Bắt đầu với vai trò sinh viên", companyCta: "Đăng dự án doanh nghiệp",
     note: "Thông tin liên hệ được bảo vệ cho đến khi hoàn tất hợp đồng, chữ ký hai bên và xác minh thanh toán PG.",
     ledger: "HỒ SƠ TIN CẬY DỰ ÁN", live: "QUY TRÌNH XÁC MINH", candidate: "Nhà thiết kế sản phẩm toàn cầu",
     stages: [["Hồ sơ", "Được bảo vệ"], ["Hợp đồng", "Hai bên ký"], ["Thanh toán", "PG xác minh"], ["Đánh giá", "Niêm phong hai chiều"]],
     ribbon: ["Phạm vi xác minh", "Bảo vệ liên hệ", "Đánh giá hai chiều", "Lộ trình tuyển dụng"],
-    systemEyebrow: "TIN CẬY TỪ THIẾT KẾ", systemTitle: "Ghép đúng người là quan trọng.\nDấu vết hợp tác còn quan trọng hơn.",
+    systemEyebrow: "TIN CẬY TỪ THIẾT KẾ", systemTitle: "Ghép đúng người là quan trọng. Dấu vết hợp tác còn quan trọng hơn.",
     systemLead: "Không chỉ giới thiệu. Mọi thỏa thuận, cột mốc, thanh toán và kết quả đều được lưu thành hồ sơ vận hành rõ ràng.",
     modules: [
       ["01", "Mở liên hệ theo từng bước", "Email, số điện thoại và mạng xã hội được ẩn đến khi đủ điều kiện hợp đồng và thanh toán."],
@@ -102,9 +102,9 @@ const copy = {
       ["03", "Xác minh PG tại Hàn Quốc", "Tiền đi qua nhà cung cấp PG hoặc ký quỹ được cấp phép, không do KONEXA trực tiếp giữ."],
       ["04", "Từ minh chứng đến tuyển dụng", "Dự án hoàn thành xây dựng Work Passport và mở lộ trình đề nghị tuyển dụng chính thức."],
     ],
-    flowEyebrow: "QUY TRÌNH RÕ RÀNG", flowTitle: "Hợp tác xuyên biên giới,\nrõ ràng trong bốn bước.",
+    flowEyebrow: "QUY TRÌNH RÕ RÀNG", flowTitle: "Hợp tác xuyên biên giới, rõ ràng trong bốn bước.",
     flow: [["01", "Khám phá", "Tìm theo kỹ năng, ngành học, ngôn ngữ và kết quả đã xác minh."], ["02", "Thỏa thuận", "Chốt thù lao tuần, phạm vi, sản phẩm và tiêu chí duyệt."], ["03", "Làm việc an toàn", "Bắt đầu sau xác minh thanh toán và ghi lại từng cột mốc."], ["04", "Chứng minh", "Đánh giá hai chiều và kết quả tạo bằng chứng cho cơ hội tiếp theo."]],
-    reviewEyebrow: "ĐÁNH GIÁ HAI CHIỀU", reviewTitle: "Trung thực mà không\nsợ bất lợi.",
+    reviewEyebrow: "ĐÁNH GIÁ HAI CHIỀU", reviewTitle: "Trung thực mà không sợ bất lợi.",
     reviewLead: "Đánh giá của doanh nghiệp và sinh viên được niêm phong, chỉ mở đồng thời sau khi cả hai bên gửi và chỉ áp dụng cho giao dịch đã xác minh.",
     companyReview: "Phạm vi rõ ràng và phản hồi rất nhanh.", studentReview: "Chất lượng vượt kỳ vọng, giao tiếp ổn định.", sealed: "Niêm phong đến khi bên kia gửi", revealed: "Mở đồng thời sau khi cả hai gửi",
     safeguards: ["Chỉ giao dịch xác minh", "Ẩn trước khi đủ hai bên", "Có quy trình khiếu nại", "Kiểm duyệt chống thiên vị"],
@@ -190,7 +190,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
             <div className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-14 lg:grid-cols-[1.08fr_.92fr]">
               <motion.div style={{ y: heroCopyY, opacity: heroCopyOpacity }}>
                 <motion.div initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-8 inline-flex items-center gap-2 rounded-full border border-[#17342d]/10 bg-white/75 px-3 py-1.5 text-xs font-black uppercase tracking-[.1em] text-[#294d44]"><Sparkles className="h-3.5 w-3.5 text-[#4361ee]" />{t.badge}</motion.div>
-                <motion.h1 initial={reduced ? false : { opacity: 0, y: 25 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .85, ease: [.22, 1, .36, 1] }} className="max-w-4xl break-keep font-display text-[clamp(2.6rem,4.7vw,5.25rem)] font-bold leading-[1.01] tracking-[-.052em] text-[#17342d] [&_em]:font-normal [&_em]:not-italic [&_em]:text-[#4361ee]">{t.title}</motion.h1>
+                <motion.h1 initial={reduced ? false : { opacity: 0, y: 25 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .85, ease: [.22, 1, .36, 1] }} className="hero-heading max-w-4xl break-keep font-display font-bold tracking-[-.052em] text-[#17342d]">{t.title}</motion.h1>
                 <motion.p initial={reduced ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .16 }} className="mt-10 max-w-xl text-base leading-8 text-[#557069] sm:text-lg">{t.lead}</motion.p>
                 <motion.div initial={reduced ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .26 }} className="mt-10 flex flex-col gap-3 sm:flex-row">
                   <button onClick={() => setActiveRegisterRole(UserRole.STUDENT)} className="group inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-[#17342d] px-6 text-sm font-black text-white shadow-[0_18px_45px_rgba(23,52,45,.16)] transition hover:-translate-y-1"><UserRoundCheck className="h-4 w-4 text-[#b9f4d0]" />{t.studentCta}<ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></button>
