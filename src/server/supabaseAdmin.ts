@@ -61,7 +61,9 @@ class DocumentReference {
     const existing = options?.merge ? (await this.get()).data() || {} : {};
     const resolved = resolveValue(value, existing);
     const next = options?.merge ? { ...existing, ...resolved } : resolved;
-    const ownerCandidate = next.userId || next.studentId || next.companyId || next.supabaseUid;
+    const identityOwnedCollection = ["users", "student_profiles", "company_profiles"].includes(this.collectionName);
+    const ownerCandidate = next.userId || next.studentId || next.companyId || next.uid || next.supabaseUid
+      || (identityOwnedCollection ? this.id : null);
     const ownerId = typeof ownerCandidate === "string" && /^[0-9a-f-]{36}$/i.test(ownerCandidate) ? ownerCandidate : null;
     const { error } = await getSupabaseAdmin().from("app_records").upsert({
       collection_name: this.collectionName,
