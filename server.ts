@@ -11,6 +11,9 @@ import { registerAdminRoutes } from "./src/lib/adminBackend";
 import { registerBillingRoutes, registerStripeWebhook } from "./src/server/billing";
 import { isTransactionalEmailConfigured, registerEmailRoutes, registerResendWebhook } from "./src/server/email";
 import { registerPortOnePaymentRoutes, registerPortOneWebhook } from "./src/server/payments";
+import { registerTalentVideoRoutes } from "./src/server/talentVideos";
+import { isCompanyBankPaymentConfigured, registerCompanyBankPaymentRoutes } from "./src/server/companyBankPayments";
+import { isMorBillingConfigured, registerMorBillingRoutes, registerPaddleWebhook } from "./src/server/morBilling";
 import { requireAuth, requireRole, type AuthenticatedRequest } from "./src/server/security";
 import { adminDb, FieldValue } from "./src/server/supabaseAdmin";
 
@@ -84,6 +87,7 @@ export function createApp() {
   registerStripeWebhook(app);
   registerResendWebhook(app);
   registerPortOneWebhook(app);
+  registerPaddleWebhook(app);
 
   app.use(express.json({ limit: "12mb" }));
   app.use("/api", rateLimit({
@@ -175,6 +179,9 @@ export function createApp() {
   app.use("/api/billing", requireAuth, requireRole("company"));
   app.use("/api/payments", requireAuth, requireRole("company"));
   app.use("/api/email", requireAuth);
+  app.use("/api/talent-videos", requireAuth);
+  app.use("/api/company-bank-payments", requireAuth, requireRole("company"));
+  app.use("/api/student-billing", requireAuth, requireRole("student"));
   app.use("/api/admin", requireAuth, requireRole("admin"));
 
   // API Route: Health check
@@ -187,6 +194,8 @@ export function createApp() {
         gemini: Boolean(process.env.GEMINI_API_KEY),
         stripeSubscription: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET && process.env.STRIPE_PRICE_PRO_MONTHLY),
         portoneProjectPayments: Boolean(process.env.PORTONE_API_SECRET && process.env.PORTONE_WEBHOOK_SECRET && process.env.PORTONE_STORE_ID && process.env.PORTONE_CHANNEL_KEY),
+        companyBankTransfer: isCompanyBankPaymentConfigured(),
+        studentMorBilling: isMorBillingConfigured(),
         email: isTransactionalEmailConfigured(),
         modusign: Boolean(process.env.MODUSIGN_API_KEY && process.env.MODUSIGN_WEBHOOK_SECRET),
       },
@@ -412,6 +421,8 @@ export function createApp() {
   registerBillingRoutes(app);
   registerEmailRoutes(app);
   registerPortOnePaymentRoutes(app);
+  registerCompanyBankPaymentRoutes(app);
+  registerMorBillingRoutes(app);
 
   app.post("/api/gemini/analyze-pdf", async (req, res) => {
     try {
@@ -438,6 +449,7 @@ export function createApp() {
 
 
   // Register AI Workforce platform routes
+  registerTalentVideoRoutes(app);
   registerAiWorkforceRoutes(app, getAIClient);
 
   // Register Core Intelligence Platform routes

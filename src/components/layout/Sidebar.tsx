@@ -1,5 +1,5 @@
 import React from "react";
-import { BriefcaseBusiness, Code, FileText, Scale, User, Users2 } from "lucide-react";
+import { BriefcaseBusiness, Camera, Code, CreditCard, FileText, Landmark, Scale, User, Users2 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { UserRole } from "../../types";
 
@@ -13,6 +13,8 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const items = activeRole === UserRole.STUDENT
     ? [
         { id: "project-marketplace", label: "프로젝트", icon: Code },
+        { id: "intro-video", label: "1-minute intro", icon: Camera },
+        { id: "student-billing", label: "Student billing", icon: CreditCard },
         { id: "trust-operations", label: "계약·보호·리뷰", icon: Scale },
         { id: "profile", label: "프로필", icon: User },
       ]
@@ -21,6 +23,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           { id: "create-challenge", label: "프로젝트 등록", icon: BriefcaseBusiness },
           { id: "company-applications", label: "지원자 관리", icon: Users2 },
           { id: "employee-conversions", label: "채용 전환", icon: FileText },
+          { id: "company-payments", label: "Company payment", icon: Landmark },
           { id: "trust-operations", label: "계약·보호·리뷰", icon: Scale },
         ]
       : [{ id: "trust-operations", label: "운영·분쟁 관리", icon: Scale }];
