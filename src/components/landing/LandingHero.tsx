@@ -22,24 +22,24 @@ const copy = {
     nav: ["운영 구조", "진행 방식", "상호 리뷰"], login: "로그인", start: "시작하기",
     badge: "Zero Risk, Top 1% Talent",
     title: <><span className="hero-title-line">해외 인재 채용{" "}</span><span className="hero-title-line"><strong className="hero-keyword hero-keyword-risk">도박</strong>의 마침표</span></>,
-    lead: "KONEXA는 한국 기업과 글로벌 인재가 실제 프로젝트로 먼저 함께 일해 보는 플랫폼입니다. 계약, 결제, 평가 기록은 검증 가능한 경력으로 남습니다.",
+    lead: "KONEXA는 한국 기업과 글로벌 인재가 채용 전에 실제 프로젝트로 함께 일해 보는 플랫폼입니다. 계약부터 결제와 평가까지, 모든 협업 기록이 검증 가능한 경력으로 남습니다.",
     studentCta: "학생으로 시작하기", companyCta: "기업 공고 등록하기",
-    note: "양측이 계약서에 서명하고 PG 결제가 확인되기 전까지 연락처는 공개되지 않습니다.",
+    note: "계약 서명과 PG 결제가 모두 확인된 뒤, 협업에 필요한 연락처만 공개됩니다.",
     ledger: "프로젝트 신뢰 기록", live: "검증 완료", relationship: "협업 기록", candidate: "글로벌 제품 디자이너",
     stages: [["프로필", "정보 보호"], ["계약", "양측 서명"], ["결제", "PG 확인"], ["리뷰", "동시 공개"]],
     ribbon: ["명확한 업무 범위", "연락처 보호", "공정한 상호 리뷰", "정식 채용 전환"],
-    systemEyebrow: "TRUST, BY DESIGN", systemTitle: "좋은 매칭은 시작일 뿐입니다. 신뢰할 수 있는 협업 기록이 남아야 합니다.",
-    systemLead: "KONEXA는 단순히 인재를 소개하는 데서 끝나지 않습니다. 합의한 업무 범위부터 마일스톤, 결제, 최종 결과까지 협업의 전 과정을 기록합니다.",
+    systemEyebrow: "TRUST, BY DESIGN", systemTitle: "좋은 매칭은 시작입니다. 신뢰할 수 있는 협업 기록까지 남깁니다.",
+    systemLead: "업무 범위, 마일스톤, 결제, 결과물을 한곳에 기록해 협업 과정을 투명하게 확인할 수 있습니다.",
     modules: [
-      ["01", "연락처는 필요한 시점에 공개", "계약과 결제가 확인되기 전에는 개인 이메일, 전화번호, SNS 계정을 공개하지 않아 무단 접촉을 줄입니다."],
-      ["02", "업무 범위를 먼저 합의", "업무를 시작하기 전에 결과물, 수정 횟수, 검수 기간, 추가 업무 기준을 합의하고 전자서명으로 남깁니다."],
-      ["03", "등록된 국내 PG로 결제 확인", "KONEXA가 대금을 직접 보관하지 않습니다. 등록된 국내 PG·에스크로 사업자의 결제 확인을 기준으로 프로젝트를 진행합니다."],
-      ["04", "프로젝트 경험을 채용으로 연결", "완료된 프로젝트는 Work Passport에 기록됩니다. 기업은 플랫폼 안에서 정식 채용 제안도 보낼 수 있습니다."],
+      ["01", "연락처는 계약 후 공개", "계약과 결제가 확인되기 전에는 이메일, 전화번호, SNS를 숨겨 무단 접촉을 줄입니다."],
+      ["02", "업무 범위를 먼저 합의", "시작 전에 결과물, 수정 횟수, 검수 기간, 추가 업무 기준을 합의하고 서명으로 남깁니다."],
+      ["03", "국내 PG 결제 확인 후 시작", "KONEXA가 대금을 보관하지 않습니다. 등록된 국내 PG·에스크로의 결제 확인 후 프로젝트를 시작합니다."],
+      ["04", "프로젝트를 채용 기회로 연결", "완료된 프로젝트는 Work Passport에 남고, 기업은 플랫폼 안에서 정식 채용을 제안할 수 있습니다."],
     ],
-    flowEyebrow: "A CLEAR WAY TO WORK", flowTitle: "국경을 넘는 협업도, 네 단계면 명확합니다.",
-    flow: [["01", "인재 찾기", "검증된 기술, 전공, 언어 능력, 프로젝트 평가를 바탕으로 인재를 찾습니다."], ["02", "조건 합의하기", "주급, 업무 범위, 결과물, 검수 기준을 계약서에 명확히 담습니다."], ["03", "안전하게 협업하기", "PG 결제가 확인되면 협업을 시작하고, 마일스톤마다 진행 상황을 기록합니다."], ["04", "경력으로 증명하기", "결과물과 양측의 리뷰가 다음 프로젝트와 채용을 위한 경력 증명이 됩니다."]],
-    reviewEyebrow: "MUTUAL REVIEW", reviewTitle: "솔직하게 써도 불이익 없는 리뷰.",
-    reviewLead: "기업과 인재의 리뷰는 양쪽이 모두 제출할 때까지 비공개로 보관됩니다. 검증된 유료 프로젝트에서만 작성할 수 있으며, 제출이 끝나면 동시에 공개됩니다.",
+    flowEyebrow: "A CLEAR WAY TO WORK", flowTitle: "국경을 넘는 협업, 네 단계로 명확해집니다.",
+    flow: [["01", "인재 찾기", "검증된 기술, 전공, 언어 능력과 프로젝트 평가로 인재를 찾습니다."], ["02", "조건 합의하기", "주급, 업무 범위, 결과물과 검수 기준을 하나의 계약서에 담습니다."], ["03", "안전하게 협업하기", "결제가 확인되면 시작하고, 마일스톤마다 진행 상황을 기록합니다."], ["04", "경력으로 증명하기", "결과물과 상호 리뷰가 다음 프로젝트와 채용을 위한 경력이 됩니다."]],
+    reviewEyebrow: "MUTUAL REVIEW", reviewTitle: "리뷰는 솔직하게, 공개는 공정하게.",
+    reviewLead: "한쪽이 먼저 작성해도 상대방은 볼 수 없습니다. 검증된 유료 프로젝트의 리뷰만 받고, 양쪽 제출이 끝나면 동시에 공개합니다.",
     companyReviewLabel: "기업이 남긴 리뷰", talentReviewLabel: "인재가 남긴 리뷰",
     companyReview: "업무 범위가 명확했고 필요한 피드백도 빠르게 받을 수 있었어요.", studentReview: "기대 이상의 결과물을 받았고, 프로젝트 내내 소통도 원활했어요.", sealed: "상대방이 제출할 때까지 비공개", revealed: "양쪽 제출 후 동시에 공개",
     safeguards: ["검증된 프로젝트만 작성", "양쪽 제출 전까지 비공개", "관리자 이의신청 지원", "차별·보복성 리뷰 제한"],
@@ -62,8 +62,8 @@ const copy = {
     ledger: "PROJECT TRUST RECORD", live: "VERIFIED", relationship: "RELATIONSHIP", candidate: "Global product designer",
     stages: [["Profile", "Protected"], ["Contract", "Both signed"], ["Payment", "Verified"], ["Reviews", "Released together"]],
     ribbon: ["Clear scope", "Private contact details", "Fair mutual reviews", "Direct hiring path"],
-    systemEyebrow: "TRUST, BY DESIGN", systemTitle: "A strong match is only the beginning. The work should leave a trusted record.",
-    systemLead: "KONEXA goes beyond introductions. We document the full collaboration—from agreed scope and milestones to payment and final delivery.",
+    systemEyebrow: "TRUST, BY DESIGN", systemTitle: "A strong match is the start. A trusted work record is what lasts.",
+    systemLead: "Scope, milestones, payments, and deliverables stay in one place, so both sides can follow the work with confidence.",
     modules: [
       ["01", "Contact details shared at the right time", "Personal email, phone, and social profiles stay private until the agreement is signed and payment is verified."],
       ["02", "Scope agreed before work begins", "Deliverables, revision limits, review periods, and extra-work terms are agreed first and captured with e-signatures."],
@@ -72,8 +72,8 @@ const copy = {
     ],
     flowEyebrow: "A CLEAR WAY TO WORK", flowTitle: "Cross-border collaboration, clear in four steps.",
     flow: [["01", "Find the right talent", "Search by verified skills, field of study, language ability, and project reviews."], ["02", "Agree on the terms", "Put weekly pay, scope, deliverables, and review criteria into one clear agreement."], ["03", "Work with protection", "Start after payment is verified, then record progress at every milestone."], ["04", "Turn the work into proof", "Deliverables and mutual reviews become verified experience for the next project or role."]],
-    reviewEyebrow: "MUTUAL REVIEW", reviewTitle: "Honest reviews, without the pressure.",
-    reviewLead: "Company and talent reviews remain private until both sides submit. Reviews are available only for verified paid projects and are released at the same time.",
+    reviewEyebrow: "MUTUAL REVIEW", reviewTitle: "Write honestly. Publish fairly.",
+    reviewLead: "Neither side can see the other review before submitting. Only verified paid projects can be reviewed, and both reviews go live together.",
     companyReviewLabel: "COMPANY REVIEW", talentReviewLabel: "TALENT REVIEW",
     companyReview: "The scope was clear, and I received useful feedback quickly.", studentReview: "The final work exceeded our expectations, and communication stayed smooth throughout.", sealed: "Private until the other side submits", revealed: "Released when both sides submit",
     safeguards: ["Verified projects only", "Private until both submit", "Admin-supported appeals", "Protection from biased or retaliatory reviews"],
@@ -96,8 +96,8 @@ const copy = {
     ledger: "HỒ SƠ DỰ ÁN ĐÃ XÁC THỰC", live: "ĐÃ XÁC THỰC", relationship: "QUAN HỆ HỢP TÁC", candidate: "Nhà thiết kế sản phẩm quốc tế",
     stages: [["Hồ sơ", "Được bảo vệ"], ["Hợp đồng", "Hai bên đã ký"], ["Thanh toán", "Đã xác nhận"], ["Đánh giá", "Công bố cùng lúc"]],
     ribbon: ["Phạm vi rõ ràng", "Bảo mật liên hệ", "Đánh giá công bằng", "Lộ trình tuyển dụng chính thức"],
-    systemEyebrow: "TIN CẬY NGAY TỪ THIẾT KẾ", systemTitle: "Tìm đúng người mới chỉ là bước đầu. Điều quan trọng là cả quá trình hợp tác đều đáng tin cậy.",
-    systemLead: "KONEXA không dừng lại ở việc giới thiệu ứng viên. Toàn bộ quá trình—từ phạm vi công việc, cột mốc và thanh toán đến kết quả cuối cùng—đều được ghi nhận rõ ràng.",
+    systemEyebrow: "TIN CẬY NGAY TỪ THIẾT KẾ", systemTitle: "Tìm đúng người là bước khởi đầu. Hồ sơ hợp tác đáng tin cậy mới là điều còn lại.",
+    systemLead: "Phạm vi công việc, cột mốc, thanh toán và sản phẩm bàn giao được lưu tại một nơi để hai bên dễ dàng theo dõi.",
     modules: [
       ["01", "Chỉ chia sẻ liên hệ khi cần thiết", "Email, số điện thoại và tài khoản mạng xã hội được giữ kín cho đến khi hợp đồng và thanh toán được xác nhận."],
       ["02", "Thống nhất phạm vi trước khi bắt đầu", "Sản phẩm bàn giao, số lần chỉnh sửa, thời hạn duyệt và chi phí phát sinh được thống nhất và ký điện tử trước khi làm việc."],
@@ -106,8 +106,8 @@ const copy = {
     ],
     flowEyebrow: "QUY TRÌNH RÕ RÀNG", flowTitle: "Hợp tác xuyên biên giới chỉ trong bốn bước rõ ràng.",
     flow: [["01", "Tìm đúng ứng viên", "Tìm kiếm dựa trên kỹ năng, ngành học, ngoại ngữ và đánh giá dự án đã được xác thực."], ["02", "Thống nhất điều khoản", "Ghi rõ mức thù lao theo tuần, phạm vi công việc, sản phẩm bàn giao và tiêu chí nghiệm thu trong hợp đồng."], ["03", "Hợp tác an toàn", "Bắt đầu sau khi thanh toán được xác nhận và ghi lại tiến độ ở từng cột mốc."], ["04", "Biến kết quả thành kinh nghiệm", "Sản phẩm bàn giao và đánh giá hai chiều trở thành minh chứng cho dự án hoặc cơ hội việc làm tiếp theo."]],
-    reviewEyebrow: "ĐÁNH GIÁ HAI CHIỀU", reviewTitle: "Đánh giá trung thực mà không lo bất lợi.",
-    reviewLead: "Đánh giá của doanh nghiệp và ứng viên được giữ kín cho đến khi cả hai bên hoàn tất. Chỉ dự án có thanh toán đã xác thực mới được đánh giá, và hai nhận xét sẽ được công bố cùng lúc.",
+    reviewEyebrow: "ĐÁNH GIÁ HAI CHIỀU", reviewTitle: "Đánh giá trung thực, công bố công bằng.",
+    reviewLead: "Không bên nào xem được đánh giá trước khi tự hoàn tất. Chỉ dự án trả phí đã xác thực mới được đánh giá, và hai nhận xét được công bố cùng lúc.",
     companyReviewLabel: "ĐÁNH GIÁ TỪ DOANH NGHIỆP", talentReviewLabel: "ĐÁNH GIÁ TỪ ỨNG VIÊN",
     companyReview: "Phạm vi công việc rất rõ ràng và tôi luôn nhận được phản hồi kịp thời.", studentReview: "Kết quả vượt mong đợi và quá trình trao đổi luôn suôn sẻ.", sealed: "Giữ kín đến khi bên còn lại hoàn tất", revealed: "Công bố cùng lúc khi cả hai bên hoàn tất",
     safeguards: ["Chỉ dành cho dự án đã xác thực", "Giữ kín đến khi cả hai hoàn tất", "Có quy trình khiếu nại", "Hạn chế đánh giá thiên vị hoặc trả đũa"],
@@ -218,18 +218,18 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
           <EarlyBirdCampaign locale={locale} onStudent={() => setActiveRegisterRole(UserRole.STUDENT)} onCompany={() => setActiveRegisterRole(UserRole.COMPANY)} />
 
           <section id="system" className="px-5 py-24 sm:px-8 lg:py-36"><div className="mx-auto max-w-7xl">
-            <Reveal className="grid gap-9 lg:grid-cols-[.7fr_1.3fr]"><div className="font-mono text-[10px] font-bold tracking-[.18em] text-[#4361ee]">01 / {t.systemEyebrow}</div><div><h2 className="whitespace-pre-line font-display text-3xl font-bold leading-[1.1] tracking-[-.04em] sm:text-5xl">{t.systemTitle}</h2><p className="mt-7 max-w-2xl text-base leading-8 text-[#617972]">{t.systemLead}</p></div></Reveal>
-            <div className="mt-16 grid gap-x-8 gap-y-4 md:grid-cols-2">{t.modules.map(([number, title, body], index) => { const Icon = modules[index]; return <Reveal key={number} delay={index * .05} className={`group border-t border-[#17342d]/15 py-8 ${index % 2 ? "md:translate-y-14" : ""}`}><div className="flex items-start gap-5"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#e9edff] text-[#4361ee]"><Icon className="h-5 w-5" /></span><div><span className="font-mono text-[9px] font-bold text-[#8b9a95]">{number}</span><h3 className="mt-2 font-display text-xl font-bold tracking-[-.025em]">{title}</h3><p className="mt-3 text-sm leading-7 text-[#667c76]">{body}</p></div></div></Reveal>})}</div>
+            <Reveal className="grid gap-8 lg:grid-cols-[.8fr_1.2fr] lg:gap-14"><div className="font-mono text-[10px] font-bold tracking-[.18em] text-[#4361ee]">01 / {t.systemEyebrow}</div><div><h2 className="max-w-4xl font-display text-3xl font-bold leading-[1.1] tracking-[-.04em] sm:text-5xl">{t.systemTitle}</h2><p className="mt-6 max-w-2xl text-base font-medium leading-8 text-[#48645d]">{t.systemLead}</p></div></Reveal>
+            <div className="mt-14 grid gap-x-8 gap-y-4 md:grid-cols-2">{t.modules.map(([number, title, body], index) => { const Icon = modules[index]; return <Reveal key={number} delay={index * .05} className={`group border-t border-[#17342d]/15 py-8 ${index % 2 ? "md:translate-y-10" : ""}`}><div className="flex items-start gap-5"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#e9edff] text-[#4361ee]"><Icon className="h-5 w-5" /></span><div><span className="font-mono text-[9px] font-bold text-[#748781]">{number}</span><h3 className="mt-2 font-display text-xl font-bold tracking-[-.025em]">{title}</h3><p className="mt-3 text-[15px] leading-7 text-[#506962]">{body}</p></div></div></Reveal>})}</div>
           </div></section>
 
           <section id="workflow" className="rounded-t-[3rem] bg-[#eaf0ff] px-5 py-24 sm:px-8 lg:py-32"><div className="mx-auto max-w-7xl">
-            <Reveal><div className="font-mono text-[10px] font-bold tracking-[.18em] text-[#4361ee]">02 / {t.flowEyebrow}</div><h2 className="mt-6 whitespace-pre-line font-display text-3xl font-bold leading-[1.1] tracking-[-.04em] sm:text-5xl">{t.flowTitle}</h2></Reveal>
-            <div className="mt-14 grid gap-3 lg:grid-cols-4">{t.flow.map(([number, title, body], index) => <Reveal key={number} delay={index * .07} className="min-h-[270px] rounded-[1.8rem] bg-[#fffefb] p-6 shadow-[0_12px_36px_rgba(67,97,238,.06)]"><div className="font-display text-4xl font-light tracking-[-.05em] text-[#aab6ef]">{number}</div><h3 className="mt-14 font-display text-xl font-bold">{title}</h3><p className="mt-4 text-sm leading-7 text-[#657773]">{body}</p></Reveal>)}</div>
+            <Reveal><div className="font-mono text-[10px] font-bold tracking-[.18em] text-[#4361ee]">02 / {t.flowEyebrow}</div><h2 className="mt-6 max-w-5xl font-display text-3xl font-bold leading-[1.1] tracking-[-.04em] sm:text-5xl">{t.flowTitle}</h2></Reveal>
+            <div className="mt-14 grid gap-3 lg:grid-cols-4">{t.flow.map(([number, title, body], index) => <Reveal key={number} delay={index * .07} className="min-h-[250px] rounded-[1.8rem] bg-[#fffefb] p-6 shadow-[0_12px_36px_rgba(67,97,238,.06)]"><div className="font-display text-4xl font-light tracking-[-.05em] text-[#8f9fe7]">{number}</div><h3 className="mt-10 font-display text-xl font-bold">{title}</h3><p className="mt-4 text-[15px] leading-7 text-[#506962]">{body}</p></Reveal>)}</div>
           </div></section>
 
-          <section id="reviews" className="bg-[#17342d] px-5 py-24 text-white sm:px-8 lg:py-36"><div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[.85fr_1.15fr] lg:items-center">
-            <Reveal><div className="font-mono text-xs font-bold tracking-[.16em] text-[#b9f4d0]">03 / {t.reviewEyebrow}</div><h2 className="mt-6 whitespace-pre-line font-display text-3xl font-bold leading-[1.1] tracking-[-.04em] sm:text-5xl">{t.reviewTitle}</h2><p className="mt-8 max-w-xl text-base leading-8 text-white/80">{t.reviewLead}</p><div className="mt-9 grid grid-cols-2 gap-2">{t.safeguards.map(item => <div key={item} className="flex items-center gap-2 rounded-full border border-white/20 px-3 py-2 text-xs font-bold text-white/85"><Check className="h-3 w-3 text-[#b9f4d0]" />{item}</div>)}</div></Reveal>
-            <Reveal className="relative min-h-[470px]" delay={.1}><div className="absolute inset-0 rounded-full bg-[#4361ee]/20 blur-3xl" /><div className="review-card absolute left-0 top-4 w-[82%] -rotate-3 rounded-[2rem] bg-[#f9f5e9] p-6 text-[#17342d] sm:p-8"><div className="flex justify-between"><span className="text-xs font-black">{t.companyReviewLabel}</span><div className="flex text-[#ff9d5c]">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}</div></div><p className="mt-10 font-display text-xl font-bold leading-8">“{t.companyReview}”</p><div className="mt-8 flex items-center gap-2 text-[10px] font-bold text-[#748781]"><LockKeyhole className="h-3.5 w-3.5" />{t.sealed}</div></div><div className="review-card absolute bottom-0 right-0 w-[82%] rotate-3 rounded-[2rem] bg-[#dfe6ff] p-6 text-[#17342d] shadow-[0_30px_70px_rgba(0,0,0,.22)] sm:p-8"><div className="flex justify-between"><span className="text-xs font-black">{t.talentReviewLabel}</span><BadgeCheck className="h-5 w-5 text-[#4361ee]" /></div><p className="mt-10 font-display text-xl font-bold leading-8">“{t.studentReview}”</p><div className="mt-8 flex items-center gap-2 text-[10px] font-bold text-[#4361ee]"><Globe2 className="h-3.5 w-3.5" />{t.revealed}</div></div></Reveal>
+          <section id="reviews" className="bg-[#17342d] px-5 py-24 text-white sm:px-8 lg:py-36"><div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+            <Reveal><div className="font-mono text-xs font-bold tracking-[.16em] text-[#b9f4d0]">03 / {t.reviewEyebrow}</div><h2 className="mt-6 max-w-xl font-display text-3xl font-bold leading-[1.1] tracking-[-.04em] sm:text-5xl">{t.reviewTitle}</h2><p className="mt-7 max-w-xl text-base font-medium leading-8 text-white/85">{t.reviewLead}</p><div className="mt-8 grid grid-cols-1 gap-2 sm:grid-cols-2">{t.safeguards.map(item => <div key={item} className="flex items-center gap-2 rounded-full border border-white/25 px-3 py-2 text-xs font-bold text-white/90"><Check className="h-3 w-3 text-[#b9f4d0]" />{item}</div>)}</div></Reveal>
+            <Reveal className="relative grid gap-4 sm:min-h-[470px]" delay={.1}><div className="absolute inset-0 rounded-full bg-[#4361ee]/20 blur-3xl" /><div className="review-card relative w-full -rotate-1 rounded-[2rem] bg-[#f9f5e9] p-6 text-[#17342d] sm:absolute sm:left-0 sm:top-4 sm:w-[82%] sm:-rotate-3 sm:p-8"><div className="flex justify-between"><span className="text-xs font-black">{t.companyReviewLabel}</span><div className="flex text-[#ff9d5c]">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}</div></div><p className="mt-7 font-display text-lg font-bold leading-7 sm:mt-10 sm:text-xl sm:leading-8">“{t.companyReview}”</p><div className="mt-6 flex items-center gap-2 text-[10px] font-bold text-[#748781] sm:mt-8"><LockKeyhole className="h-3.5 w-3.5" />{t.sealed}</div></div><div className="review-card relative w-full rotate-1 rounded-[2rem] bg-[#dfe6ff] p-6 text-[#17342d] shadow-[0_30px_70px_rgba(0,0,0,.22)] sm:absolute sm:bottom-0 sm:right-0 sm:w-[82%] sm:rotate-3 sm:p-8"><div className="flex justify-between"><span className="text-xs font-black">{t.talentReviewLabel}</span><BadgeCheck className="h-5 w-5 text-[#4361ee]" /></div><p className="mt-7 font-display text-lg font-bold leading-7 sm:mt-10 sm:text-xl sm:leading-8">“{t.studentReview}”</p><div className="mt-6 flex items-center gap-2 text-[10px] font-bold text-[#4361ee] sm:mt-8"><Globe2 className="h-3.5 w-3.5" />{t.revealed}</div></div></Reveal>
           </div></section>
 
           <section className="px-5 py-24 sm:px-8 lg:py-32"><div className="mx-auto max-w-5xl">
