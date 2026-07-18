@@ -101,6 +101,11 @@ export interface StudentProfile {
   aiAnalysis?: AiProfileAnalysis;
   aiCareerReadiness?: number;
   aiEmployabilityScore?: number;
+  introVideoPath?: string | null;
+  introVideoDurationSeconds?: number | null;
+  introVideoMimeType?: string | null;
+  introVideoFileName?: string | null;
+  introVideoUpdatedAt?: number | null;
   aiAnalyzedAt?: number;
 }
 

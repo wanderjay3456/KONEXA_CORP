@@ -5,7 +5,8 @@ export type PrivateStorageBucket =
   | "resumes"
   | "identity-documents"
   | "business-documents"
-  | "project-deliverables";
+  | "project-deliverables"
+  | "student-intro-videos";
 
 function safeFileName(name: string) {
   const normalized = name.normalize("NFKC").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-");
@@ -26,6 +27,7 @@ export async function uploadPrivateFile(
     "identity-documents": { max: 10 * 1024 * 1024, types: ["application/pdf", "image/jpeg", "image/png"] },
     "business-documents": { max: 10 * 1024 * 1024, types: ["application/pdf", "image/jpeg", "image/png"] },
     "project-deliverables": { max: 50 * 1024 * 1024, types: ["application/pdf", "application/zip", "text/plain", "image/jpeg", "image/png", "application/json"] },
+    "student-intro-videos": { max: 100 * 1024 * 1024, types: ["video/mp4", "video/webm", "video/quicktime"] },
   };
   const rule = rules[bucket];
   if (file.size > rule.max) throw new Error(`파일 크기는 ${Math.round(rule.max / 1024 / 1024)}MB 이하여야 합니다.`);

@@ -4,6 +4,7 @@ import ProjectCreationWizard from "../company/ProjectCreationWizard";
 import ApplicationManagement from "../company/ApplicationManagement";
 import EmployeeConversion from "../company/EmployeeConversion";
 import type { Application } from "../../types";
+import CompanyBankTransferPayment from "../company/CompanyBankTransferPayment";
 
 interface CompanyDashboardProps {
   activeTab: string;
@@ -24,6 +25,7 @@ export default function CompanyDashboard({ activeTab, onNavigate }: CompanyDashb
   }
   if (activeTab === "employee-conversions") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><EmployeeConversion onNavigate={onNavigate} /></div>;
 
+  if (activeTab === "company-payments") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><CompanyBankTransferPayment /></div>;
   return (
     <div className="flex-1 overflow-y-auto bg-neutral-50 p-6">
       <div className="mx-auto max-w-3xl rounded-3xl border border-neutral-200 bg-white p-8 text-center shadow-sm">

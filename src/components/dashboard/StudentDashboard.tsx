@@ -2,6 +2,8 @@ import React from "react";
 import { ShieldCheck } from "lucide-react";
 import ProjectMarketplace from "../student/ProjectMarketplace";
 import ProfileSettingsView from "../profile/ProfileSettingsView";
+import StudentIntroVideo from "../student/StudentIntroVideo";
+import StudentMorBilling from "../student/StudentMorBilling";
 
 interface StudentDashboardProps {
   activeTab: string;
@@ -22,6 +24,8 @@ function UnavailablePanel({ onNavigate }: { onNavigate: (tabId: string) => void 
 export default function StudentDashboard({ activeTab, onNavigate }: StudentDashboardProps) {
   if (activeTab === "project-marketplace") return <ProjectMarketplace />;
   if (activeTab === "profile") return <ProfileSettingsView />;
+  if (activeTab === "intro-video") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><div className="mx-auto max-w-5xl"><StudentIntroVideo /></div></div>;
+  if (activeTab === "student-billing") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><StudentMorBilling /></div>;
 
   return (
     <div className="flex-1 overflow-y-auto bg-neutral-50 p-6">
