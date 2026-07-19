@@ -10,6 +10,7 @@ import AuthModal from "../auth/AuthModal";
 import StudentRegisterForm from "../auth/StudentRegisterForm";
 import CompanyRegisterForm from "../auth/CompanyRegisterForm";
 import EarlyBirdCampaign from "./EarlyBirdCampaign";
+import NexusMotionField from "./NexusMotionField";
 import { db } from "../../config/supabase";
 import { addDoc, collection } from "../../lib/supabaseStore";
 import { useToast } from "../ui/Toast";
@@ -190,6 +191,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
         <main>
           <section ref={heroRef} className="relative flex min-h-[880px] items-center px-5 pb-24 pt-32 sm:px-8 lg:min-h-screen">
             <div className="kinetic-wash" aria-hidden="true" />
+            <NexusMotionField />
             <div className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-14 lg:grid-cols-[1.08fr_.92fr]">
               <motion.div style={{ y: heroCopyY, opacity: heroCopyOpacity }}>
                 <motion.div initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-8 inline-flex items-center gap-2 rounded-full border border-[#17342d]/10 bg-white/75 px-3 py-1.5 text-xs font-black uppercase tracking-[.1em] text-[#294d44]"><Sparkles className="h-3.5 w-3.5 text-[#4361ee]" />{t.badge}</motion.div>
@@ -224,7 +226,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
 
           <section id="workflow" className="rounded-t-[3rem] bg-[#eaf0ff] px-5 py-24 sm:px-8 lg:py-32"><div className="mx-auto max-w-7xl">
             <Reveal><div className="font-mono text-[10px] font-bold tracking-[.18em] text-[#4361ee]">02 / {t.flowEyebrow}</div><h2 className="mt-6 max-w-5xl font-display text-3xl font-bold leading-[1.1] tracking-[-.04em] sm:text-5xl">{t.flowTitle}</h2></Reveal>
-            <div className="mt-14 grid gap-3 lg:grid-cols-4">{t.flow.map(([number, title, body], index) => <Reveal key={number} delay={index * .07} className="min-h-[250px] rounded-[1.8rem] bg-[#fffefb] p-6 shadow-[0_12px_36px_rgba(67,97,238,.06)]"><div className="font-display text-4xl font-light tracking-[-.05em] text-[#8f9fe7]">{number}</div><h3 className="mt-10 font-display text-xl font-bold">{title}</h3><p className="mt-4 text-[15px] leading-7 text-[#506962]">{body}</p></Reveal>)}</div>
+            <div className="nexus-flow mt-14 grid gap-3 lg:grid-cols-4">{t.flow.map(([number, title, body], index) => <Reveal key={number} delay={index * .07} className="nexus-flow-card min-h-[250px] rounded-[1.8rem] bg-[#fffefb] p-6 shadow-[0_12px_36px_rgba(67,97,238,.06)]"><div className="font-display text-4xl font-light tracking-[-.05em] text-[#8f9fe7]">{number}</div><h3 className="mt-10 font-display text-xl font-bold">{title}</h3><p className="mt-4 text-[15px] leading-7 text-[#506962]">{body}</p></Reveal>)}</div>
           </div></section>
 
           <section id="reviews" className="bg-[#17342d] px-5 py-24 text-white sm:px-8 lg:py-36"><div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
