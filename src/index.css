@@ -247,6 +247,86 @@ html[lang="vi"] .hero-heading {
   box-sizing: content-box;
 }
 
+.nexus-motion-field {
+  position: absolute;
+  z-index: 0;
+  inset: 5rem 0 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: .76;
+  mask-image: radial-gradient(ellipse 78% 72% at 58% 46%, #000 35%, transparent 82%);
+}
+
+.nexus-connection {
+  position: absolute;
+  display: block;
+  height: 1px;
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(67, 97, 238, .08), rgba(67, 97, 238, .52), rgba(45, 140, 105, .1));
+}
+
+.nexus-node {
+  position: absolute;
+  display: grid;
+  width: 1.1rem;
+  height: 1.1rem;
+  place-items: center;
+  border: 1px solid rgba(67, 97, 238, .24);
+  border-radius: 999px;
+  background: rgba(255, 254, 251, .82);
+  box-shadow: 0 0 0 .45rem rgba(67, 97, 238, .035);
+}
+
+.nexus-node > span {
+  width: .3rem;
+  height: .3rem;
+  border-radius: inherit;
+  background: #4361ee;
+}
+
+.nexus-node-primary {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-color: rgba(45, 140, 105, .34);
+  box-shadow: 0 0 0 .7rem rgba(185, 244, 208, .18);
+}
+
+.nexus-node-primary > span {
+  width: .42rem;
+  height: .42rem;
+  background: #2d8c69;
+}
+
+.nexus-flow {
+  position: relative;
+}
+
+.nexus-flow-card {
+  position: relative;
+  z-index: 1;
+  transition: transform .45s cubic-bezier(.22, 1, .36, 1), box-shadow .45s ease;
+}
+
+.nexus-flow-card:hover {
+  transform: translateY(-.45rem);
+  box-shadow: 0 24px 54px rgba(67, 97, 238, .12);
+}
+
+@media (min-width: 1024px) {
+  .nexus-flow::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    top: 3rem;
+    right: 8%;
+    left: 8%;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(67, 97, 238, .12), #4361ee, #2d8c69, rgba(45, 140, 105, .12));
+    background-size: 220% 100%;
+    animation: nexus-signal 6s ease-in-out infinite;
+  }
+}
+
 .ticker { overflow: hidden; }
 .ticker-track {
   display: flex;
@@ -353,6 +433,10 @@ html[lang] #landing-master :is(p, li) {
   78%, 100% { transform: translateX(120%); }
 }
 @keyframes ticker-slide { to { transform: translateX(-50%); } }
+@keyframes nexus-signal {
+  0%, 100% { background-position: 100% 50%; opacity: .42; }
+  50% { background-position: 0 50%; opacity: .9; }
+}
 @keyframes card-breathe { to { transform: translateY(-9px) rotate(-1deg); } }
 
 @media (max-width: 700px) {
@@ -361,5 +445,6 @@ html[lang] #landing-master :is(p, li) {
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .kinetic-wash, .proof-sheet::before, .ticker-track, .review-card { animation: none; }
+  .kinetic-wash, .proof-sheet::before, .ticker-track, .review-card, .nexus-flow::before { animation: none; }
+  .nexus-flow-card { transition: none; }
 }
