@@ -11,6 +11,7 @@ import StudentRegisterForm from "../auth/StudentRegisterForm";
 import CompanyRegisterForm from "../auth/CompanyRegisterForm";
 import EarlyBirdCampaign from "./EarlyBirdCampaign";
 import NexusMotionField from "./NexusMotionField";
+import CinematicTrustJourney from "./CinematicTrustJourney";
 import { db } from "../../config/supabase";
 import { addDoc, collection } from "../../lib/supabaseStore";
 import { useToast } from "../ui/Toast";
@@ -165,7 +166,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
     } finally { setIsWaitlistSubmitting(false); }
   };
 
-  return <div id="landing-master" className="konexa-light min-h-screen overflow-hidden text-[#17342d] selection:bg-[#b9f4d0] selection:text-[#17342d]">
+  return <div id="landing-master" className="konexa-light min-h-screen overflow-x-clip text-[#17342d] selection:bg-[#b9f4d0] selection:text-[#17342d]">
     <AnimatePresence mode="wait">
       {activeRegisterRole ? <motion.main data-auto-translate key="registration" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="min-h-screen bg-[#f7f6f1] text-neutral-900">
         {activeRegisterRole === UserRole.STUDENT
@@ -218,6 +219,8 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
           <div className="ticker border-y border-[#17342d]/10 bg-[#17342d] py-4 text-[#f8f5eb]"><div className="ticker-track">{[...t.ribbon, ...t.ribbon].map((item, index) => <span key={`${item}-${index}`}><Sparkles className="h-3 w-3 text-[#b9f4d0]" />{item}</span>)}</div></div>
 
           <EarlyBirdCampaign locale={locale} onStudent={() => setActiveRegisterRole(UserRole.STUDENT)} onCompany={() => setActiveRegisterRole(UserRole.COMPANY)} />
+
+          <CinematicTrustJourney locale={locale} />
 
           <section id="system" className="px-5 py-24 sm:px-8 lg:py-36"><div className="mx-auto max-w-7xl">
             <Reveal className="grid gap-8 lg:grid-cols-[.8fr_1.2fr] lg:gap-14"><div className="font-mono text-[10px] font-bold tracking-[.18em] text-[#4361ee]">01 / {t.systemEyebrow}</div><div><h2 className="max-w-4xl font-display text-3xl font-bold leading-[1.1] tracking-[-.04em] sm:text-5xl">{t.systemTitle}</h2><p className="mt-6 max-w-2xl text-base font-medium leading-8 text-[#48645d]">{t.systemLead}</p></div></Reveal>
