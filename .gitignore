@@ -8,3 +8,5 @@ supabase/.temp/
 .env*
 !.env.example
 .vercel
+.npm-cache/
+konexa-sites-*.tar*

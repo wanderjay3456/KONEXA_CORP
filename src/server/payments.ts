@@ -2,10 +2,10 @@ import crypto from "node:crypto";
 import type { Express, Request, Response } from "express";
 import express from "express";
 import * as PortOne from "@portone/server-sdk";
-import { adminDb, getSupabaseAdmin } from "./supabaseAdmin";
+import { adminDb } from "./supabaseAdmin";
 import type { AuthenticatedRequest } from "./security";
-
-type StoredRecord = Record<string, any>;
+import { recordPaymentLedgerEvent, upsertPaymentOrderLedger } from "./paymentLedger";
+import { loadPayableProjectContract } from "./contractPayments";
 
 function getPortOneConfiguration() {
   const configuration = {
@@ -21,19 +21,6 @@ function getPortOneConfiguration() {
 
 function getPortOneClient(secret: string) {
   return PortOne.PortOneClient({ secret });
-}
-
-async function countVerifiedSignatures(relationshipId: string) {
-  const { data, error } = await getSupabaseAdmin()
-    .from("app_records")
-    .select("data")
-    .eq("collection_name", "contract_signatures")
-    .eq("data->>relationshipId", relationshipId)
-    .eq("data->>provider", "modusign")
-    .eq("data->>verificationStatus", "verified");
-  if (error) throw error;
-  const types = new Set((data || []).map((item) => String((item.data as StoredRecord)?.signatureType || "")));
-  return Number(types.has("company")) + Number(types.has("talent"));
 }
 
 function readPaymentId(webhook: unknown) {
@@ -86,6 +73,25 @@ async function synchronizePayment(paymentId: string) {
     paidAt: "paidAt" in providerPayment ? providerPayment.paidAt || null : null,
     verifiedAt: Date.now(),
   });
+  await upsertPaymentOrderLedger({
+    legacyRecordId: paymentId,
+    relationshipId: String(stored.relationshipId || ""),
+    contractId: String(stored.contractId || ""),
+    legacyContractId: String(stored.contractId || ""),
+    companyId: String(stored.companyId || ""),
+    studentId: String(stored.talentId || stored.studentId || ""),
+    provider: "portone_v2",
+    providerPaymentId: paymentId,
+    idempotencyKey: `portone-order:${paymentId}`,
+    amountKrw: expectedAmount,
+    status,
+    payload: {
+      providerStatus: providerPayment.status,
+      providerTransactionId: providerPayment.transactionId,
+      amountMatches,
+      actualAmountKrw: actualAmount,
+    },
+  });
   return { paymentId, status, amountMatches, expectedAmountKrw: expectedAmount, actualAmountKrw: actualAmount };
 }
 
@@ -98,6 +104,7 @@ function sendRouteError(res: Response, error: unknown) {
 
 export function registerPortOneWebhook(app: Express) {
   app.post("/api/webhooks/portone", express.text({ type: "application/json", limit: "1mb" }), async (req: Request, res: Response) => {
+    let webhookEventRef: ReturnType<ReturnType<typeof adminDb.collection>["doc"]> | undefined;
     try {
       const configuration = getPortOneConfiguration();
       if (typeof req.body !== "string") {
@@ -114,18 +121,52 @@ export function registerPortOneWebhook(app: Express) {
       if (webhookId) {
         const eventRef = adminDb.collection("portone_webhook_events").doc(webhookId);
         const existing = await eventRef.get();
-        if (existing.exists) {
+        if (existing.exists && existing.data()?.status === "processed") {
           res.status(200).json({ received: true, duplicate: true });
           return;
         }
-        await eventRef.create({ provider: "portone_v2", type: webhook.type, receivedAt: Date.now(), status: "processing" });
+        webhookEventRef = eventRef;
+        if (existing.exists) {
+          await eventRef.update({
+            status: "processing",
+            attempts: Math.max(1, Number(existing.data()?.attempts) || 1) + 1,
+            lastAttemptAt: Date.now(),
+          });
+        } else {
+          await eventRef.create({
+            provider: "portone_v2",
+            type: webhook.type,
+            receivedAt: Date.now(),
+            status: "processing",
+            attempts: 1,
+          });
+        }
       }
 
       const paymentId = readPaymentId(webhook);
-      if (paymentId) await synchronizePayment(paymentId);
+      const synchronized = paymentId ? await synchronizePayment(paymentId) : null;
+      if (paymentId && synchronized) {
+        const derivedEventId = webhookId
+          || `portone:${webhook.type}:${crypto.createHash("sha256").update(req.body).digest("hex")}`;
+        await recordPaymentLedgerEvent({
+          provider: "portone_v2",
+          eventId: derivedEventId,
+          eventType: webhook.type,
+          providerPaymentId: paymentId,
+          status: synchronized.status,
+          payload: JSON.parse(req.body),
+        });
+      }
       if (webhookId) await adminDb.collection("portone_webhook_events").doc(webhookId).update({ status: "processed", processedAt: Date.now(), paymentId });
       res.status(200).json({ received: true });
     } catch (error) {
+      if (webhookEventRef) {
+        await webhookEventRef.update({
+          status: "failed",
+          failedAt: Date.now(),
+          error: (error instanceof Error ? error.message : "Webhook processing failed").slice(0, 500),
+        }).catch(() => undefined);
+      }
       console.warn("Rejected PortOne webhook:", error instanceof Error ? error.message : error);
       res.status(400).json({ error: "Webhook verification failed." });
     }
@@ -142,22 +183,16 @@ export function registerPortOnePaymentRoutes(app: Express) {
         return;
       }
       const configuration = getPortOneConfiguration();
-      const contractSnapshot = await adminDb.collection("contracts").doc(contractId).get();
-      const contract = contractSnapshot.data();
-      if (!contractSnapshot.exists || !contract) throw Object.assign(new Error("Contract not found"), { statusCode: 404 });
-      if (contract.companyId !== companyId) throw Object.assign(new Error("Only the contract company can prepare payment"), { statusCode: 403 });
-
-      const relationshipId = String(contract.relationshipId || "");
-      const amount = Number(contract.payment?.monthlyAmountKrw);
-      if (!relationshipId || !Number.isSafeInteger(amount) || amount < 100) throw Object.assign(new Error("Contract payment terms are invalid"), { statusCode: 409 });
-      if (await countVerifiedSignatures(relationshipId) < 2) throw Object.assign(new Error("Both Modusign signatures must be verified before payment"), { statusCode: 409 });
+      const contract = await loadPayableProjectContract(contractId, companyId);
+      const relationshipId = contract.relationshipId;
+      const amount = contract.amountKrw;
 
       const paymentId = `konexa_${crypto.randomUUID()}`;
-      const orderName = `${String(contract.title || "KONEXA 프로젝트").slice(0, 70)} · 월 프로젝트 비용`;
+      const orderName = `${contract.title.slice(0, 70)} · 월 프로젝트 비용`;
       await adminDb.collection("payment_records").doc(paymentId).create({
         userId: companyId,
         companyId,
-        talentId: contract.talentId,
+        talentId: contract.studentId,
         relationshipId,
         contractId,
         paymentId,
@@ -167,6 +202,20 @@ export function registerPortOnePaymentRoutes(app: Express) {
         expectedAmountKrw: amount,
         orderName,
         createdAt: Date.now(),
+      });
+      await upsertPaymentOrderLedger({
+        legacyRecordId: paymentId,
+        relationshipId,
+        contractId,
+        legacyContractId: contractId,
+        companyId,
+        studentId: contract.studentId,
+        provider: "portone_v2",
+        providerPaymentId: paymentId,
+        idempotencyKey: `portone-order:${paymentId}`,
+        amountKrw: amount,
+        status: "prepared",
+        payload: { orderName },
       });
 
       res.status(201).json({

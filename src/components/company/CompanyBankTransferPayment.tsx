@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import { Building2, Check, Clipboard, Landmark, LoaderCircle, QrCode, ShieldCheck } from "lucide-react";
+import { Building2, Check, Clipboard, FileSignature, Landmark, LoaderCircle, QrCode, ShieldCheck } from "lucide-react";
 import { useToast } from "../ui/Toast";
 
 interface BankConfiguration {
@@ -19,11 +19,20 @@ interface TransferIntent extends BankConfiguration {
   createdAt: number;
 }
 
+interface PayableContract {
+  id: string;
+  title: string;
+  monthly_amount_krw: number;
+  status: string;
+}
+
 export default function CompanyBankTransferPayment() {
   const { success, error } = useToast();
   const [configuration, setConfiguration] = useState<BankConfiguration | null>(null);
   const [intent, setIntent] = useState<TransferIntent | null>(null);
   const [amount, setAmount] = useState("");
+  const [contracts, setContracts] = useState<PayableContract[]>([]);
+  const [contractId, setContractId] = useState("");
   const [memo, setMemo] = useState("");
   const [qrUrl, setQrUrl] = useState("");
   const [loading, setLoading] = useState(true);
@@ -31,11 +40,19 @@ export default function CompanyBankTransferPayment() {
   const [copied, setCopied] = useState("");
 
   useEffect(() => {
-    fetch("/api/company-bank-payments/config", { cache: "no-store" })
-      .then(async (response) => {
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.error || "Bank account configuration could not be loaded.");
-        setConfiguration(payload);
+    Promise.all([
+      fetch("/api/company-bank-payments/config", { cache: "no-store" }),
+      fetch("/api/v2/operations", { cache: "no-store" }),
+    ])
+      .then(async ([configurationResponse, operationsResponse]) => {
+        const configurationPayload = await configurationResponse.json().catch(() => ({}));
+        const operationsPayload = await operationsResponse.json().catch(() => ({}));
+        if (!configurationResponse.ok) throw new Error(configurationPayload.error || "Bank account configuration could not be loaded.");
+        if (!operationsResponse.ok) throw new Error(operationsPayload?.error?.message || "Contracts could not be loaded.");
+        setConfiguration(configurationPayload);
+        const payable = (Array.isArray(operationsPayload?.data?.contracts) ? operationsPayload.data.contracts : [])
+          .filter((contract: PayableContract) => ["signed", "funded", "active"].includes(contract.status));
+        setContracts(payable);
       })
       .catch((reason) => error("Payment configuration unavailable", reason instanceof Error ? reason.message : "Try again later."))
       .finally(() => setLoading(false));
@@ -61,6 +78,10 @@ export default function CompanyBankTransferPayment() {
   const normalizedAmount = useMemo(() => Number(amount.replace(/[^0-9]/g, "")), [amount]);
 
   const createIntent = async () => {
+    if (!contractId) {
+      error("Select a contract", "Bank transfers can be created only for a signed KONEXA contract.");
+      return;
+    }
     if (!Number.isSafeInteger(normalizedAmount) || normalizedAmount < 1_000) {
       error("Check the amount", "Enter a whole KRW amount of at least 1,000.");
       return;
@@ -70,7 +91,7 @@ export default function CompanyBankTransferPayment() {
       const response = await fetch("/api/company-bank-payments/intents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amountKrw: normalizedAmount, memo }),
+        body: JSON.stringify({ contractId, amountKrw: normalizedAmount, memo }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "The transfer request could not be created.");
@@ -109,9 +130,11 @@ export default function CompanyBankTransferPayment() {
         <p className="mt-2 text-sm leading-6 text-neutral-600">Enter the agreed project amount. KONEXA records the request and generates a unique reference for reconciliation.</p>
 
         <div className="mt-7 space-y-4">
-          <label className="block"><span className="text-xs font-bold text-neutral-700">Amount (KRW)</span><input inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/[^0-9]/g, ""))} placeholder="Enter amount" className="mt-2 h-12 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-sm font-bold outline-none focus:border-neutral-900" /></label>
+          <label className="block"><span className="text-xs font-bold text-neutral-700">Signed contract</span><select value={contractId} onChange={(event) => { const selected = contracts.find((contract) => contract.id === event.target.value); setContractId(event.target.value); setAmount(selected ? String(selected.monthly_amount_krw) : ""); }} className="mt-2 h-12 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-sm font-bold outline-none focus:border-neutral-900"><option value="">Select a payable contract</option>{contracts.map((contract) => <option key={contract.id} value={contract.id}>{contract.title} · {Number(contract.monthly_amount_krw).toLocaleString()} KRW</option>)}</select></label>
+          {!contracts.length && <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-900"><FileSignature className="mt-0.5 h-4 w-4 shrink-0" /><span>A signed contract is required before KONEXA can create a payment reference.</span></div>}
+          <label className="block"><span className="text-xs font-bold text-neutral-700">Contract amount (KRW)</span><input readOnly inputMode="numeric" value={amount} placeholder="Select a contract" className="mt-2 h-12 w-full rounded-xl border border-neutral-200 bg-neutral-100 px-4 text-sm font-bold text-neutral-600 outline-none" /></label>
           <label className="block"><span className="text-xs font-bold text-neutral-700">Transfer memo (optional)</span><input maxLength={100} value={memo} onChange={(event) => setMemo(event.target.value)} placeholder="Project or contract reference" className="mt-2 h-12 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-sm outline-none focus:border-neutral-900" /></label>
-          <button type="button" disabled={submitting} onClick={createIntent} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-950 px-5 py-4 text-sm font-bold text-white disabled:opacity-50">{submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}Generate amount-specific QR</button>
+          <button type="button" disabled={submitting || !contractId} onClick={createIntent} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-950 px-5 py-4 text-sm font-bold text-white disabled:opacity-50">{submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}Generate contract payment QR</button>
         </div>
 
         {intent && <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5"><div className="flex items-center gap-2 text-sm font-black text-emerald-900"><ShieldCheck className="h-5 w-5" />Transfer request recorded</div><dl className="mt-4 grid gap-3 text-xs"><div className="flex justify-between gap-4"><dt className="text-emerald-700">Amount</dt><dd className="font-black text-emerald-950">{intent.amountKrw.toLocaleString()} KRW</dd></div><div className="flex justify-between gap-4"><dt className="text-emerald-700">Reference</dt><dd className="font-mono font-black text-emerald-950">{intent.reference}</dd></div><div className="flex justify-between gap-4"><dt className="text-emerald-700">Status</dt><dd className="font-bold text-emerald-950">Awaiting transfer</dd></div></dl></div>}

@@ -2,6 +2,8 @@ import crypto from "node:crypto";
 import type { Express, Response } from "express";
 import { adminDb } from "./supabaseAdmin";
 import type { AuthenticatedRequest } from "./security";
+import { upsertPaymentOrderLedger } from "./paymentLedger";
+import { loadPayableProjectContract } from "./contractPayments";
 
 function configuration() {
   const bankName = process.env.KONEXA_BANK_NAME?.trim();
@@ -59,9 +61,20 @@ export function registerCompanyBankPaymentRoutes(app: Express) {
         return;
       }
       const amountKrw = Number(req.body?.amountKrw);
+      const contractId = typeof req.body?.contractId === "string" ? req.body.contractId.trim() : "";
       const memo = typeof req.body?.memo === "string" ? req.body.memo.trim().slice(0, 100) : "";
+      if (!contractId) {
+        res.status(400).json({ error: "A verified KONEXA contract is required for bank transfer." });
+        return;
+      }
       if (!Number.isSafeInteger(amountKrw) || amountKrw < 1_000 || amountKrw > 100_000_000) {
         res.status(400).json({ error: "Enter a whole KRW amount between 1,000 and 100,000,000." });
+        return;
+      }
+      const contract = await loadPayableProjectContract(contractId, req.user.uid);
+      const contractedAmount = contract.amountKrw;
+      if (!Number.isSafeInteger(contractedAmount) || contractedAmount !== amountKrw) {
+        res.status(409).json({ error: "The transfer amount must match the signed contract amount." });
         return;
       }
       const intentId = `bank_${crypto.randomUUID()}`;
@@ -77,7 +90,25 @@ export function registerCompanyBankPaymentRoutes(app: Express) {
         expectedAmountKrw: amountKrw,
         reference,
         memo,
+        contractId,
+        relationshipId: contract.relationshipId,
+        talentId: contract.studentId || null,
         createdAt,
+      });
+      await upsertPaymentOrderLedger({
+        legacyRecordId: intentId,
+        relationshipId: contract.relationshipId,
+        contractId,
+        legacyContractId: contractId,
+        companyId: req.user.uid,
+        studentId: contract.studentId,
+        provider: "domestic_bank_transfer",
+        providerPaymentId: intentId,
+        idempotencyKey: `bank-transfer:${intentId}`,
+        amountKrw,
+        status: "awaiting_transfer",
+        reference,
+        payload: { memo },
       });
       res.status(201).json({
         intentId,
@@ -92,7 +123,12 @@ export function registerCompanyBankPaymentRoutes(app: Express) {
       });
     } catch (error) {
       console.error("Bank transfer intent failed:", error);
-      res.status(500).json({ error: "The bank transfer request could not be created." });
+      const status = Number((error as { statusCode?: unknown })?.statusCode) || 500;
+      res.status(status).json({
+        error: status >= 500
+          ? "The bank transfer request could not be created."
+          : error instanceof Error ? error.message : "The bank transfer request is invalid.",
+      });
     }
   });
 }

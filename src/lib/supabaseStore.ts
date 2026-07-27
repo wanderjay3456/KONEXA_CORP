@@ -26,11 +26,6 @@ interface StoreSnapshot<T = Record<string, any>> {
 
 const PUBLIC_COLLECTIONS = new Set([
   "projects",
-  "ai_agents",
-  "prompt_versions",
-  "ai_metrics",
-  "model_registry",
-  "rbac_policies",
 ]);
 
 function makeDocument(id: string, data: Record<string, any> | null): StoreDocument {

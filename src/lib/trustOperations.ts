@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, getDocs, query, setDoc, where } from "./supabaseStore";
+import { addDoc, collection, getDocs, query, where } from "./supabaseStore";
 import { auth, db } from "./supabaseAuth";
 import { COMPLIANCE_VERSION, feePolicy } from "../config/compliancePolicy";
 
@@ -41,14 +41,170 @@ async function list(collectionName: string) {
   return snapshot.docs.map((item) => ({ id: item.id, ...item.data() })) as TrustRecord[];
 }
 
+function commandKey(scope: string) {
+  return `${scope}:${crypto.randomUUID()}`;
+}
+
+async function apiCommand<T>(
+  path: string,
+  body: Record<string, unknown>,
+  scope: string,
+): Promise<T> {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": commandKey(scope),
+    },
+    body: JSON.stringify(body),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      payload?.error?.message
+      || payload?.error
+      || "요청을 처리하지 못했습니다.",
+    );
+  }
+  return payload.data as T;
+}
+
+function relationshipRecord(value: Record<string, unknown>): TrustRecord {
+  return {
+    ...value,
+    id: String(value.id || ""),
+    companyId: value.company_id,
+    talentId: value.student_id,
+    studentId: value.student_id,
+    projectId: value.project_id,
+    applicationId: value.application_id,
+    contactStatus: value.contact_status,
+    conversionWindowEndsAt: value.conversion_window_ends_at,
+    createdAt: value.created_at,
+  };
+}
+
+function contractRecord(value: Record<string, unknown>): TrustRecord {
+  return {
+    ...value,
+    id: String(value.id || ""),
+    relationshipId: value.relationship_id,
+    companyId: value.company_id,
+    talentId: value.student_id,
+    studentId: value.student_id,
+    projectId: value.project_id,
+    monthlyAmountKrw: value.monthly_amount_krw,
+    payment: {
+      monthlyAmountKrw: value.monthly_amount_krw,
+      providerType: value.payment_provider_type,
+      advancePaymentRequired: true,
+    },
+    createdAt: value.created_at,
+  };
+}
+
+function milestoneRecord(value: Record<string, unknown>): TrustRecord {
+  return {
+    ...value,
+    id: String(value.id || ""),
+    relationshipId: value.relationship_id,
+    contractId: value.contract_id,
+    companyId: value.company_id,
+    talentId: value.student_id,
+    studentId: value.student_id,
+    dueAt: value.due_at,
+    amountKrw: value.amount_krw,
+    createdAt: value.created_at,
+  };
+}
+
+function paymentRecord(value: Record<string, unknown>): TrustRecord {
+  return {
+    ...value,
+    id: String(value.id || ""),
+    relationshipId: value.relationship_id,
+    contractId: value.contract_id,
+    companyId: value.payer_company_id,
+    talentId: value.payee_student_id,
+    amountKrw: value.amount_krw,
+    createdAt: value.created_at,
+  };
+}
+
+function disputeRecord(value: Record<string, unknown>): TrustRecord {
+  return {
+    ...value,
+    id: String(value.id || ""),
+    relationshipId: value.relationship_id,
+    contractId: value.contract_id,
+    milestoneId: value.milestone_id,
+    companyId: value.company_id,
+    talentId: value.student_id,
+    createdBy: value.created_by,
+    createdAt: value.created_at,
+  };
+}
+
+function signatureRecord(value: Record<string, unknown>): TrustRecord {
+  return {
+    ...value,
+    id: String(value.id || ""),
+    contractId: value.contract_id,
+    relationshipId: value.relationship_id,
+    userId: value.signer_id,
+    signatureType: value.signer_role === "student" ? "talent" : value.signer_role,
+    verificationStatus: value.verification_status,
+    createdAt: value.created_at,
+  };
+}
+
+function reviewRecord(value: Record<string, unknown>): TrustRecord {
+  return {
+    ...value,
+    id: String(value.id || ""),
+    relationshipId: value.relationship_id,
+    contractId: value.contract_id,
+    reviewerId: value.reviewer_id,
+    revieweeId: value.reviewee_id,
+    reviewerRole: value.reviewer_role,
+    overallRating: value.overall_rating,
+    qualityRating: value.quality_rating,
+    communicationRating: value.communication_rating,
+    reliabilityRating: value.reliability_rating,
+    scopeClarityRating: value.scope_clarity_rating,
+    moderationStatus: value.moderation_status,
+    createdAt: value.created_at,
+  };
+}
+
 export async function loadTrustSnapshot(): Promise<TrustSnapshot> {
   requireUser();
-  const [consents, introductions, contracts, signatures, milestones, payments, contactUnlocks, hiringOffers, disputes, riskEvents, reviews, workPassport] = await Promise.all([
-    list("consents"), list("introductions"), list("contracts"), list("contract_signatures"), list("milestones"),
-    list("payment_records"), list("contact_unlocks"), list("hiring_offers"), list("disputes"), list("risk_events"),
-    list("reviews"), list("work_passport_entries"),
+  const [operationsResponse, consents, contactUnlocks, hiringOffers, riskEvents] = await Promise.all([
+    fetch("/api/v2/operations", { cache: "no-store" }),
+    list("consents"),
+    list("contact_unlocks"),
+    list("hiring_offers"),
+    list("risk_events"),
   ]);
-  return { consents, introductions, contracts, signatures, milestones, payments, contactUnlocks, hiringOffers, disputes, riskEvents, reviews, workPassport };
+  const payload = await operationsResponse.json().catch(() => ({}));
+  if (!operationsResponse.ok) {
+    throw new Error(payload?.error?.message || "프로젝트 운영 기록을 불러오지 못했습니다.");
+  }
+  const operations = payload?.data || {};
+  return {
+    consents,
+    introductions: (operations.relationships || []).map(relationshipRecord),
+    contracts: (operations.contracts || []).map(contractRecord),
+    signatures: (operations.signatures || []).map(signatureRecord),
+    milestones: (operations.milestones || []).map(milestoneRecord),
+    payments: (operations.payments || []).map(paymentRecord),
+    contactUnlocks,
+    hiringOffers,
+    disputes: (operations.disputes || []).map(disputeRecord),
+    riskEvents,
+    reviews: (operations.reviews || []).map(reviewRecord),
+    workPassport: operations.workPassport || [],
+  };
 }
 
 export async function recordConsent(stage: "introduction" | "project_contract" | "message_analysis" | "cross_border_privacy") {
@@ -70,20 +226,18 @@ export async function recordConsent(stage: "introduction" | "project_contract" |
 }
 
 export async function requestIntroduction(input: { talentId: string; projectId?: string; purpose: "interview" | "project" | "hire"; existingRelationship?: boolean }) {
-  const user = requireUser();
+  requireUser();
   await recordConsent("introduction");
-  const relationship = await addDoc(collection(db, "introductions"), {
-    userId: user.uid,
-    companyId: user.uid,
-    talentId: input.talentId,
-    projectId: input.projectId || null,
-    purpose: input.purpose,
-    status: "requested",
-    existingRelationshipClaimed: Boolean(input.existingRelationship),
-    introducedAt: Date.now(),
-    conversionWindowEndsAt: Date.now() + feePolicy.conversionWindowMonths * 30 * 24 * 60 * 60 * 1000,
-    contactStatus: "locked",
-  });
+  const relationship = await apiCommand<{ id: string }>(
+    "/api/v2/relationships",
+    {
+      studentId: input.talentId,
+      projectId: input.projectId || null,
+      purpose: input.purpose,
+      existingRelationship: Boolean(input.existingRelationship),
+    },
+    "relationship",
+  );
   return relationship.id;
 }
 
@@ -133,14 +287,12 @@ export async function createProjectContract(input: {
   changeRequestRateKrw: number;
   monthlyAmountKrw: number;
 }) {
-  const user = requireUser();
+  requireUser();
   await recordConsent("project_contract");
-  const contract = await addDoc(collection(db, "contracts"), {
-    userId: user.uid,
-    companyId: user.uid,
-    talentId: input.talentId,
+  const contract = await apiCommand<{ id: string }>(
+    "/api/v2/contracts",
+    {
     relationshipId: input.relationshipId,
-    projectId: input.projectId || null,
     contractType: "company_project",
     documentVersion: COMPLIANCE_VERSION,
     title: input.title,
@@ -154,45 +306,43 @@ export async function createProjectContract(input: {
       changeRequestRateKrw: input.changeRequestRateKrw,
       clientDelayExtendsSchedule: true,
     },
-    payment: { monthlyAmountKrw: input.monthlyAmountKrw, advancePaymentRequired: true, providerType: "domestic_pg_escrow" },
-    protections: { nda: true, ipTransfersAfterFullPayment: true, aiAndLicenseDisclosure: true, offPlatformDuringProjectProhibited: true },
-    status: "issued",
-    createdAt: Date.now(),
-  });
+      monthlyAmountKrw: input.monthlyAmountKrw,
+      paymentProviderType: "domestic_pg_escrow",
+    },
+    "contract",
+  );
   return contract.id;
 }
 
 export async function createMilestone(input: { relationshipId: string; contractId: string; talentId: string; title: string; deliverable: string; dueAt: number; amountKrw: number }) {
-  const user = requireUser();
-  const milestone = await addDoc(collection(db, "milestones"), {
-    userId: user.uid,
-    companyId: user.uid,
-    talentId: input.talentId,
-    relationshipId: input.relationshipId,
+  requireUser();
+  const milestone = await apiCommand<{ id: string }>(
+    "/api/v2/milestones",
+    {
     contractId: input.contractId,
     title: input.title,
     deliverable: input.deliverable,
-    dueAt: input.dueAt,
+      dueAt: new Date(input.dueAt).toISOString(),
     amountKrw: input.amountKrw,
-    status: "scheduled",
-    createdAt: Date.now(),
-  });
+    },
+    "milestone",
+  );
   return milestone.id;
 }
 
 export async function reportDispute(input: { relationshipId: string; companyId: string; talentId: string; category: string; summary: string }) {
-  const user = requireUser();
-  const dispute = await addDoc(collection(db, "disputes"), {
-    userId: user.uid,
-    createdBy: user.uid,
-    companyId: input.companyId,
-    talentId: input.talentId,
+  requireUser();
+  const dispute = await apiCommand<{ id: string }>(
+    "/api/v2/disputes",
+    {
     relationshipId: input.relationshipId,
+      contractId: null,
+      milestoneId: null,
     category: input.category,
     summary: input.summary,
-    status: "open",
-    createdAt: Date.now(),
-  });
+    },
+    "dispute",
+  );
   return dispute.id;
 }
 
@@ -224,31 +374,25 @@ export async function submitTransactionReview(input: {
   scopeClarityRating: number;
   comment: string;
 }) {
-  const user = requireUser();
+  requireUser();
   const ratings = [input.overallRating, input.qualityRating, input.communicationRating, input.reliabilityRating, input.scopeClarityRating];
   if (ratings.some((rating) => !Number.isInteger(rating) || rating < 1 || rating > 5)) throw new Error("평점은 1점부터 5점까지 입력해 주세요.");
   const comment = input.comment.trim();
   if (comment.length < 20 || comment.length > 1000) throw new Error("리뷰는 20자 이상 1,000자 이하로 작성해 주세요.");
-  const existing = await getDocs(query(collection(db, "reviews"), where("relationshipId", "==", input.relationshipId), where("reviewerId", "==", user.uid)));
-  if (!existing.empty) throw new Error("이 거래에 대한 리뷰를 이미 제출했습니다.");
-  const review = await addDoc(collection(db, "reviews"), {
-    userId: user.uid,
-    reviewerId: user.uid,
-    revieweeId: input.revieweeId,
+  const review = await apiCommand<{ id: string }>(
+    "/api/v2/reviews",
+    {
     relationshipId: input.relationshipId,
     contractId: input.contractId || null,
-    reviewerRole: input.reviewerRole,
     overallRating: input.overallRating,
     qualityRating: input.qualityRating,
     communicationRating: input.communicationRating,
     reliabilityRating: input.reliabilityRating,
     scopeClarityRating: input.scopeClarityRating,
     comment,
-    status: "sealed",
-    moderationStatus: "pending",
-    appealStatus: "none",
-    createdAt: Date.now(),
-  });
+    },
+    "review",
+  );
   return review.id;
 }
 

@@ -21,7 +21,7 @@ import {
   getGoogleRegistrationId,
   clearGoogleRegistrationId,
 } from "../lib/supabaseAuth";
-import { db, auth, supabase } from "../lib/supabaseAuth";
+import { db, auth } from "../lib/supabaseAuth";
 import { 
   UserRole, 
   UserProfile, 
@@ -31,7 +31,6 @@ import {
   Application, 
   SystemLog, 
   ProjectDifficulty, 
-  ProjectStatus,
   ApplicationStatus,
   NotificationRecord,
 } from "../types";
@@ -177,13 +176,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               const registrationId = getGoogleRegistrationId();
               const initialProfile = userSnapshot.data() as UserProfile & { onboardingStatus?: string };
               if (registrationId) {
-                const { error: registrationError } = await supabase.rpc("complete_google_registration", {
-                  registration_id: registrationId,
+                const registrationResponse = await fetch("/api/auth/google-registration-complete", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ registrationId }),
                 });
+                const registrationPayload = await registrationResponse.json().catch(() => null);
                 clearGoogleRegistrationId();
                 clearPendingGoogleAuthIntent();
-                if (registrationError) {
-                  const registrationMessage = String(registrationError.message || registrationError);
+                if (!registrationResponse.ok) {
+                  const registrationMessage = String(
+                    registrationPayload?.error?.message
+                    || "Google registration could not be completed",
+                  );
                   if (rejectedGoogleUid !== user.uid) {
                     rejectedGoogleUid = user.uid;
                     await signOut(auth);
@@ -412,36 +417,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const proj = projects.find((p) => p.id === projectId);
       if (!proj) throw new Error("Project not found");
 
-      const applicationsCol = collection(db, "applications");
-      const appDocRef = await addDoc(applicationsCol, {
-        projectId,
-        projectTitle: proj.title,
-        companyId: proj.companyId,
-        studentId: currentUser.uid,
-        studentName: studentProfile.name || currentUser.displayName,
-        codeSubmission,
-        feedback: "Pending AI analysis...",
-        status: ApplicationStatus.SUBMITTED,
-        score: 0,
-        createdAt: Date.now(),
-        earlyPioneer: studentProfile.earlyPioneerEligible === true
+      const response = await fetch(`/api/v2/projects/${encodeURIComponent(projectId)}/applications`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": `application-${projectId}-${crypto.randomUUID()}`,
+        },
+        body: JSON.stringify({ submission: codeSubmission }),
       });
-
-      try {
-        const emailResponse = await fetch("/api/email/notify", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Idempotency-Key": appDocRef.id,
-          },
-          body: JSON.stringify({
-            template: "application_received",
-            data: { project: proj.title },
-          }),
-        });
-        if (!emailResponse.ok) console.warn("Application confirmation email was not accepted");
-      } catch (emailError) {
-        console.warn("Application confirmation email failed:", emailError);
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.data?.id) {
+        throw new Error(payload?.error?.message || "지원서를 저장하지 못했습니다.");
       }
 
       await logSystemAction(
@@ -449,13 +435,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         `Submitted application for project "${proj.title}"`
       );
 
-      success("지원서가 제출되었습니다", "프로젝트 수행 계획이 안전하게 저장되었습니다.");
-      
-      info("검토를 시작합니다", "AI 분석을 사용할 수 있으면 보조 검토를 진행하며, 실패 시 수동 검토 대기 상태를 유지합니다.");
-      triggerEvaluation(appDocRef.id);
+      success("지원서 제출 완료", "지원서와 활동 기록이 안전하게 저장되었습니다.");
+      info("AI 보조 검토 시작", "AI 평가는 참고자료로만 저장되며 실제 프로젝트 완료 경력에는 포함되지 않습니다.");
+      void triggerEvaluation(payload.data.id);
 
     } catch (err: any) {
       handleSupabaseError(err, OperationType.WRITE, "applications");
+      error("지원서 제출 실패", err?.message || "입력 내용을 확인하고 다시 시도해 주세요.");
     }
   };
 
@@ -470,30 +456,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ) => {
     try {
       if (!currentUser || !companyProfile) throw new Error("기업 계정으로 로그인한 뒤 프로젝트를 등록해 주세요.");
-      const projectsCol = collection(db, "projects");
       const createdAt = Date.now();
       const earlyBirdQualified = isEarlyBirdOpen(createdAt);
-      await addDoc(projectsCol, {
-        title,
-        description,
-        requirements,
-        companyId: currentUser.uid,
-        companyName: companyProfile.companyName,
-        difficulty,
-        reward,
-        status: ProjectStatus.OPEN,
-        tags,
-        createdAt,
-        earlyBirdQualified,
-        workType: details.workType,
-        durationWeeks: details.durationWeeks,
-        hoursPerWeek: details.hoursPerWeek,
-        weeklyPayKrw: details.weeklyPayKrw,
-        requiredLanguage: details.requiredLanguage,
-        applicationDeadline: details.applicationDeadline,
-        hiringOpportunity: details.hiringOpportunity,
-        contactPolicyAccepted: details.contactPolicyAccepted === true
+      const response = await fetch("/api/v2/projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": `project-${crypto.randomUUID()}`,
+        },
+        body: JSON.stringify({
+          title,
+          description,
+          requirements,
+          difficulty,
+          reward,
+          tags,
+          workType: details.workType,
+          durationWeeks: details.durationWeeks,
+          hoursPerWeek: details.hoursPerWeek,
+          weeklyPayKrw: details.weeklyPayKrw,
+          requiredLanguage: details.requiredLanguage,
+          applicationDeadline: details.applicationDeadline,
+          hiringOpportunity: details.hiringOpportunity,
+          contactPolicyAccepted: details.contactPolicyAccepted === true,
+          contactPolicyVersion: "signup-v1",
+        }),
       });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.data?.id) {
+        throw new Error(payload?.error?.message || "공고를 등록하지 못했습니다.");
+      }
 
       if (earlyBirdQualified && !companyProfile.earlyBirdEligible) {
         const earlyBirdProfile: CompanyProfile = {
@@ -513,11 +505,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         `Created new challenge project: "${title}"`
       );
 
-      success("Project Created!", "Your project challenge is now live on the platform.");
+      success("공고 등록 완료", "검증된 기업 공고가 학생 페이지에 공개되었습니다.");
       return true;
     } catch (err: any) {
       handleSupabaseError(err, OperationType.WRITE, "projects");
-      error("프로젝트 등록 실패", err?.message || "입력 내용을 확인하고 다시 시도해 주세요.");
+      error("공고 등록 실패", err?.message || "입력 내용과 기업 인증 상태를 확인해 주세요.");
       return false;
     }
   };
@@ -836,9 +828,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     score: number
   ) => {
     try {
-      // Find and update document in Supabase
-      const appRef = doc(db, "applications", applicationId);
-      await setDoc(appRef, { status, feedback, score }, { merge: true });
+      const response = await fetch(`/api/v2/applications/${encodeURIComponent(applicationId)}/review`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": `application-review-${applicationId}-${status}-${crypto.randomUUID()}`,
+        },
+        body: JSON.stringify({ status, feedback, score }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error?.message || "지원 상태를 변경하지 못했습니다.");
+      }
 
       const app = applications.find((a) => a.id === applicationId);
       await logSystemAction(
@@ -846,9 +847,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         `Reviewed application for "${app?.projectTitle || "Project"}" - Status: ${status}`
       );
 
-      success("Review Completed", `Application status set to ${status}.`);
+      success("검토 저장 완료", `지원 상태를 ${status}(으)로 변경했습니다.`);
     } catch (err: any) {
       handleSupabaseError(err, OperationType.WRITE, `applications/${applicationId}`);
+      error("지원서 검토 실패", err?.message || "권한과 상태 변경 순서를 확인해 주세요.");
     }
   };
 
