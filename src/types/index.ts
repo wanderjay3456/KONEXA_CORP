@@ -77,6 +77,7 @@ export interface StudentProfile {
   careerInterests?: string[];
   preferredIndustry?: string;
   preferredJob?: string;
+  visaStatus?: string;
   preferredCountry?: string;
   preferredWeeklyPayKrw?: number;
   availability?: string;
@@ -129,6 +130,9 @@ export interface CompanyProfile {
   phoneNumber?: string;
   companyIntroduction?: string;
   hiringIndustry?: string;
+  hiringRoles?: string[];
+  employmentTypes?: string[];
+  visaSupportOptions?: string[];
   preferredMajors?: string[];
   requiredSkills?: string[];
   preferredLanguages?: string[];
