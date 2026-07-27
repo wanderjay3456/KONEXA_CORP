@@ -15,6 +15,7 @@ interface PublicOpportunityPreviewProps {
 const copy = {
   ko: {
     eyebrow: "실시간 채용 수요",
+    preview: "로그인 전 최신 공고 3건만 공개",
     title: "가입하기 전에, 어떤 기회가 있는지 먼저 확인하세요.",
     lead: "기업이 공개한 실제 공고에서 회사명, 모집 직무와 핵심 요구 기술만 미리 보여드립니다. 연락처와 지원 상세정보는 로그인 후 안전하게 확인할 수 있습니다.",
     demand: "현재 많이 찾는 기술",
@@ -29,6 +30,7 @@ const copy = {
   },
   en: {
     eyebrow: "Live hiring demand",
+    preview: "The latest 3 posts are visible before sign-in",
     title: "See the opportunities before you sign up.",
     lead: "Preview the company, role, and core skills from real public posts. Contact details and full application terms stay protected until you sign in.",
     demand: "Skills in current demand",
@@ -43,6 +45,7 @@ const copy = {
   },
   vi: {
     eyebrow: "Nhu cầu tuyển dụng thực tế",
+    preview: "Hiển thị 3 tin mới nhất trước khi đăng nhập",
     title: "Xem cơ hội trước khi đăng ký.",
     lead: "Xem trước doanh nghiệp, vị trí và kỹ năng chính từ các tin công khai thực tế. Thông tin liên hệ và điều kiện chi tiết chỉ hiển thị an toàn sau khi đăng nhập.",
     demand: "Kỹ năng đang được tìm kiếm",
@@ -84,7 +87,7 @@ export default function PublicOpportunityPreview({ locale, onLogin, onStudent, o
           .map((document) => ({ id: document.id, ...document.data() } as Project))
           .filter((project) => project.status === ProjectStatus.OPEN && Boolean(project.companyName) && Boolean(project.title) && isPublicMarketProject(project))
           .sort((left, right) => createdAtValue(right) - createdAtValue(left))
-          .slice(0, 6);
+          .slice(0, 3);
         setProjects(publicProjects);
         setLoading(false);
       },
@@ -110,6 +113,7 @@ export default function PublicOpportunityPreview({ locale, onLogin, onStudent, o
         <div className="grid gap-8 lg:grid-cols-[.78fr_1.22fr] lg:gap-14">
           <div>
             <p className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[.18em] text-[#4361ee]"><Sparkles className="h-3.5 w-3.5" />{t.eyebrow}</p>
+            <p className="mt-3 inline-flex rounded-full border border-[#17342d]/10 bg-white px-3 py-1.5 text-[11px] font-bold text-[#587069]">{t.preview}</p>
             <h2 className="mt-5 max-w-xl break-keep font-display text-3xl font-bold leading-[1.14] tracking-[-.04em] text-[#17342d] sm:text-5xl">{t.title}</h2>
           </div>
           <div>
