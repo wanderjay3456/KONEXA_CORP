@@ -149,12 +149,23 @@ export async function signInWithPopup(
 ) {
   let redirectTo = typeof window === "undefined" ? undefined : window.location.origin;
   if (intent.mode === "register") {
-    const { data: registrationId, error: registrationError } = await supabase.rpc("begin_google_registration", {
-      requested_role: intent.role,
-      consent_payload: (intent.consentBundle || {}) as any,
-      profile_payload: (intent.profileData || {}) as any,
+    const registrationResponse = await fetch("/api/auth/google-registration-intents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        role: intent.role,
+        consents: intent.consentBundle || {},
+        profile: intent.profileData || {},
+      }),
     });
-    if (registrationError || !registrationId) throw registrationError || new Error("Google registration could not be initialized");
+    const registrationPayload = await registrationResponse.json().catch(() => null);
+    const registrationId = registrationPayload?.data?.registrationId;
+    if (!registrationResponse.ok || !registrationId) {
+      throw new Error(
+        registrationPayload?.error?.message
+        || "Google registration could not be initialized",
+      );
+    }
     if (typeof window !== "undefined") {
       const callback = new URL(window.location.origin);
       callback.searchParams.set(GOOGLE_REGISTRATION_PARAM, String(registrationId));

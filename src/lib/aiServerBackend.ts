@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "../server/supabaseAdmin";
 
 type GenerateGeminiContent = (request: Record<string, any>, models?: string[]) => Promise<{ response: any; model: string }>;
@@ -7,11 +8,118 @@ const list = (value: unknown, limit = 12) => Array.isArray(value)
   : [];
 const score = (value: unknown) => Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
 
+async function persistAssessment(input: {
+  requestedBy: string;
+  subjectUserId?: string | null;
+  entityType: "application" | "project" | "student_profile" | "company_profile" | "matching" | "resume" | "roadmap";
+  entityId: string;
+  assessmentType: string;
+  model: string;
+  promptVersion: string;
+  evidence: unknown;
+  result: unknown;
+  confidence?: number | null;
+}) {
+  const inputHash = createHash("sha256").update(JSON.stringify(input.evidence)).digest("hex");
+  const { data, error } = await getSupabaseAdmin()
+    .from("konexa_ai_assessments")
+    .insert({
+      requested_by: input.requestedBy,
+      subject_user_id: input.subjectUserId || null,
+      entity_type: input.entityType,
+      entity_id: input.entityId,
+      assessment_type: input.assessmentType,
+      model: input.model,
+      prompt_version: input.promptVersion,
+      input_hash: inputHash,
+      result: input.result,
+      confidence: input.confidence ?? null,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
 export function registerAiWorkforceRoutes(app: any, generateGeminiContent: GenerateGeminiContent) {
+  app.post("/api/ai/diagnostics", async (req: any, res: any) => {
+    if (req.user?.role !== "admin") {
+      res.status(403).json({ error: "Administrator access is required" });
+      return;
+    }
+
+    const checks: Array<{
+      name: string;
+      status: "passed" | "failed";
+      latency: string;
+      notes: string;
+    }> = [];
+
+    const databaseStartedAt = Date.now();
+    try {
+      const { count, error } = await getSupabaseAdmin()
+        .from("konexa_ai_assessments")
+        .select("id", { count: "exact", head: true });
+      if (error) throw error;
+      checks.push({
+        name: "AI assessment database",
+        status: "passed",
+        latency: `${Date.now() - databaseStartedAt}ms`,
+        notes: `관계형 평가 저장소에 연결되었습니다. 현재 저장된 실제 평가 ${count || 0}건.`,
+      });
+    } catch (error: any) {
+      checks.push({
+        name: "AI assessment database",
+        status: "failed",
+        latency: `${Date.now() - databaseStartedAt}ms`,
+        notes: `관계형 평가 저장소 연결 실패: ${String(error?.message || error).slice(0, 240)}`,
+      });
+    }
+
+    const providerStartedAt = Date.now();
+    try {
+      const { response, model } = await generateGeminiContent({
+        contents: "Return exactly the requested JSON object.",
+        config: {
+          responseMimeType: "application/json",
+          systemInstruction: 'Return raw JSON only: {"status":"ok"}. Do not add any other fields.',
+          temperature: 0,
+          maxOutputTokens: 20,
+        },
+      });
+      const parsed = JSON.parse(String(response.text || "{}"));
+      if (parsed.status !== "ok") throw new Error("Unexpected provider verification response");
+      checks.push({
+        name: "Gemini live provider",
+        status: "passed",
+        latency: `${Date.now() - providerStartedAt}ms`,
+        notes: `${model} 모델의 실제 응답 형식과 연결 상태를 확인했습니다.`,
+      });
+    } catch (error: any) {
+      checks.push({
+        name: "Gemini live provider",
+        status: "failed",
+        latency: `${Date.now() - providerStartedAt}ms`,
+        notes: `AI 공급자 실시간 확인 실패: ${String(error?.message || error).slice(0, 240)}`,
+      });
+    }
+
+    const passed = checks.every((check) => check.status === "passed");
+    res.status(passed ? 200 : 503).json({
+      passed,
+      checkedAt: new Date().toISOString(),
+      checks,
+    });
+  });
+
   
   // 1. AI ORCHESTRATOR ENDPOINT
   app.post("/api/ai/orchestrator", async (req: any, res: any) => {
     try {
+      if (req.user?.role !== "admin") {
+        res.status(403).json({ error: "Administrator access is required" });
+        return;
+      }
       const { taskId, agentId, taskTitle, inputData } = req.body;
       if (!agentId || !taskTitle) {
         res.status(400).json({ error: "agentId and taskTitle are required" });
@@ -87,6 +195,10 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
   app.post("/api/ai/reports", async (req: any, res: any) => {
     const { type, metadata } = req.body;
     try {
+      if (req.user?.role !== "admin") {
+        res.status(403).json({ error: "Administrator access is required" });
+        return;
+      }
       if (!type) {
         res.status(400).json({ error: "Report type is required" });
         return;
@@ -278,7 +390,20 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
           interviewQuestions: list(item.interviewQuestions, 8),
         }];
       }).sort((left: any, right: any) => right.suitabilityScore - left.suitabilityScore);
-      res.json({ projectId, model, matches });
+      const assessmentId = await persistAssessment({
+        requestedBy: req.user.uid,
+        entityType: "matching",
+        entityId: projectId,
+        assessmentType: "talent_project_matching",
+        model,
+        promptVersion: "talent-matching-v2",
+        evidence: { project, candidates },
+        result: { matches },
+        confidence: matches.length
+          ? Math.round(matches.reduce((sum: number, item: any) => sum + item.confidence, 0) / matches.length)
+          : null,
+      });
+      res.json({ projectId, model, assessmentId, matches });
 
     } catch (error: any) {
       console.error("AI Matching Engine Error:", error);
@@ -315,14 +440,26 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
       });
       const parsed = JSON.parse(response.text || "{}");
       const projectIds = new Set(projects.map((project) => project.id));
-      res.json({
+      const result = {
         summary: String(parsed.summary || "").slice(0, 2_000),
         milestones: Array.isArray(parsed.milestones) ? parsed.milestones.slice(0, 6).map((item: any) => ({ title: String(item?.title || "").slice(0, 160), nextAction: String(item?.nextAction || "").slice(0, 600), evidenceNeeded: String(item?.evidenceNeeded || "").slice(0, 400) })).filter((item: any) => item.title) : [],
         skillGaps: list(parsed.skillGaps, 10),
         learningActions: list(parsed.learningActions, 10),
         relevantProjectIds: list(parsed.relevantProjectIds, 10).filter((id) => projectIds.has(id)),
         model,
+      };
+      const assessmentId = await persistAssessment({
+        requestedBy: req.user.uid,
+        subjectUserId: req.user.uid,
+        entityType: "roadmap",
+        entityId: req.user.uid,
+        assessmentType: "student_career_roadmap",
+        model,
+        promptVersion: "student-roadmap-v2",
+        evidence: { profile, projects, careerGoal: req.body?.careerGoal },
+        result,
       });
+      res.json({ ...result, assessmentId });
     } catch (error: any) {
       console.error("Student Roadmap Error:", error);
       res.status(502).json({ code: "AI_PROVIDER_ERROR", error: "The roadmap could not be generated. Please try again." });
@@ -347,7 +484,19 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
         },
       });
       const parsed = JSON.parse(response.text || "{}");
-      res.json({ score: score(parsed.score), summary: String(parsed.summary || "").slice(0, 2_000), strengths: list(parsed.strengths, 10), issues: list(parsed.issues, 10), recommendedEdits: list(parsed.recommendedEdits, 10), model });
+      const result = { score: score(parsed.score), summary: String(parsed.summary || "").slice(0, 2_000), strengths: list(parsed.strengths, 10), issues: list(parsed.issues, 10), recommendedEdits: list(parsed.recommendedEdits, 10), model };
+      const assessmentId = await persistAssessment({
+        requestedBy: req.user.uid,
+        subjectUserId: req.user.uid,
+        entityType: "resume",
+        entityId: req.user.uid,
+        assessmentType: "resume_evidence_review",
+        model,
+        promptVersion: "resume-review-v2",
+        evidence: { profile, targetRole: req.body?.targetRole },
+        result,
+      });
+      res.json({ ...result, assessmentId });
     } catch (error: any) {
       console.error("Resume Review Error:", error);
       res.status(502).json({ code: "AI_PROVIDER_ERROR", error: "The resume review could not be generated. Please try again." });
@@ -358,7 +507,7 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
   app.post("/api/ai/security", async (req: any, res: any) => {
     try {
       const { content } = req.body;
-      if (!content) {
+      if (typeof content !== "string" || !content.trim() || content.length > 20_000) {
         res.status(400).json({ error: "Content is required for audit" });
         return;
       }

@@ -4,14 +4,10 @@ import {
   onSnapshot, 
   addDoc, 
   setDoc, 
-  doc, 
-  getDocs,
-  query,
-  where,
-  limit,
-  orderBy
+  doc
 } from "../lib/supabaseStore";
 import { db } from "../config/supabase";
+import { auth } from "../lib/supabaseAuth";
 import { useToast } from "../components/ui/Toast";
 import { 
   AiAgent, 
@@ -23,8 +19,7 @@ import {
   ModelConfig, 
   AiFeedback, 
   AiLog,
-  AgentStatus,
-  MemoryType
+  AgentStatus
 } from "../types/ai";
 
 interface AiContextType {
@@ -61,7 +56,9 @@ export function useAi() {
   return context;
 }
 
-// 14 AI Workforce Agents initial seed dataset
+/*
+ * Retired prototype fixture kept only for historical source context.
+ * It is deliberately commented out and can never seed or render production data.
 const SEED_AGENTS: Omit<AiAgent, "id">[] = [
   {
     name: "Aegis",
@@ -358,6 +355,7 @@ const SEED_AGENTS: Omit<AiAgent, "id">[] = [
     subscribedEvents: ["TaskCompleted"]
   }
 ];
+*/
 
 export function AiDataProvider({ children }: { children: React.ReactNode }) {
   const { success, error, info } = useToast();
@@ -383,20 +381,14 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
         items.push({ id: doc.id, ...doc.data() } as AiAgent);
       });
 
-      if (snapshot.empty) {
-        console.log("[KONEXA AI] Pre-seeding 14 core agents...");
-        for (const sa of SEED_AGENTS) {
-          const docId = `agent_${sa.name.toLowerCase()}`;
-          await setDoc(doc(db, "ai_agents", docId), sa);
-        }
+      items.sort((a, b) => a.name.localeCompare(b.name));
+      setAgents(items);
+      if (items.length === 0) {
+        setActiveAgent(null);
       } else {
-        items.sort((a, b) => a.name.localeCompare(b.name));
-        setAgents(items);
-        // Default active agent to Orchestrator
-        if (!activeAgent) {
-          const orch = items.find(a => a.name === "Aegis");
-          if (orch) setActiveAgent(orch);
-        }
+        setActiveAgent((current) => current && items.some((item) => item.id === current.id)
+          ? current
+          : items[0]);
       }
     });
 
@@ -424,31 +416,13 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
 
     // 4. Subscribe to Prompt Versions
     const promptsCol = collection(db, "prompt_versions");
-    const unsubPrompts = onSnapshot(promptsCol, async (snapshot) => {
+    const unsubPrompts = onSnapshot(promptsCol, (snapshot) => {
       const items: PromptVersion[] = [];
       snapshot.forEach((doc) => {
         items.push({ id: doc.id, ...doc.data() } as PromptVersion);
       });
-
-      if (snapshot.empty) {
-        console.log("[KONEXA AI] Pre-seeding basic prompt versions...");
-        const defaultPrompt: PromptVersion = {
-          id: "prompt_recruiter_v1",
-          name: "Standard Candidate Vetting",
-          role: "AI Recruiter",
-          systemPrompt: "You are Cerebro, the lead AI Recruiter on KONEXA. Review submissions for logic, structure, complexity, and security.",
-          userTemplate: "Review submission: {{code}} against constraints: {{requirements}}",
-          version: 1,
-          active: true,
-          variables: ["code", "requirements"],
-          createdAt: Date.now(),
-          localization: "en"
-        };
-        setPrompts([defaultPrompt]);
-      } else {
-        items.sort((a, b) => b.createdAt - a.createdAt);
-        setPrompts(items);
-      }
+      items.sort((a, b) => b.createdAt - a.createdAt);
+      setPrompts(items);
     });
 
     // 5. Subscribe to Reports
@@ -464,51 +438,23 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
 
     // 6. Subscribe to Metrics
     const metricsCol = collection(db, "ai_metrics");
-    const unsubMetrics = onSnapshot(metricsCol, async (snapshot) => {
+    const unsubMetrics = onSnapshot(metricsCol, (snapshot) => {
       const items: AiMetric[] = [];
       snapshot.forEach((doc) => {
         items.push({ id: doc.id, ...doc.data() } as AiMetric);
       });
-
-      if (snapshot.empty) {
-        const defaultMetrics: AiMetric = {
-          id: "metric_init",
-          timestamp: Date.now(),
-          accuracy: 96.8,
-          latency: 240,
-          cost: 14.25,
-          usageCount: 1420,
-          acceptanceRate: 94.2,
-          userSatisfaction: 4.8
-        };
-        setMetrics([defaultMetrics]);
-      } else {
-        items.sort((a, b) => b.timestamp - a.timestamp);
-        setMetrics(items);
-      }
+      items.sort((a, b) => b.timestamp - a.timestamp);
+      setMetrics(items);
     });
 
     // 7. Subscribe to Model Registry
     const modelsCol = collection(db, "model_registry");
-    const unsubModels = onSnapshot(modelsCol, async (snapshot) => {
+    const unsubModels = onSnapshot(modelsCol, (snapshot) => {
       const items: ModelConfig[] = [];
       snapshot.forEach((doc) => {
         items.push({ id: doc.id, ...doc.data() } as ModelConfig);
       });
-
-      if (snapshot.empty) {
-        const seedModels: ModelConfig[] = [
-          { id: "gemini-3.5-flash", provider: "Gemini", modelName: "gemini-3.5-flash", active: true, latencyRating: "Low", costPerMillion: 0.075, accuracyScore: 97.4 },
-          { id: "gemini-3.1-pro", provider: "Gemini", modelName: "gemini-3.1-pro-preview", active: true, latencyRating: "Medium", costPerMillion: 1.25, fallbackModelId: "gemini-3.5-flash", accuracyScore: 99.2 },
-          { id: "claude-3-5-sonnet", provider: "Claude", modelName: "claude-3-5-sonnet", active: false, latencyRating: "High", costPerMillion: 3.00, fallbackModelId: "gemini-3.1-pro", accuracyScore: 98.9 },
-          { id: "gpt-4o", provider: "OpenAI", modelName: "gpt-4o", active: false, latencyRating: "Medium", costPerMillion: 5.00, fallbackModelId: "gemini-3.1-pro", accuracyScore: 98.5 }
-        ];
-        for (const m of seedModels) {
-          await setDoc(doc(db, "model_registry", m.id), m);
-        }
-      } else {
-        setModels(items);
-      }
+      setModels(items);
     });
 
     // 8. Subscribe to AI Logs
@@ -606,8 +552,8 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
         progress: 100,
         result: typeof resultData.result === "string" ? resultData.result : JSON.stringify(resultData.result, null, 2),
         completedAt: Date.now(),
-        cost: resultData.cost || 0.002,
-        logs: [...(resultData.logs || []), "Pipeline synchronization complete. Thread exited safely."]
+        cost: Number(resultData.cost) || 0,
+        logs: Array.isArray(resultData.logs) ? resultData.logs : []
       }, { merge: true });
 
       // Save key outcomes to AI Central memory!
@@ -635,7 +581,7 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
         progress: 100,
         result: `Failure: ${err.message || err}`,
         completedAt: Date.now(),
-        logs: ["CRITICAL ERROR: Sandboxed compile process crashed unexpectedly", `Trace: ${err.message}`]
+        logs: [`Execution failed: ${err.message || String(err)}`]
       }, { merge: true });
 
       await setDoc(agentRef, { status: AgentStatus.IDLE, currentTask: "" }, { merge: true });
@@ -734,45 +680,12 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const triggerEvent = async (eventName: string, payload: Record<string, any>) => {
-    console.log(`[AI Event System] Event Broadcasted: "${eventName}"`, payload);
-    
-    // Write event log to Supabase
-    await logAiAction("agent_aegis", "EVENT_SUBSCRIBED", `Broadcast event: ${eventName}. Active routing matching.`);
-
-    // Find all agents subscribed to this event and simulate dynamic work triggers!
-    const reactiveAgents = agents.filter(a => a.subscribedEvents?.includes(eventName));
-    
-    for (const reactAgent of reactiveAgents) {
-      // Simulate automatic task trigger
-      setTimeout(async () => {
-        try {
-          await addDoc(collection(db, "ai_tasks"), {
-            title: `Reacting to: ${eventName}`,
-            description: `Automated event-triggered routine for ${reactAgent.name}`,
-            assignedTo: reactAgent.id,
-            status: "completed",
-            progress: 100,
-            result: `Processed event trigger ${eventName} with payload keys: [${Object.keys(payload).join(", ")}]`,
-            logs: [`Event ${eventName} intercepted`, `Subscribed Agent ${reactAgent.name} initiated analysis`, "State updated successfully."],
-            cost: 0.0005,
-            createdAt: Date.now()
-          });
-          
-          await addMemory({
-            type: MemoryType.DECISION,
-            key: `${eventName}_reaction_${reactAgent.name.toLowerCase()}`,
-            value: `Agent reacted automatically to event ${eventName}. Context logged successfully.`,
-            sensitive: false,
-            expiredAt: Date.now() + (30 * 24 * 60 * 60 * 1000), // 30 days
-            agentId: reactAgent.id
-          });
-          
-          console.log(`[AI Event System] Agent ${reactAgent.name} reacted to event "${eventName}" successfully.`);
-        } catch (err) {
-          console.error("Failed automated event trigger:", err);
-        }
-      }, 1000);
-    }
+    const eventAgent = activeAgent?.id || "system";
+    await logAiAction(
+      eventAgent,
+      "EVENT_RECEIVED",
+      `Received ${eventName} with fields: ${Object.keys(payload).slice(0, 20).join(", ") || "none"}.`,
+    );
   };
 
   const runSecurityAudit = async (text: string) => {
@@ -785,17 +698,24 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) throw new Error("Security audit error");
       return await response.json();
     } catch (err) {
-      return { safe: true, issues: [] };
+      console.error("Security audit unavailable:", err);
+      return {
+        safe: false,
+        issues: ["자동 보안 검사를 완료하지 못했습니다. 검사가 복구될 때까지 안전한 입력으로 처리하지 않습니다."],
+      };
     }
   };
 
   const submitFeedback = async (agentId: string, rating: number, comment?: string) => {
     try {
+      await auth.authStateReady();
+      const user = auth.currentUser;
+      if (!user) throw new Error("로그인 후 피드백을 제출해 주세요.");
       await addDoc(collection(db, "ai_feedback"), {
         agentId,
-        userId: "usr_fndtn_konexa_99",
-        userName: "Alex Rivera",
-        rating,
+        userId: user.uid,
+        userName: user.displayName || user.email || "KONEXA user",
+        rating: Math.max(1, Math.min(5, Math.round(rating))),
         comment,
         createdAt: Date.now()
       });
@@ -810,24 +730,22 @@ export function AiDataProvider({ children }: { children: React.ReactNode }) {
   // Automated suite tests execution panel
   const runWorkspaceTests = async () => {
     try {
-      info("Running System Verification...", "Executing Agent, Prompt, Memory, Security, and performance tests.");
-      
-      const testsMap = [
-        { name: "Global Agent Registry Integrity Test", status: "passed", latency: "10ms", notes: "All 14 agents successfully mapped and seeded in Supabase rules." },
-        { name: "Memory Versioning and Expiration Garbage Collector", status: "passed", latency: "35ms", notes: "Expired memory logs pruned automatically." },
-        { name: "Dual-model A/B segment router validation", status: "passed", latency: "15ms", notes: "Segment A and Segment B weights mapped to Gemini." },
-        { name: "Prompt Injection and Cross-Site-Scripting filter check", status: "passed", latency: "25ms", notes: "Input sanitization matches 100% security baseline." },
-        { name: "Inference Latency Metric Benchmark Test", status: "passed", latency: "140ms", notes: "Aegis latency maps inside standard target thresholds." }
-      ];
-
-      setTimeout(() => {
-        success("All Tests Green!", "AI Workspace verification successfully complete.");
-      }, 1500);
-
-      return testsMap;
-    } catch (err) {
-      error("Tests failed", "Workspace evaluation pipeline failed.");
-      return [];
+      info("실제 시스템 점검 중", "데이터베이스와 AI 공급자에 직접 연결해 상태를 확인합니다.");
+      const response = await fetch("/api/ai/diagnostics", { method: "POST" });
+      const payload = await response.json().catch(() => null);
+      if (!Array.isArray(payload?.checks)) {
+        throw new Error(payload?.error || "시스템 진단 응답을 확인할 수 없습니다.");
+      }
+      const failed = payload.checks.filter((check: any) => check.status !== "passed");
+      if (failed.length === 0) {
+        success("실제 점검 통과", "데이터베이스와 AI 공급자의 응답을 확인했습니다.");
+      } else {
+        error("점검 항목 확인 필요", `${failed.length}개 항목이 통과되지 않았습니다.`);
+      }
+      return payload.checks;
+    } catch (err: any) {
+      error("점검 실패", err.message || "시스템 진단을 완료하지 못했습니다.");
+      throw err;
     }
   };
 

@@ -8,6 +8,12 @@ import type { AuthenticatedRequest } from "./security";
 export type EmailTemplate =
   | "welcome"
   | "application_received"
+  | "application_status"
+  | "new_application"
+  | "project_published"
+  | "contract_action"
+  | "milestone_action"
+  | "payment_status"
   | "subscription_activated"
   | "payment_failed";
 
@@ -71,6 +77,7 @@ function renderEmail(template: EmailTemplate, data: SendEmailInput["data"] = {})
   const name = escapeHtml(data.name || "KONEXA member");
   const plan = escapeHtml(data.plan || "Pro AI Matchmaker");
   const project = escapeHtml(data.project || "your project");
+  const status = escapeHtml(data.status || "updated");
 
   const copy: Record<EmailTemplate, { subject: string; heading: string; body: string; action: string }> = {
     welcome: {
@@ -84,6 +91,42 @@ function renderEmail(template: EmailTemplate, data: SendEmailInput["data"] = {})
       heading: "Application received",
       body: `We safely received your application for ${project}. You can monitor its review status in your workspace.`,
       action: "View application",
+    },
+    application_status: {
+      subject: "Your KONEXA application status changed",
+      heading: `Application ${status}`,
+      body: `The status of your application for ${project} has changed. Open your workspace to review the latest verified update.`,
+      action: "View application",
+    },
+    new_application: {
+      subject: "A new candidate applied on KONEXA",
+      heading: "A new application arrived",
+      body: `A verified KONEXA member submitted an application for ${project}. Review the evidence and update the hiring stage in your company workspace.`,
+      action: "Review application",
+    },
+    project_published: {
+      subject: "Your KONEXA opportunity is live",
+      heading: "Project published",
+      body: `${project} is now visible to eligible talent. Applications and status changes will be recorded in your company workspace.`,
+      action: "View project",
+    },
+    contract_action: {
+      subject: "A KONEXA contract requires attention",
+      heading: `Contract ${status}`,
+      body: "A contract in your KONEXA project workflow has changed. Review the terms and complete only the actions assigned to your account.",
+      action: "Review contract",
+    },
+    milestone_action: {
+      subject: "A KONEXA milestone was updated",
+      heading: `Milestone ${status}`,
+      body: "A verified project milestone has changed. Review the deliverable, deadline, and approval state in your workspace.",
+      action: "Review milestone",
+    },
+    payment_status: {
+      subject: "A KONEXA payment status changed",
+      heading: `Payment ${status}`,
+      body: "A project payment record has changed. Check the amount, provider reference, and settlement status in your secure workspace.",
+      action: "Review payment",
     },
     subscription_activated: {
       subject: "Your KONEXA subscription is active",

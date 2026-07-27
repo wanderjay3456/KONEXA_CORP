@@ -14,7 +14,9 @@ export function installAuthenticatedApiFetch() {
     );
     const isProtectedApi = requestUrl.origin === window.location.origin
       && requestUrl.pathname.startsWith("/api/")
-      && requestUrl.pathname !== "/api/health"
+      && !requestUrl.pathname.startsWith("/api/health")
+      && !requestUrl.pathname.startsWith("/api/public/")
+      && requestUrl.pathname !== "/api/auth/google-registration-intents"
       && !requestUrl.pathname.startsWith("/api/webhooks/");
 
     if (!isProtectedApi) return nativeFetch(input, init);

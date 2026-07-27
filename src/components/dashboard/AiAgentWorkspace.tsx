@@ -150,9 +150,8 @@ export default function AiAgentWorkspace({ activeTab }: AiAgentWorkspaceProps) {
       const report = await generateReport(selectedReportType, {
         totalAgents: agents.length,
         activeTasksCount: tasks.filter(t => t.status === "running").length,
-        systemCost: metrics[0]?.cost || 14.25,
-        latencyTargetMs: metrics[0]?.latency || 240,
-        userScoreAvg: 96.8
+        recordedSystemCost: metrics[0]?.cost ?? null,
+        recordedLatencyMs: metrics[0]?.latency ?? null
       });
       setActiveReportOutput(report);
     } catch (err: any) {
@@ -184,14 +183,8 @@ export default function AiAgentWorkspace({ activeTab }: AiAgentWorkspaceProps) {
     return matchesSearch && matchesType;
   });
 
-  const activeMetrics = metrics[0] || {
-    accuracy: 97.4,
-    latency: 210,
-    cost: 15.42,
-    usageCount: 1580,
-    acceptanceRate: 95.1,
-    userSatisfaction: 4.8
-  };
+  const activeMetrics = metrics[0] || null;
+  const activeModel = models.find((model) => model.active) || null;
 
   return (
     <div className="flex-1 overflow-y-auto bg-neutral-50 p-6 space-y-6">
@@ -207,19 +200,19 @@ export default function AiAgentWorkspace({ activeTab }: AiAgentWorkspaceProps) {
             <div className="bg-white rounded-2xl border border-neutral-200 p-5 shadow-sm space-y-2">
               <span className="text-[10px] font-sans font-bold text-neutral-400 uppercase tracking-widest block">System Integrity</span>
               <div className="flex justify-between items-baseline">
-                <span className="text-2xl font-display font-bold text-neutral-900">{activeMetrics.accuracy}%</span>
-                <span className="text-xs text-green-700 font-sans font-bold bg-green-50 px-2 py-0.5 rounded-full border border-green-100">SLA Met</span>
+                <span className="text-2xl font-display font-bold text-neutral-900">{activeMetrics ? `${activeMetrics.accuracy}%` : "—"}</span>
+                <span className="text-xs text-neutral-500 font-sans font-medium">실측 데이터</span>
               </div>
               <div className="w-full bg-neutral-100 h-1 rounded-full overflow-hidden">
-                <div className="bg-green-600 h-full" style={{ width: `${activeMetrics.accuracy}%` }} />
+                <div className="bg-green-600 h-full" style={{ width: `${activeMetrics?.accuracy || 0}%` }} />
               </div>
             </div>
 
             <div className="bg-white rounded-2xl border border-neutral-200 p-5 shadow-sm space-y-2">
               <span className="text-[10px] font-sans font-bold text-neutral-400 uppercase tracking-widest block">Average Latency</span>
               <div className="flex justify-between items-baseline">
-                <span className="text-2xl font-display font-bold text-neutral-900">{activeMetrics.latency}ms</span>
-                <span className="text-xs text-neutral-500 font-sans font-medium">99th percentile</span>
+                <span className="text-2xl font-display font-bold text-neutral-900">{activeMetrics ? `${activeMetrics.latency}ms` : "—"}</span>
+                <span className="text-xs text-neutral-500 font-sans font-medium">최근 기록</span>
               </div>
               <div className="w-full bg-neutral-100 h-1 rounded-full overflow-hidden">
                 <div className="bg-black h-full" style={{ width: "40%" }} />
@@ -229,8 +222,8 @@ export default function AiAgentWorkspace({ activeTab }: AiAgentWorkspaceProps) {
             <div className="bg-white rounded-2xl border border-neutral-200 p-5 shadow-sm space-y-2">
               <span className="text-[10px] font-sans font-bold text-neutral-400 uppercase tracking-widest block">Operational Cost</span>
               <div className="flex justify-between items-baseline">
-                <span className="text-2xl font-display font-bold text-neutral-900">${activeMetrics.cost}</span>
-                <span className="text-xs text-neutral-400 font-sans">USD This Cycle</span>
+                <span className="text-2xl font-display font-bold text-neutral-900">{activeMetrics ? `$${activeMetrics.cost}` : "—"}</span>
+                <span className="text-xs text-neutral-400 font-sans">저장된 사용량 기준</span>
               </div>
               <div className="w-full bg-neutral-100 h-1 rounded-full overflow-hidden">
                 <div className="bg-yellow-500 h-full" style={{ width: "25%" }} />
@@ -240,10 +233,10 @@ export default function AiAgentWorkspace({ activeTab }: AiAgentWorkspaceProps) {
             <div className="bg-white rounded-2xl border border-neutral-200 p-5 shadow-sm space-y-2">
               <span className="text-[10px] font-sans font-bold text-neutral-400 uppercase tracking-widest block">Core Model Node</span>
               <div className="flex justify-between items-baseline">
-                <span className="text-2xl font-display font-bold text-neutral-900">Gemini 3.5</span>
-                <span className="text-xs text-green-700 font-sans font-bold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
-                  Active
+                <span className="text-lg font-display font-bold text-neutral-900 truncate">{activeModel?.modelName || "미등록"}</span>
+                <span className="text-xs text-neutral-500 font-sans font-medium flex items-center gap-1">
+                  <span className={`w-1.5 h-1.5 rounded-full ${activeModel ? "bg-green-500" : "bg-neutral-300"}`} />
+                  {activeModel ? "활성" : "설정 필요"}
                 </span>
               </div>
               <div className="w-full bg-neutral-100 h-1 rounded-full overflow-hidden">
@@ -255,7 +248,7 @@ export default function AiAgentWorkspace({ activeTab }: AiAgentWorkspaceProps) {
           {/* MAIN GRID split: Agents directory on left, active task runner sandbox on right */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Left: 14 Agent Roster Directory */}
+            {/* Left: persisted agent directory */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex justify-between items-center">
                 <div>
@@ -272,6 +265,15 @@ export default function AiAgentWorkspace({ activeTab }: AiAgentWorkspaceProps) {
 
               {/* Grid Layout of the 14 agents */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {agents.length === 0 && (
+                  <div className="md:col-span-2 rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center">
+                    <Cpu className="mx-auto mb-3 h-8 w-8 text-neutral-300" />
+                    <p className="text-sm font-semibold text-neutral-800">등록된 운영 에이전트가 없습니다.</p>
+                    <p className="mt-1 text-xs leading-relaxed text-neutral-500">
+                      관리자 화면에는 실제로 등록하고 실행한 에이전트와 측정값만 표시됩니다.
+                    </p>
+                  </div>
+                )}
                 {agents.map((agent) => (
                   <div 
                     key={agent.id}
@@ -422,7 +424,7 @@ export default function AiAgentWorkspace({ activeTab }: AiAgentWorkspaceProps) {
                   AI System Verification Panel
                 </h3>
                 <p className="font-sans text-xs text-neutral-400 mt-1">
-                  Run standard system-wide integrity checks mapping the memory version controllers, token cost metrics, and injection protection limits.
+                  저장소와 AI 공급자에 실제 요청을 보내 연결 상태와 응답을 확인합니다.
                 </p>
               </div>
 
@@ -440,11 +442,17 @@ export default function AiAgentWorkspace({ activeTab }: AiAgentWorkspaceProps) {
               <div className="border border-neutral-100 rounded-xl overflow-hidden divide-y divide-neutral-100">
                 {testResults.map((t, idx) => (
                   <div key={idx} className="p-4 flex items-start gap-3 bg-neutral-50/50 hover:bg-neutral-50 transition-colors">
-                    <CheckCircle className="w-4.5 h-4.5 text-green-600 shrink-0 mt-0.5" />
+                    {t.status === "passed"
+                      ? <CheckCircle className="w-4.5 h-4.5 text-green-600 shrink-0 mt-0.5" />
+                      : <AlertTriangle className="w-4.5 h-4.5 text-red-600 shrink-0 mt-0.5" />}
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
                         <h4 className="text-xs font-semibold text-neutral-900">{t.name}</h4>
-                        <span className="text-[10px] font-mono font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-100 uppercase">
+                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border uppercase ${
+                          t.status === "passed"
+                            ? "text-green-700 bg-green-50 border-green-100"
+                            : "text-red-700 bg-red-50 border-red-100"
+                        }`}>
                           {t.status}
                         </span>
                       </div>

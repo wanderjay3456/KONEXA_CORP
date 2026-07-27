@@ -60,6 +60,7 @@ export default function TrustOperationsCenter() {
   const [monthlyAmount, setMonthlyAmount] = useState(2_000_000);
   const [disputeSummary, setDisputeSummary] = useState("");
   const [processingPaymentId, setProcessingPaymentId] = useState("");
+  const [processingSignatureId, setProcessingSignatureId] = useState("");
   const [reviewRatings, setReviewRatings] = useState({ overall: 5, quality: 5, communication: 5, reliability: 5, scope: 5 });
   const [reviewComment, setReviewComment] = useState("");
 
@@ -207,6 +208,35 @@ export default function TrustOperationsCenter() {
       error("결제를 완료하지 못했습니다", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
     } finally {
       setProcessingPaymentId("");
+    }
+  };
+
+  const handleSignatureRequest = async (contract: Record<string, unknown>) => {
+    const contractId = asText(contract.id);
+    if (!contractId || processingSignatureId) return;
+    setProcessingSignatureId(contractId);
+    try {
+      const response = await fetch(`/api/v2/contracts/${encodeURIComponent(contractId)}/signature-request`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": `signature:${contractId}:${crypto.randomUUID()}`,
+        },
+        body: "{}",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error?.message || "전자서명 요청을 만들지 못했습니다.");
+      }
+      success("전자서명 요청 발송", "기업과 인재의 확인된 이메일로 모두싸인 서명 요청을 보냈습니다.");
+      await refresh();
+    } catch (cause) {
+      error(
+        "전자서명 요청 실패",
+        cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.",
+      );
+    } finally {
+      setProcessingSignatureId("");
     }
   };
 
@@ -363,10 +393,19 @@ export default function TrustOperationsCenter() {
                 {snapshot.contracts.map((contract) => {
                   const mySigned = snapshot.signatures.some((sig) => sig.contractId === contract.id && sig.userId === currentUser?.uid);
                   const relationshipUnlocked = unlockedRelationships.has(asText(contract.relationshipId));
+                  const readyForDelivery = ["signed", "funded", "active"].includes(asText(contract.status));
                   return (
                     <div key={contract.id} className="rounded-2xl border border-neutral-200 p-4">
                       <div className="flex items-start justify-between gap-3"><div><b className="text-sm">{asText(contract.title) || "프로젝트 계약"}</b><p className="mt-1 text-[11px] text-neutral-400">{contract.id}</p></div><StatusPill good={relationshipUnlocked}>{relationshipUnlocked ? "연락처 공개" : "연락처 잠금"}</StatusPill></div>
-                      <div className="mt-3 flex flex-wrap gap-2"><button type="button" disabled className="rounded-xl bg-neutral-200 px-3 py-2 text-[11px] font-bold text-neutral-500">{mySigned ? "모두싸인 검증 완료" : "모두싸인 가맹 승인 후 서명 가능"}</button>{activeRole === UserRole.COMPANY && <button onClick={() => handleMilestone(contract)} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-bold">1주차 마일스톤 생성</button>}{activeRole === UserRole.COMPANY && <button onClick={() => void handleProjectPayment(contract)} disabled={Boolean(processingPaymentId)} className="rounded-xl bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50">{processingPaymentId === contract.id ? "결제창 준비 중…" : "PG로 결제하기"}</button>}</div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {mySigned
+                          ? <span className="rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-bold text-emerald-700">모두싸인 검증 완료</span>
+                          : activeRole === UserRole.COMPANY
+                            ? <button type="button" onClick={() => void handleSignatureRequest(contract)} disabled={Boolean(processingSignatureId)} className="rounded-xl bg-neutral-950 px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50">{processingSignatureId === contract.id ? "서명 요청 중…" : "모두싸인 서명 요청"}</button>
+                            : <span className="rounded-xl bg-neutral-100 px-3 py-2 text-[11px] font-bold text-neutral-500">기업의 서명 요청 대기</span>}
+                        {activeRole === UserRole.COMPANY && <button onClick={() => handleMilestone(contract)} disabled={!readyForDelivery} className="rounded-xl border border-neutral-200 px-3 py-2 text-[11px] font-bold disabled:opacity-40">1주차 마일스톤 생성</button>}
+                        {activeRole === UserRole.COMPANY && <button onClick={() => void handleProjectPayment(contract)} disabled={Boolean(processingPaymentId) || !readyForDelivery} className="rounded-xl bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white disabled:opacity-50">{processingPaymentId === contract.id ? "결제창 준비 중…" : "PG로 결제하기"}</button>}
+                      </div>
                     </div>
                   );
                 })}

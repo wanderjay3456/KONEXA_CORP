@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, BriefcaseBusiness, Building2, Clock3, LockKeyhole, Sparkles } from "lucide-react";
-import { db } from "../../config/supabase";
 import { Locale } from "../../i18n/LocaleContext";
-import { collection, onSnapshot } from "../../lib/supabaseStore";
 import { Project, ProjectStatus } from "../../types";
 
 interface PublicOpportunityPreviewProps {
@@ -80,22 +78,25 @@ export default function PublicOpportunityPreview({ locale, onLogin, onStudent, o
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    return onSnapshot(
-      collection(db, "projects"),
-      (snapshot) => {
-        const publicProjects = snapshot.docs
-          .map((document) => ({ id: document.id, ...document.data() } as Project))
+    const controller = new AbortController();
+    void fetch("/api/public/projects", { signal: controller.signal })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(payload?.error?.message || "Public opportunities are unavailable");
+        const publicProjects = (Array.isArray(payload?.data) ? payload.data : [])
+          .map((item) => item as Project)
           .filter((project) => project.status === ProjectStatus.OPEN && Boolean(project.companyName) && Boolean(project.title) && isPublicMarketProject(project))
           .sort((left, right) => createdAtValue(right) - createdAtValue(left))
           .slice(0, 3);
         setProjects(publicProjects);
         setLoading(false);
-      },
-      () => {
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
         setProjects([]);
         setLoading(false);
-      },
-    );
+      });
+    return () => controller.abort();
   }, []);
 
   const topSkills = useMemo(() => {
