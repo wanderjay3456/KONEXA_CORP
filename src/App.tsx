@@ -6,14 +6,11 @@ import LandingHero from "./components/landing/LandingHero";
 import Navbar from "./components/layout/Navbar";
 import Sidebar from "./components/layout/Sidebar";
 import { StatusPage } from "./components/status/StatusPage";
-import LanguageSwitcher from "./components/layout/LanguageSwitcher";
 import AutoTranslator from "./i18n/AutoTranslator";
 import { LocaleProvider } from "./i18n/LocaleContext";
 
 const StudentDashboard = lazy(() => import("./components/dashboard/StudentDashboard"));
 const CompanyDashboard = lazy(() => import("./components/dashboard/CompanyDashboard"));
-const StudentOnboarding = lazy(() => import("./components/onboarding/StudentOnboarding"));
-const CompanyOnboarding = lazy(() => import("./components/onboarding/CompanyOnboarding"));
 const TrustOperationsCenter = lazy(() => import("./components/trust/TrustOperationsCenter"));
 const AdminDashboard = lazy(() => import("./components/dashboard/AdminDashboard"));
 
@@ -31,7 +28,7 @@ function WorkspaceLoading() {
 }
 
 function AppContent() {
-  const { activeRole, setActiveRole, currentUser, studentProfile, companyProfile, logoutUser, isAuthReady } = useApp();
+  const { activeRole, setActiveRole, currentUser, logoutUser, isAuthReady } = useApp();
   
   // Track active tab within each dashboard role
   const [activeTab, setActiveTab] = useState("career-home");
@@ -63,32 +60,6 @@ function AppContent() {
 
   if (!currentUser) {
     return <LandingHero onEnterApp={handleEnterApp} />;
-  }
-
-  // Route newly registered or un-onboarded profiles to premium interactive onboarding wizards
-  const showStudentOnboarding = activeRole === UserRole.STUDENT && studentProfile && !(studentProfile as any).onboardingCompleted;
-  const showCompanyOnboarding = activeRole === UserRole.COMPANY && companyProfile && !(companyProfile as any).onboardingCompleted;
-
-  if (showStudentOnboarding) {
-    return (
-      <div data-auto-translate>
-        <LanguageSwitcher floating />
-        <Suspense fallback={<WorkspaceLoading />}>
-          <StudentOnboarding onComplete={() => undefined} />
-        </Suspense>
-      </div>
-    );
-  }
-
-  if (showCompanyOnboarding) {
-    return (
-      <div data-auto-translate>
-        <LanguageSwitcher floating />
-        <Suspense fallback={<WorkspaceLoading />}>
-          <CompanyOnboarding onComplete={() => undefined} />
-        </Suspense>
-      </div>
-    );
   }
 
   return (

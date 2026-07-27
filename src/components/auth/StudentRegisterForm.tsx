@@ -1,28 +1,9 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { ArrowLeft, ArrowRight, Check, Globe2, GraduationCap, Mail, ShieldCheck, Sparkles } from "lucide-react";
 import { useApp } from "../../context/AppContext";
-import { UserRole, StudentProfile } from "../../types";
-import { 
-  User, 
-  MapPin, 
-  GraduationCap, 
-  Globe, 
-  Link2, 
-  Github, 
-  Linkedin, 
-  FileText, 
-  Award, 
-  Compass, 
-  CheckCircle, 
-  ArrowLeft, 
-  ArrowRight, 
-  UploadCloud, 
-  Sparkles, 
-  Cpu, 
-  ShieldCheck, 
-  ToggleLeft,
-  ChevronRight
-} from "lucide-react";
+import { useLocale } from "../../i18n/LocaleContext";
+import { StudentProfile, UserRole } from "../../types";
 import { useToast } from "../ui/Toast";
 
 interface StudentRegisterFormProps {
@@ -30,945 +11,309 @@ interface StudentRegisterFormProps {
   onSuccess: () => void;
 }
 
-export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegisterFormProps) {
-  const { registerUser, googleLogin, projects } = useApp();
-  const { success, error, info } = useToast();
-  
-  const [step, setStep] = useState(1);
-  const totalSteps = 6; // Steps 1 to 5 are forms, Step 6 is AI Onboarding Recommendation
-  
-  // Form State
-  const [formData, setFormData] = useState<Partial<StudentProfile>>({
-    name: "",
-    preferredName: "",
-    nationality: "South Korea",
-    currentCountry: "South Korea",
-    university: "",
-    degree: "",
-    major: "",
-    graduationYear: "",
-    studentId: "",
-    languages: [],
-    englishLevel: "",
-    koreanLevel: "",
-    skills: [],
-    certificates: [],
-    github: "",
-    portfolio: "",
-    linkedin: "",
-    resumeUrl: "",
-    careerInterests: [],
-    preferredIndustry: "",
-    preferredJob: "",
-    preferredCountry: "South Korea",
-    preferredWeeklyPayKrw: undefined,
-    availability: "",
-    workPreference: "Remote",
-    timezone: "GMT+9 (Seoul)",
-    bio: "",
-    emergencyContact: "",
-    notificationPreferences: { email: true, push: true, marketing: false },
-    privacySettings: { publicProfile: true, showResume: true }
-  });
+const roles = ["Software Development", "Data & AI", "Design", "Marketing", "Business Operations", "Translation"];
+const skills = ["JavaScript", "TypeScript", "React", "Python", "AI / ML", "Data Analysis", "UI / UX", "Figma", "Digital Marketing", "Korean", "English", "Vietnamese"];
+const countries = ["Vietnam", "South Korea", "Other"];
+const availability = ["Immediately", "Within 2 weeks", "Within 1 month", "Exploring"];
+const workModes: Array<NonNullable<StudentProfile["workPreference"]>> = ["Remote", "Hybrid", "Onsite"];
 
+const copy = {
+  ko: {
+    eyebrow: "약 2분이면 완료",
+    title: "필요한 정보만 먼저 알려주세요.",
+    lead: "계정을 만든 뒤 이력서, 학교 정보, 포트폴리오와 자기소개 영상은 원할 때 보완할 수 있습니다.",
+    account: "기본 정보",
+    preference: "매칭 설정",
+    google: "Google로 빠르게 시작",
+    divider: "또는 이메일로 가입",
+    name: "이름",
+    namePlaceholder: "이름을 입력해 주세요",
+    country: "현재 거주 국가",
+    email: "이메일",
+    password: "비밀번호",
+    passwordHint: "6자 이상",
+    next: "다음",
+    back: "이전",
+    role: "관심 직무",
+    skills: "보유 기술",
+    optional: "선택 · 나중에 변경 가능",
+    availability: "시작 가능 시점",
+    workMode: "선호 근무 방식",
+    terms: "KONEXA 이용약관과 개인정보처리방침에 동의합니다.",
+    transaction: "소개·계약 단계의 플랫폼 외 거래 방지 약정에 동의합니다.",
+    privacy: "안전한 거래를 위한 메시지 분석 및 개인정보 국외이전 고지에 동의합니다.",
+    marketing: "새 공고와 커리어 소식을 이메일로 받습니다. (선택)",
+    submit: "학생 계정 만들기",
+    submitting: "계정을 만들고 있어요",
+    required: "필수 항목을 확인해 주세요.",
+    confirmationTitle: "확인 이메일을 보냈습니다.",
+    confirmationBody: "이메일의 확인 링크를 누른 뒤 로그인하면 바로 공고를 둘러볼 수 있습니다.",
+    login: "로그인 화면으로",
+    later: "세부 프로필은 가입 후 작성",
+  },
+  en: {
+    eyebrow: "Takes about 2 minutes",
+    title: "Start with only the essentials.",
+    lead: "Add your resume, education, portfolio, and intro video later from your profile.",
+    account: "Basics",
+    preference: "Matching",
+    google: "Continue with Google",
+    divider: "or sign up with email",
+    name: "Name",
+    namePlaceholder: "Enter your name",
+    country: "Current country",
+    email: "Email",
+    password: "Password",
+    passwordHint: "At least 6 characters",
+    next: "Continue",
+    back: "Back",
+    role: "Roles you are interested in",
+    skills: "Your skills",
+    optional: "Optional · change anytime",
+    availability: "When can you start?",
+    workMode: "Preferred work mode",
+    terms: "I agree to the KONEXA Terms and Privacy Policy.",
+    transaction: "I agree to the non-circumvention terms for introductions and contracts.",
+    privacy: "I agree to the message-safety analysis and cross-border privacy notice.",
+    marketing: "Send me new roles and career updates. (Optional)",
+    submit: "Create talent account",
+    submitting: "Creating your account",
+    required: "Please check the required fields.",
+    confirmationTitle: "Check your inbox.",
+    confirmationBody: "Confirm your email, then sign in to start browsing opportunities.",
+    login: "Go to sign in",
+    later: "Complete your detailed profile later",
+  },
+  vi: {
+    eyebrow: "Chỉ mất khoảng 2 phút",
+    title: "Bắt đầu với những thông tin cần thiết.",
+    lead: "Bạn có thể bổ sung CV, trường học, portfolio và video giới thiệu sau khi tạo tài khoản.",
+    account: "Thông tin cơ bản",
+    preference: "Thiết lập ghép nối",
+    google: "Tiếp tục với Google",
+    divider: "hoặc đăng ký bằng email",
+    name: "Họ và tên",
+    namePlaceholder: "Nhập họ và tên",
+    country: "Quốc gia đang cư trú",
+    email: "Email",
+    password: "Mật khẩu",
+    passwordHint: "Tối thiểu 6 ký tự",
+    next: "Tiếp tục",
+    back: "Quay lại",
+    role: "Vị trí bạn quan tâm",
+    skills: "Kỹ năng của bạn",
+    optional: "Không bắt buộc · có thể thay đổi sau",
+    availability: "Khi nào bạn có thể bắt đầu?",
+    workMode: "Hình thức làm việc",
+    terms: "Tôi đồng ý với Điều khoản sử dụng và Chính sách quyền riêng tư của KONEXA.",
+    transaction: "Tôi đồng ý với điều khoản không giao dịch ngoài nền tảng.",
+    privacy: "Tôi đồng ý với thông báo phân tích tin nhắn an toàn và chuyển dữ liệu xuyên biên giới.",
+    marketing: "Gửi cho tôi cơ hội việc làm và tin nghề nghiệp mới. (Không bắt buộc)",
+    submit: "Tạo tài khoản ứng viên",
+    submitting: "Đang tạo tài khoản",
+    required: "Vui lòng kiểm tra các mục bắt buộc.",
+    confirmationTitle: "Hãy kiểm tra email.",
+    confirmationBody: "Xác nhận email rồi đăng nhập để xem các cơ hội phù hợp.",
+    login: "Đi đến đăng nhập",
+    later: "Hoàn thiện hồ sơ chi tiết sau",
+  },
+} as const;
+
+function ChoiceChip({ selected, onClick, children }: { key?: React.Key; selected: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onClick}
+      className={`rounded-full border px-3.5 py-2 text-sm font-semibold transition ${
+        selected ? "border-[#17342d] bg-[#17342d] text-white" : "border-[#17342d]/15 bg-white text-[#315149] hover:border-[#17342d]/40"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegisterFormProps) {
+  const { registerUser, googleLogin } = useApp();
+  const { locale } = useLocale();
+  const { error } = useToast();
+  const t = copy[locale];
+  const [step, setStep] = useState(1);
+  const [authMethod, setAuthMethod] = useState<"email" | "google">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [authMethod, setAuthMethod] = useState<"email" | "google">("email");
-  const [marketingConsent, setMarketingConsent] = useState(false);
-  const [termsAgreement, setTermsAgreement] = useState(false);
-  const [nonCircumventionAgreement, setNonCircumventionAgreement] = useState(false);
-  const [privacyTransferConsent, setPrivacyTransferConsent] = useState(false);
-  const [profilePhotoPreview, setProfilePhotoPreview] = useState<string | null>(null);
-  const [resumeName, setResumeName] = useState<string | null>(null);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
+  const [agreements, setAgreements] = useState({ terms: false, transaction: false, privacy: false, marketing: false });
+  const [formData, setFormData] = useState<Partial<StudentProfile>>({
+    name: "",
+    currentCountry: "Vietnam",
+    nationality: "",
+    preferredJob: "",
+    skills: [],
+    availability: "",
+    workPreference: "Remote",
+    github: "",
+    bio: "",
+    notificationPreferences: { email: true, push: true, marketing: false },
+    privacySettings: { publicProfile: true, showResume: false },
+    onboardingCompleted: false,
+  });
 
-  // AI Generated Insights State (Step 6)
-  const [aiReport, setAiReport] = useState<{
-    profileAnalysis: string;
-    score: number;
-    skillsVerified: string[];
-    roleRecommendations: string[];
-    recommendedProjectId: string;
-  } | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
+  const setField = <K extends keyof StudentProfile>(key: K, value: StudentProfile[K]) => {
+    setFormData((current) => ({ ...current, [key]: value }));
+  };
 
-  const updateField = (key: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [key]: value
-    }));
-    // Clear inline error
-    if (errors[key]) {
-      setErrors(prev => {
-        const copy = { ...prev };
-        delete copy[key];
-        return copy;
-      });
+  const toggleSkill = (skill: string) => {
+    const current = formData.skills || [];
+    setField("skills", current.includes(skill) ? current.filter((item) => item !== skill) : [...current, skill]);
+  };
+
+  const validateAccount = () => {
+    if (!formData.name?.trim() || !formData.currentCountry) return false;
+    if (authMethod === "email" && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 6)) return false;
+    return true;
+  };
+
+  const validateAgreements = () => agreements.terms && agreements.transaction && agreements.privacy;
+
+  const goNext = () => {
+    if (!validateAccount()) {
+      error(t.required, authMethod === "email" ? `${t.name}, ${t.email}, ${t.passwordHint}` : t.name);
+      return;
     }
+    setStep(2);
   };
 
-  const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
-        if (uploadEvent.target?.result) {
-          const resultStr = uploadEvent.target.result as string;
-          setProfilePhotoPreview(resultStr);
-          updateField("profilePhoto", resultStr);
-          success("Photo selected", "Your avatar preview is ready. It will be saved with your verified profile.");
-        }
-      };
-      reader.readAsDataURL(file);
+  const consentBundle = {
+    terms: agreements.terms,
+    nonCircumvention: agreements.transaction,
+    messageAnalysis: agreements.privacy,
+    crossBorderPrivacy: agreements.privacy,
+    marketing: agreements.marketing,
+    documentVersion: "2026-07-27",
+  };
+
+  const profilePayload = {
+    ...formData,
+    nationality: formData.nationality || formData.currentCountry,
+    notificationPreferences: { email: true, push: true, marketing: agreements.marketing },
+  };
+
+  const submitEmail = async () => {
+    if (!validateAccount() || !validateAgreements()) {
+      error(t.required, t.required);
+      return;
     }
-  };
-
-  const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setResumeName(file.name);
-      updateField("resumeUrl", "");
-      info("Resume selected", `"${file.name}" will be uploaded from your profile after email verification.`);
-    }
-  };
-
-  const validateStep = (): boolean => {
-    const nextErrors: { [key: string]: string } = {};
-    if (step === 1) {
-      if (!formData.name?.trim()) nextErrors.name = "Full legal name is required.";
-      if (!formData.nationality?.trim()) nextErrors.nationality = "Nationality is required.";
-      if (!formData.currentCountry?.trim()) nextErrors.currentCountry = "Current country is required.";
-      if (!formData.timezone?.trim()) nextErrors.timezone = "Time zone is required.";
-      if (!formData.bio?.trim()) nextErrors.bio = "A brief biographical pitch is required.";
-      if (authMethod === "email" && (!email.trim() || !email.includes("@"))) nextErrors.email = "A valid email is required.";
-      if (authMethod === "email" && (!password.trim() || password.length < 6)) nextErrors.password = "A password of at least 6 characters is required.";
-    } else if (step === 2) {
-      if (!formData.university?.trim()) nextErrors.university = "University Name is required.";
-      if (!formData.degree?.trim()) nextErrors.degree = "Degree level is required.";
-      if (!formData.major?.trim()) nextErrors.major = "Academic major study field is required.";
-      if (!formData.graduationYear?.trim()) nextErrors.graduationYear = "Graduation year is required.";
-      if (!formData.englishLevel?.trim()) nextErrors.englishLevel = "English level is required.";
-    } else if (step === 3) {
-      if (!formData.github?.trim() && !formData.portfolio?.trim()) nextErrors.github = "GitHub or a portfolio URL is required.";
-    } else if (step === 4) {
-      if (!formData.availability?.trim()) nextErrors.availability = "Availability is required.";
-      if (!formData.preferredJob?.trim()) nextErrors.preferredJob = "Preferred role is required.";
-      if (!formData.skills?.length) nextErrors.skills = "At least one skill is required.";
-      if (!Number.isFinite(formData.preferredWeeklyPayKrw) || Number(formData.preferredWeeklyPayKrw) <= 0) nextErrors.preferredWeeklyPayKrw = "희망 주급을 입력해 주세요.";
-    } else if (step === 5) {
-      if (!termsAgreement || !nonCircumventionAgreement || !privacyTransferConsent) nextErrors.terms = "필수 이용약관, 이탈거래 방지, 메시지 분석·국외이전 고지에 모두 동의해야 합니다.";
-    }
-    
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  };
-
-  const handleNext = () => {
-    if (validateStep()) {
-      setStep(prev => prev + 1);
-    } else {
-      error("Form Validation Error", "Please resolve all highlighted fields before proceeding.");
-    }
-  };
-
-  const handleBack = () => {
-    setStep(prev => Math.max(1, prev - 1));
-  };
-
-  // Profile analysis is performed by the authenticated backend after registration.
-  // Never present a fabricated score or recommendation during pre-auth registration.
-  const runAiAnalysis = () => {
-    setIsAiLoading(false);
-    setAiReport({
-      profileAnalysis: "회원가입이 완료되면 인증된 Gemini 분석 서버에서 프로필과 포트폴리오를 검토합니다. 현재는 사전 입력값만 저장되며, 검증 점수나 추천 결과를 생성하지 않습니다.",
-      score: 0,
-      skillsVerified: [],
-      roleRecommendations: [],
-      recommendedProjectId: ""
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateStep()) return;
-
+    setIsSubmitting(true);
     try {
-      const result = await registerUser(email, formData.name || "Global Student", UserRole.STUDENT, formData, undefined, password, {
-        terms: termsAgreement,
-        nonCircumvention: nonCircumventionAgreement,
-        messageAnalysis: privacyTransferConsent,
-        crossBorderPrivacy: privacyTransferConsent,
-        documentVersion: "2026-07-15",
-      });
-      setEmailConfirmationRequired(result.emailConfirmationRequired);
-      
-      // Jump to Step 6 (AI evaluation onboarding recommendations screen!)
-      setStep(6);
-      runAiAnalysis();
-    } catch (err: any) {
-      error("Registration failed", err.message || "An account creation error occurred.");
+      const result = await registerUser(email, formData.name!.trim(), UserRole.STUDENT, profilePayload, undefined, password, consentBundle);
+      if (result.emailConfirmationRequired) setEmailConfirmationRequired(true);
+      else onSuccess();
+    } catch {
+      // registerUser reports the actionable error through the shared toast.
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleGoogleSubmit = async () => {
-    if (!validateStep()) return;
-    const safeProfile = { ...formData };
-    delete safeProfile.profilePhoto;
+  const submitGoogle = async () => {
+    if (!validateAccount() || !validateAgreements()) {
+      error(t.required, t.required);
+      return;
+    }
+    setIsSubmitting(true);
     try {
-      await googleLogin(UserRole.STUDENT, {
-        mode: "register",
-        profileData: { ...safeProfile },
-        consentBundle: {
-          terms: termsAgreement,
-          nonCircumvention: nonCircumventionAgreement,
-          messageAnalysis: privacyTransferConsent,
-          crossBorderPrivacy: privacyTransferConsent,
-          documentVersion: "2026-07-15",
-        },
-      });
-    } catch (err: any) {
-      error("Google 회원가입 실패", err.message || "Google 인증을 시작할 수 없습니다.");
+      await googleLogin(UserRole.STUDENT, { mode: "register", profileData: profilePayload, consentBundle });
+    } catch {
+      setIsSubmitting(false);
     }
   };
 
-  const handleFinishOnboarding = () => {
-    if (emailConfirmationRequired) onCancel();
-    else onSuccess();
-  };
+  if (emailConfirmationRequired) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#f7f6f1] px-5">
+        <section className="w-full max-w-lg rounded-[2rem] border border-[#17342d]/10 bg-white p-8 text-center shadow-[0_30px_90px_rgba(23,52,45,.1)] sm:p-12">
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#dff8ea] text-[#23644e]"><Mail className="h-6 w-6" /></span>
+          <h1 className="mt-6 font-display text-3xl font-bold tracking-[-.04em] text-[#17342d]">{t.confirmationTitle}</h1>
+          <p className="mt-4 leading-7 text-[#557069]">{t.confirmationBody}</p>
+          <button type="button" onClick={onCancel} className="mt-8 rounded-full bg-[#17342d] px-6 py-3 text-sm font-bold text-white">{t.login}</button>
+        </section>
+      </main>
+    );
+  }
 
   return (
-    <div id="student-onboarding" className="max-w-3xl mx-auto py-12 px-6">
-      {/* Head section */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <span className="text-[10px] font-mono font-extrabold text-neutral-400 uppercase tracking-widest block mb-1">
-            Global Talent Provisioning
-          </span>
-          <h2 className="font-display font-black text-3xl text-neutral-900 tracking-tight">
-            Deploy your KONEXA Profile
-          </h2>
-        </div>
-        
-        <div className="max-w-[220px] text-right text-[10px] leading-relaxed text-neutral-400">
-          입력 내용은 제출 전까지 이 브라우저 탭에만 유지됩니다.
-        </div>
-      </div>
-
-      {/* Modern Horizontal Progress bar */}
-      {step <= 5 && (
-        <div className="mb-10">
-          <div className="flex justify-between text-xs font-sans font-bold text-neutral-400 mb-2">
-            <span>Progress Metric: Step {step} of 5</span>
-            <span>{Math.round(((step - 1) / 4) * 100)}% Complete</span>
-          </div>
-          <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
-            <motion.div 
-              className="h-full bg-black rounded-full"
-              initial={{ width: "0%" }}
-              animate={{ width: `${((step - 1) / 4) * 100}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
-
-          <div className="grid grid-cols-5 gap-1 mt-3">
-            {["Culture", "Academic", "Artifacts", "Specialties", "Legal"].map((t, idx) => (
-              <span 
-                key={t} 
-                className={`text-[9px] font-mono uppercase font-black text-center ${
-                  step === idx + 1 ? "text-neutral-900" : "text-neutral-300"
-                }`}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Main form card */}
-      <div className="bg-white rounded-3xl border border-neutral-200 p-8 shadow-premium relative min-h-[420px]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25 }}
-            className="space-y-6"
-          >
-            {/* STEP 1: IDENTITY & CULTURE */}
-            {step === 1 && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-display font-extrabold text-xl text-neutral-900">Personal Identity & Culture</h3>
-                  <p className="font-sans text-xs text-neutral-400 mt-0.5">Let’s begin with your legal naming, background localization, and personal pitch bio.</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-1.5">
-                  <button type="button" onClick={() => setAuthMethod("google")} className={`h-10 rounded-xl text-xs font-bold ${authMethod === "google" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>Google로 가입</button>
-                  <button type="button" onClick={() => setAuthMethod("email")} className={`h-10 rounded-xl text-xs font-bold ${authMethod === "email" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>이메일로 가입</button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  {/* Photo picker */}
-                  <div className="md:col-span-1 flex flex-col items-center justify-center border border-dashed border-neutral-200 rounded-2xl p-4 bg-neutral-50 hover:bg-neutral-100/50 transition-colors relative">
-                    {profilePhotoPreview ? (
-                      <img src={profilePhotoPreview} alt="Preview" className="w-20 h-20 rounded-full object-cover shadow-sm" />
-                    ) : (
-                      <User className="w-8 h-8 text-neutral-400" />
-                    )}
-                    <span className="text-[10px] font-sans font-bold text-neutral-500 mt-2 text-center">Avatar Photo</span>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleProfilePhotoChange} 
-                      className="absolute inset-0 opacity-0 cursor-pointer" 
-                    />
+    <main className="min-h-screen bg-[#f7f6f1] px-4 py-6 sm:px-8 sm:py-10">
+      <div className="mx-auto max-w-4xl">
+        <button type="button" onClick={step === 1 ? onCancel : () => setStep(1)} className="inline-flex items-center gap-2 text-sm font-bold text-[#48645d]">
+          <ArrowLeft className="h-4 w-4" /> {t.back}
+        </button>
+        <section className="mt-5 overflow-hidden rounded-[2rem] border border-[#17342d]/10 bg-white shadow-[0_30px_90px_rgba(23,52,45,.09)]">
+          <div className="grid lg:grid-cols-[.72fr_1.28fr]">
+            <aside className="bg-[#17342d] p-7 text-white sm:p-10">
+              <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[.12em] text-[#b9f4d0]"><Sparkles className="h-4 w-4" />{t.eyebrow}</span>
+              <h1 className="mt-5 font-display text-3xl font-bold leading-tight tracking-[-.04em] sm:text-4xl">{t.title}</h1>
+              <p className="mt-5 text-sm leading-7 text-white/70">{t.lead}</p>
+              <div className="mt-8 space-y-3 text-sm font-semibold">
+                {[t.account, t.preference].map((label, index) => (
+                  <div key={label} className={`flex items-center gap-3 ${step >= index + 1 ? "text-white" : "text-white/40"}`}>
+                    <span className={`grid h-7 w-7 place-items-center rounded-full ${step > index + 1 ? "bg-[#b9f4d0] text-[#17342d]" : "border border-white/30"}`}>{step > index + 1 ? <Check className="h-4 w-4" /> : index + 1}</span>
+                    {label}
                   </div>
-
-                  {/* Identity Names */}
-                  <div className="md:col-span-3 space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-700">Full Legal Name *</label>
-                        <input
-                          type="text"
-                          value={formData.name || ""}
-                          onChange={(e) => updateField("name", e.target.value)}
-                          placeholder="Alex Rivera"
-                          className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden focus:border-black"
-                        />
-                        {errors.name && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.name}</span>}
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-700">Preferred Name / Alias</label>
-                        <input
-                          type="text"
-                          value={formData.preferredName || ""}
-                          onChange={(e) => updateField("preferredName", e.target.value)}
-                          placeholder="Alex"
-                          className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                        />
-                      </div>
-                    </div>
-
-                    {authMethod === "email" ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-700">Email Address *</label>
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="you@university.edu"
-                          className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden focus:border-black"
-                        />
-                        {errors.email && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.email}</span>}
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-700">Account Password *</label>
-                        <input
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="At least 6 characters"
-                          className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden focus:border-black"
-                        />
-                        {errors.password && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.password}</span>}
-                      </div>
-                    </div> : <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">마지막 단계에서 Google 계정으로 인증합니다. KONEXA에는 Google 비밀번호가 저장되지 않습니다.</div>}
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">Nationality *</label>
-                        <input
-                          type="text"
-                          value={formData.nationality || ""}
-                          onChange={(e) => updateField("nationality", e.target.value)}
-                          placeholder="South Korea, US, etc."
-                          className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-700 font-sans">Current Country Location *</label>
-                        <input
-                          type="text"
-                          value={formData.currentCountry || ""}
-                          onChange={(e) => updateField("currentCountry", e.target.value)}
-                          placeholder="Seoul, South Korea"
-                          className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">Time Zone Offset *</label>
-                    <input
-                      type="text"
-                      value={formData.timezone || ""}
-                      onChange={(e) => updateField("timezone", e.target.value)}
-                      placeholder="GMT+9 (Seoul Standard)"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">Emergency Contact (Name/Phone)</label>
-                    <input
-                      type="text"
-                      value={formData.emergencyContact || ""}
-                      onChange={(e) => updateField("emergencyContact", e.target.value)}
-                      placeholder="Mom (+82-10-1234-5678)"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-neutral-700 font-sans">Pitch Biography *</label>
-                  <textarea
-                    value={formData.bio || ""}
-                    onChange={(e) => updateField("bio", e.target.value)}
-                    rows={4}
-                    placeholder="Describe your development focus, background, or aspirations in a single short paragraph..."
-                    className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl p-4 text-xs font-sans focus:outline-hidden focus:border-black leading-relaxed font-light"
-                  />
-                  {errors.bio && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.bio}</span>}
-                </div>
+                ))}
               </div>
-            )}
+              <p className="mt-10 flex items-center gap-2 text-xs text-white/60"><ShieldCheck className="h-4 w-4 text-[#b9f4d0]" />{t.later}</p>
+            </aside>
 
-            {/* STEP 2: ACADEMICS & LANGUAGES */}
-            {step === 2 && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-display font-extrabold text-xl text-neutral-900">Academic Integrity & Languages</h3>
-                  <p className="font-sans text-xs text-neutral-400 mt-0.5">Define your degree status and language proficiencies to qualify for corporate projects.</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">University Name *</label>
-                    <div className="relative">
-                      <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                      <input
-                        type="text"
-                        value={formData.university || ""}
-                        onChange={(e) => updateField("university", e.target.value)}
-                        placeholder="Seoul National University"
-                        className="w-full h-11 pl-10 pr-4 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-sans focus:outline-hidden focus:border-black"
-                      />
+            <form onSubmit={(event) => event.preventDefault()} className="p-6 sm:p-10">
+              <AnimatePresence mode="wait">
+                {step === 1 ? (
+                  <motion.div key="student-account" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}>
+                    <button type="button" aria-pressed={authMethod === "google"} onClick={() => setAuthMethod("google")} className={`flex w-full items-center justify-center gap-3 rounded-xl border px-4 py-3.5 text-sm font-bold transition ${authMethod === "google" ? "border-[#4361ee] bg-[#eaf0ff] text-[#324fc0]" : "border-[#17342d]/15 text-[#17342d] hover:bg-[#f7f6f1]"}`}>
+                      <Globe2 className="h-4 w-4 text-[#4361ee]" />{t.google}
+                    </button>
+                    <button type="button" onClick={() => setAuthMethod("email")} className="my-6 flex w-full items-center gap-3 text-xs font-semibold text-[#81918c]"><span className="h-px flex-1 bg-[#17342d]/10" /><span className={authMethod === "email" ? "text-[#17342d]" : ""}>{t.divider}</span><span className="h-px flex-1 bg-[#17342d]/10" /></button>
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <label className="sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.name} *</span><input autoComplete="name" value={formData.name || ""} onChange={(event) => setField("name", event.target.value)} placeholder={t.namePlaceholder} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>
+                      <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.country} *</span><select value={formData.currentCountry || ""} onChange={(event) => setField("currentCountry", event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 bg-white px-4 py-3 outline-none focus:border-[#4361ee]">{countries.map((country) => <option key={country}>{country}</option>)}</select></label>
+                      {authMethod === "email" && <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.email} *</span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>}
+                      {authMethod === "email" && <label className="sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.password} *</span><input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.passwordHint} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>}
                     </div>
-                    {errors.university && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.university}</span>}
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Academic Major Study Field *</label>
-                    <input
-                      type="text"
-                      value={formData.major || ""}
-                      onChange={(e) => updateField("major", e.target.value)}
-                      placeholder="Computer Science & Engineering"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden focus:border-black"
-                    />
-                    {errors.major && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.major}</span>}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Degree Focus Level *</label>
-                    <select
-                      value={formData.degree || ""}
-                      onChange={(e) => updateField("degree", e.target.value)}
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-3 text-xs font-sans focus:outline-hidden"
-                    >
-                      <option value="Associate Degree">Associate Degree</option>
-                      <option value="Bachelor of Science">Bachelor of Science</option>
-                      <option value="Master of Science">Master of Science</option>
-                      <option value="Ph.D. Researcher">Ph.D. Researcher</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">Graduation Year *</label>
-                    <input
-                      type="text"
-                      value={formData.graduationYear || ""}
-                      onChange={(e) => updateField("graduationYear", e.target.value)}
-                      placeholder="2026"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">Student ID (Optional)</label>
-                    <input
-                      type="text"
-                      value={formData.studentId || ""}
-                      onChange={(e) => updateField("studentId", e.target.value)}
-                      placeholder="SNU-2023-14569"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-neutral-100">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">English Competency Level *</label>
-                    <select
-                      value={formData.englishLevel || ""}
-                      onChange={(e) => updateField("englishLevel", e.target.value)}
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-3 text-xs font-sans focus:outline-hidden"
-                    >
-                      <option value="Beginner">Beginner</option>
-                      <option value="Intermediate">Intermediate / Conversational</option>
-                      <option value="Fluent">Fluent / Advanced</option>
-                      <option value="Native / Bilingual">Native / Bilingual</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Korean Competency Level</label>
-                    <select
-                      value={formData.koreanLevel || ""}
-                      onChange={(e) => updateField("koreanLevel", e.target.value)}
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-3 text-xs font-sans focus:outline-hidden"
-                    >
-                      <option value="Beginner">Beginner</option>
-                      <option value="Intermediate">Intermediate / Conversational</option>
-                      <option value="Fluent">Fluent / Advanced</option>
-                      <option value="Native">Native Speakers</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 3: ARTIFACTS & LINKS */}
-            {step === 3 && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-display font-extrabold text-xl text-neutral-900">Technical Portfolio & Artifacts</h3>
-                  <p className="font-sans text-xs text-neutral-400 mt-0.5">Integrate links to verify your engineering code repositories, documents, and professional footprints.</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">GitHub Profile URL *</label>
-                    <div className="relative">
-                      <Github className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                      <input
-                        type="text"
-                        value={formData.github || ""}
-                        onChange={(e) => updateField("github", e.target.value)}
-                        placeholder="https://github.com/your-username"
-                        className="w-full h-11 pl-10 pr-4 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-sans focus:outline-hidden focus:border-black"
-                      />
-                    </div>
-                    {errors.github && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.github}</span>}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-neutral-700">LinkedIn Profile URL</label>
-                      <div className="relative">
-                        <Linkedin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                        <input
-                          type="text"
-                          value={formData.linkedin || ""}
-                          onChange={(e) => updateField("linkedin", e.target.value)}
-                          placeholder="https://linkedin.com/in/username"
-                          className="w-full h-11 pl-10 pr-4 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-sans focus:outline-hidden"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-neutral-700 font-sans">Personal Portfolio / Website</label>
-                      <div className="relative">
-                        <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                        <input
-                          type="text"
-                          value={formData.portfolio || ""}
-                          onChange={(e) => updateField("portfolio", e.target.value)}
-                          placeholder="https://mywebsite.com"
-                          className="w-full h-11 pl-10 pr-4 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-sans focus:outline-hidden"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Resume selection; authenticated upload is completed from profile onboarding. */}
-                  <div className="pt-2">
-                    <label className="text-xs font-bold text-neutral-700 font-sans block mb-1.5">Official Professional Resume (required after email verification)</label>
-                    <div className="border border-dashed border-neutral-200 rounded-2xl p-6 text-center bg-neutral-50 hover:bg-neutral-100/50 transition-colors relative flex flex-col items-center justify-center">
-                      <UploadCloud className="w-8 h-8 text-neutral-400 mb-2" />
-                      <span className="text-xs font-sans font-bold text-neutral-700">
-                        {resumeName ? `Selected: ${resumeName}` : "Click to select or drag PDF file here"}
-                      </span>
-                      <span className="text-[10px] text-neutral-400 font-sans mt-1">Recommended size limit: 5MB. AI will immediately index the content.</span>
-                      <input 
-                        type="file" 
-                        accept=".pdf" 
-                        onChange={handleResumeChange}
-                        className="absolute inset-0 opacity-0 cursor-pointer" 
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 4: SKILLS & PREFERENCES */}
-            {step === 4 && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-display font-extrabold text-xl text-neutral-900">Career Specialties & Preferences</h3>
-                  <p className="font-sans text-xs text-neutral-400 mt-0.5">Specify your core technical competencies and preferred employment vectors.</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Work Preference Mode</label>
-                    <select
-                      value={formData.workPreference || "Remote"}
-                      onChange={(e) => updateField("workPreference", e.target.value)}
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-3 text-xs font-sans focus:outline-hidden"
-                    >
-                      <option value="Remote">100% Remote Workflow</option>
-                      <option value="Hybrid">Hybrid Office Arrangement</option>
-                      <option value="Onsite">Onsite Physical Headquarters</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Employment Availability *</label>
-                    <input
-                      type="text"
-                      value={formData.availability || ""}
-                      onChange={(e) => updateField("availability", e.target.value)}
-                      placeholder="Immediate (Full-time)"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Preferred Tech Sector/Industry</label>
-                    <input
-                      type="text"
-                      value={formData.preferredIndustry || ""}
-                      onChange={(e) => updateField("preferredIndustry", e.target.value)}
-                      placeholder="AI, Developer Tooling, SaaS"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Preferred Target Role *</label>
-                    <input
-                      type="text"
-                      value={formData.preferredJob || ""}
-                      onChange={(e) => updateField("preferredJob", e.target.value)}
-                      placeholder="Full Stack Software Engineer"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">희망 주급 (필수, 원) *</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="10000"
-                      inputMode="numeric"
-                      value={formData.preferredWeeklyPayKrw ?? ""}
-                      onChange={(e) => updateField("preferredWeeklyPayKrw", e.target.value === "" ? undefined : Number(e.target.value))}
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                    <p className="text-[10px] leading-4 text-neutral-400">프로젝트는 주 단위로 정산합니다. 희망 금액이 아직 없으면 비워두어도 됩니다.</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">Preferred Job Country</label>
-                    <input
-                      type="text"
-                      value={formData.preferredCountry || ""}
-                      onChange={(e) => updateField("preferredCountry", e.target.value)}
-                      placeholder="South Korea, USA, Singapore"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-                </div>
-
-                {/* Technical Skills selection list */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-700">Core Technical Specialities (required, comma-separated)</label>
-                  <input
-                    type="text"
-                    value={formData.skills?.join(", ") || ""}
-                    onChange={(e) => updateField("skills", e.target.value.split(",").map(s => s.trim()).filter(s => s !== ""))}
-                    placeholder="React, TypeScript, TailwindCSS, Node.js, Postgres"
-                    className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                  />
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {formData.skills?.map(s => (
-                      <span key={s} className="text-[10px] font-sans font-bold text-neutral-700 bg-neutral-100 px-2.5 py-1 rounded-full border border-neutral-200/50">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 5: CONSENTS & FINALIZE */}
-            {step === 5 && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-display font-extrabold text-xl text-neutral-900">Security & Agreement Signoff</h3>
-                  <p className="font-sans text-xs text-neutral-400 mt-0.5">Commit to our global workspace terms, and configure your privacy filters.</p>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Privacy settings toggles */}
-                  <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200/60 space-y-3">
-                    <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest block">Privacy Configurations</span>
-                    
-                    <label className="flex items-center justify-between cursor-pointer">
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-bold text-neutral-800">Public Profile Catalog Listing</span>
-                        <p className="text-[10px] text-neutral-400 leading-tight">Allow companies to search, view, and recruit your verified profile globally.</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={formData.privacySettings?.publicProfile}
-                        onChange={(e) => updateField("privacySettings", { ...formData.privacySettings, publicProfile: e.target.checked })}
-                        className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                      />
-                    </label>
-
-                    <label className="flex items-center justify-between cursor-pointer border-t border-neutral-200/50 pt-3">
-                      <div className="space-y-0.5">
-                        <span className="text-xs font-bold text-neutral-800">Direct Resume Download Accessibility</span>
-                        <p className="text-[10px] text-neutral-400 leading-tight">Let verified recruiters fetch your official indexed resume directly in 1-click.</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={formData.privacySettings?.showResume}
-                        onChange={(e) => updateField("privacySettings", { ...formData.privacySettings, showResume: e.target.checked })}
-                        className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                      />
-                    </label>
-                  </div>
-
-                  {/* Consents list */}
-                  <div className="space-y-3">
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={marketingConsent}
-                        onChange={(e) => setMarketingConsent(e.target.checked)}
-                        className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
-                      />
-                      <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
-                        <span>I consent to receive selective emails regarding new global projects, hackathons, and matching suggestions from KONEXA.</span>
-                      </div>
-                    </label>
-
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={termsAgreement}
-                        onChange={(e) => setTermsAgreement(e.target.checked)}
-                        className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
-                      />
-                      <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
-                        <span>I confirm that I have reviewed and agree to the <strong>KONEXA Terms of Service</strong>, global matching policy, and <strong>Privacy Standards</strong>. *</span>
-                      </div>
-                    </label>
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={nonCircumventionAgreement}
-                        onChange={(e) => setNonCircumventionAgreement(e.target.checked)}
-                        className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
-                      />
-                      <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
-                        프로젝트 진행 중 플랫폼 외 거래를 하지 않고, KONEXA를 통해 소개받은 기업과의 직접 고용·용역 전환은 12개월간 플랫폼에 신고하는 정책을 확인했습니다. 학생에게 거액의 위약금을 부과하는 조항은 적용하지 않습니다. *
-                      </div>
-                    </label>
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={privacyTransferConsent}
-                        onChange={(e) => setPrivacyTransferConsent(e.target.checked)}
-                        className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
-                      />
-                      <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
-                        계약 전 연락처 공유 방지를 위한 메시지 패턴 탐지와 한국·해외 간 개인정보 이전 고지를 확인했습니다. 위험기록에는 메시지 원문 대신 탐지 유형과 기록 ID만 저장합니다. *
-                      </div>
-                    </label>
-                    {errors.terms && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.terms}</span>}
-                  </div>
-                </div>
-
-                {/* Big register call */}
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  className="w-full h-12 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center justify-center gap-2 shadow-md cursor-pointer transition-colors"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Provision Verified Identity & Scan Profile</span>
-                </button>
-              </div>
-            )}
-
-            {/* STEP 6: AI CO-PILOT ANALYSIS SCREEN */}
-            {step === 6 && (
-              <div className="space-y-6">
-                <div className="text-center py-4">
-                  <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center mx-auto mb-3 shadow-xs animate-pulse">
-                    <Sparkles className="w-6 h-6 text-teal-600" />
-                  </div>
-                  <h3 className="font-display font-black text-2xl text-neutral-900">KONEXA Onboarding Analysis</h3>
-                  <p className="font-sans text-xs text-neutral-400 mt-0.5">Let our real-time AI indexer audit your credentials, portfolio, and matching preferences.</p>
-                </div>
-
-                {isAiLoading ? (
-                  <div className="py-12 flex flex-col items-center justify-center space-y-4">
-                    <Cpu className="w-10 h-10 text-neutral-300 animate-spin" />
-                    <span className="text-xs font-sans text-neutral-500 font-bold">Scanning GitHub, Resume, and Degree portfolios...</span>
-                    <span className="text-[10px] font-mono text-neutral-400">Verifying security records through Supabase indexers</span>
-                  </div>
+                    <button type="button" onClick={goNext} className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white">{t.next}<ArrowRight className="h-4 w-4" /></button>
+                  </motion.div>
                 ) : (
-                  aiReport && (
-                    <motion.div 
-                      className="space-y-6"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.4 }}
-                    >
-                      {/* Analysis Block */}
-                      <div className="bg-neutral-50 border border-neutral-200/80 p-6 rounded-2xl space-y-4 shadow-xs">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-mono font-bold text-teal-600 bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-lg">
-                            AI Audit Pending
-                          </span>
-                          <span className="text-xs font-mono font-bold text-neutral-600 bg-neutral-100 border border-neutral-200 px-2.5 py-1 rounded-lg">
-                            Trust Score: 산정 대기
-                          </span>
-                        </div>
-                        
-                        <p className="font-sans text-xs text-neutral-600 leading-relaxed font-light whitespace-pre-line">
-                          {aiReport.profileAnalysis}
-                        </p>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-neutral-200/60">
-                          <div>
-                            <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest block mb-1">Roles Matched</span>
-                            <div className="flex flex-wrap gap-1">
-                              {aiReport.roleRecommendations.map(r => (
-                                <span key={r} className="text-[10px] font-sans font-bold text-neutral-700 bg-neutral-200/60 px-2.5 py-0.5 rounded-full">
-                                  {r}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div>
-                            <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest block mb-1">Indexed Skills</span>
-                            <div className="flex flex-wrap gap-1">
-                              {aiReport.skillsVerified.map(s => (
-                                <span key={s} className="text-[10px] font-sans font-bold text-neutral-700 bg-neutral-200/60 px-2.5 py-0.5 rounded-full">
-                                  {s}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Matching Project suggestion */}
-                      <div className="border border-neutral-200 p-5 rounded-2xl flex flex-col justify-between bg-white shadow-premium">
-                        <div>
-                          <span className="text-[9px] font-mono font-black text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                            Recommended Challenge (after verification)
-                          </span>
-                          <h4 className="font-display font-bold text-base text-neutral-900 mt-2">
-                            {aiReport.recommendedProjectId ? projects.find(p => p.id === aiReport.recommendedProjectId)?.title : "회원가입 후 검증 결과에 따라 추천됩니다"}
-                          </h4>
-                          <p className="font-sans text-xs text-neutral-400 mt-1 line-clamp-2 leading-relaxed">
-                            {aiReport.recommendedProjectId ? projects.find(p => p.id === aiReport.recommendedProjectId)?.description : "인증된 프로필 분석과 프로젝트 적합성 검토가 완료된 후 표시됩니다."}
-                          </p>
-                        </div>
-
-                        <div className="mt-4 pt-3 border-t border-neutral-100 flex items-center justify-between text-xs">
-                          <span className="font-mono text-neutral-400">Reward: <strong className="text-neutral-900 font-bold">검토 후 공개</strong></span>
-                          <span className="text-neutral-400 text-[10px] font-mono font-extrabold uppercase">PENDING</span>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={handleFinishOnboarding}
-                        className="w-full h-12 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-colors"
-                      >
-                        <span>{emailConfirmationRequired ? "Confirm Email, Then Sign In" : "Claim Recommended Challenge & Enter Dashboard"}</span>
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </motion.div>
-                  )
+                  <motion.div key="student-matching" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+                    <fieldset><legend className="text-base font-black text-[#17342d]">{t.role}</legend><p className="mt-1 text-xs text-[#738781]">{t.optional}</p><div className="mt-4 flex flex-wrap gap-2">{roles.map((role) => <ChoiceChip key={role} selected={formData.preferredJob === role} onClick={() => setField("preferredJob", formData.preferredJob === role ? "" : role)}>{role}</ChoiceChip>)}</div></fieldset>
+                    <fieldset className="mt-7"><legend className="text-base font-black text-[#17342d]">{t.skills}</legend><p className="mt-1 text-xs text-[#738781]">{t.optional}</p><div className="mt-4 flex flex-wrap gap-2">{skills.map((skill) => <ChoiceChip key={skill} selected={Boolean(formData.skills?.includes(skill))} onClick={() => toggleSkill(skill)}>{skill}</ChoiceChip>)}</div></fieldset>
+                    <div className="mt-7 grid gap-5 sm:grid-cols-2">
+                      <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.availability}</span><select value={formData.availability || ""} onChange={(event) => setField("availability", event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 bg-white px-4 py-3"><option value="">—</option>{availability.map((item) => <option key={item}>{item}</option>)}</select></label>
+                      <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.workMode}</span><select value={formData.workPreference || "Remote"} onChange={(event) => setField("workPreference", event.target.value as StudentProfile["workPreference"])} className="w-full rounded-xl border border-[#17342d]/15 bg-white px-4 py-3">{workModes.map((item) => <option key={item}>{item}</option>)}</select></label>
+                    </div>
+                    <div className="mt-7 space-y-3 rounded-2xl bg-[#f5f7f2] p-4">
+                      {([
+                        ["terms", t.terms],
+                        ["transaction", t.transaction],
+                        ["privacy", t.privacy],
+                        ["marketing", t.marketing],
+                      ] as const).map(([key, label]) => (
+                        <label key={key} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#3f5d55]">
+                          <input type="checkbox" checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#17342d]" />
+                          <span>{label}{key !== "marketing" && <strong className="ml-1 text-[#4361ee]">*</strong>}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <button type="button" disabled={isSubmitting} onClick={() => void (authMethod === "google" ? submitGoogle() : submitEmail())} className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">
+                      {isSubmitting ? t.submitting : t.submit}<GraduationCap className="h-4 w-4" />
+                    </button>
+                  </motion.div>
                 )}
-              </div>
-            )}
-
-            {/* Stepper Footer Controls */}
-            {step <= 5 && (
-              <div className="border-t border-neutral-100 pt-6 flex justify-between gap-4">
-                <button
-                  type="button"
-                  onClick={step === 1 ? onCancel : handleBack}
-                  className="px-5 h-11 border border-neutral-200 hover:bg-neutral-50 rounded-xl text-xs font-sans font-semibold text-neutral-600 flex items-center gap-1 transition-colors cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>{step === 1 ? "Exit Onboarding" : "Previous Step"}</span>
-                </button>
-
-                {step < 5 ? (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="px-5 h-11 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
-                  >
-                    <span>Proceed Forward</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={authMethod === "google" ? handleGoogleSubmit : handleSubmit}
-                    className="px-5 h-11 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
-                  >
-                    <span>{authMethod === "google" ? "Google로 학생 가입" : "이메일로 학생 가입"}</span>
-                    <ShieldCheck className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+              </AnimatePresence>
+            </form>
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

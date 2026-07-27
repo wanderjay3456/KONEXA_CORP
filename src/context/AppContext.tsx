@@ -609,10 +609,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Only student and company self-registration is supported.");
       }
       if (!password) throw new Error("A password is required for registration.");
-      const registrationErrors = role === UserRole.STUDENT
-        ? getStudentCompletionErrors({ ...studentData, identityDocumentPath: "required-after-verification", resumeUrl: "required-after-verification" })
-        : getCompanyCompletionErrors({ ...companyData, businessRegistrationDocumentPath: "required-after-verification" });
-      if (Object.keys(registrationErrors).length > 0) throw new Error(firstValidationMessage(registrationErrors));
+      if (!displayName.trim()) throw new Error("이름 또는 기업명을 입력해 주세요.");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error("올바른 이메일 주소를 입력해 주세요.");
+      if (password.length < 6) throw new Error("비밀번호는 6자 이상이어야 합니다.");
+      const requiredConsents = ["terms", "nonCircumvention", "messageAnalysis", "crossBorderPrivacy"];
+      if (requiredConsents.some((key) => consentBundle?.[key] !== true)) {
+        throw new Error("필수 약관과 개인정보 고지에 모두 동의해 주세요.");
+      }
+      if (role === UserRole.STUDENT && !studentData?.name?.trim()) {
+        throw new Error("이름을 입력해 주세요.");
+      }
+      if (role === UserRole.COMPANY && !companyData?.companyName?.trim()) {
+        throw new Error("기업명을 입력해 주세요.");
+      }
       const credential = await createUserWithEmailAndPassword(auth, email, password, {
         display_name: displayName,
         role,
