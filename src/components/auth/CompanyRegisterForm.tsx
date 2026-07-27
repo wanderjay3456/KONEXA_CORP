@@ -1,27 +1,9 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { ArrowLeft, ArrowRight, Building2, Check, Globe2, Mail, ShieldCheck, Sparkles } from "lucide-react";
 import { useApp } from "../../context/AppContext";
-import { UserRole, CompanyProfile } from "../../types";
-import { 
-  Building2, 
-  MapPin, 
-  Globe, 
-  ShieldCheck, 
-  Mail, 
-  Phone, 
-  User, 
-  Briefcase, 
-  FileCheck2, 
-  ArrowLeft, 
-  ArrowRight, 
-  Sparkles, 
-  Cpu, 
-  CheckCircle,
-  ToggleRight,
-  Plus,
-  Trash2,
-  ChevronRight
-} from "lucide-react";
+import { useLocale } from "../../i18n/LocaleContext";
+import { CompanyProfile, UserRole } from "../../types";
 import { useToast } from "../ui/Toast";
 
 interface CompanyRegisterFormProps {
@@ -29,762 +11,279 @@ interface CompanyRegisterFormProps {
   onSuccess: () => void;
 }
 
+const countries = ["South Korea", "Vietnam", "Other"];
+const industries = ["IT / Software", "Manufacturing", "Commerce / Retail", "Content / Media", "Professional Services", "Education", "Other"];
+const sizes = ["1–10", "11–50", "51–200", "201–500", "501+"];
+const needs = ["Software Development", "Data & AI", "UI / UX", "Marketing", "Business Operations", "Translation"];
+const skills = ["JavaScript", "TypeScript", "React", "Python", "AI / ML", "Data Analysis", "Figma", "Digital Marketing", "Korean", "English", "Vietnamese"];
+const workModes = ["Remote", "Hybrid", "Onsite"];
+
+const copy = {
+  ko: {
+    eyebrow: "약 2분이면 완료",
+    title: "채용 의도만 먼저 알려주세요.",
+    lead: "사업자등록증, 담당자 연락처, 회사 소개와 상세 공고는 가입 후 필요한 시점에 등록할 수 있습니다.",
+    account: "기업 정보",
+    preference: "채용 설정",
+    google: "Google로 빠르게 시작",
+    divider: "또는 이메일로 가입",
+    company: "기업명",
+    country: "본사 국가",
+    industry: "업종",
+    size: "기업 규모",
+    email: "업무용 이메일",
+    password: "비밀번호",
+    passwordHint: "6자 이상",
+    next: "다음",
+    back: "이전",
+    needs: "채용하려는 직무",
+    skills: "우선적으로 필요한 기술",
+    mode: "선호 협업 방식",
+    optional: "선택 · 나중에 공고에서 구체화 가능",
+    terms: "KONEXA 이용약관과 개인정보처리방침에 동의합니다.",
+    transaction: "인재 소개·계약 단계의 플랫폼 외 거래 방지 약정에 동의합니다.",
+    privacy: "안전한 거래를 위한 메시지 분석 및 개인정보 국외이전 고지에 동의합니다.",
+    marketing: "인재풀과 서비스 업데이트를 이메일로 받습니다. (선택)",
+    submit: "기업 계정 만들기",
+    submitting: "계정을 만들고 있어요",
+    required: "필수 항목을 확인해 주세요.",
+    confirmationTitle: "확인 이메일을 보냈습니다.",
+    confirmationBody: "이메일을 확인한 뒤 로그인하면 바로 구인공고를 작성할 수 있습니다.",
+    login: "로그인 화면으로",
+    later: "기업 검증은 공고 게시 전에 완료",
+  },
+  en: {
+    eyebrow: "Takes about 2 minutes",
+    title: "Start with your hiring intent.",
+    lead: "Add business documents, contact details, company background, and a full job post later.",
+    account: "Company",
+    preference: "Hiring",
+    google: "Continue with Google",
+    divider: "or sign up with email",
+    company: "Company name",
+    country: "Headquarters",
+    industry: "Industry",
+    size: "Company size",
+    email: "Work email",
+    password: "Password",
+    passwordHint: "At least 6 characters",
+    next: "Continue",
+    back: "Back",
+    needs: "Roles you want to hire",
+    skills: "Priority skills",
+    mode: "Preferred work mode",
+    optional: "Optional · refine it in your job post",
+    terms: "I agree to the KONEXA Terms and Privacy Policy.",
+    transaction: "I agree to the non-circumvention terms for talent introductions and contracts.",
+    privacy: "I agree to the message-safety analysis and cross-border privacy notice.",
+    marketing: "Send me talent-pool and service updates. (Optional)",
+    submit: "Create company account",
+    submitting: "Creating your account",
+    required: "Please check the required fields.",
+    confirmationTitle: "Check your inbox.",
+    confirmationBody: "Confirm your email, then sign in to create your first job post.",
+    login: "Go to sign in",
+    later: "Complete company verification before publishing",
+  },
+  vi: {
+    eyebrow: "Chỉ mất khoảng 2 phút",
+    title: "Bắt đầu với nhu cầu tuyển dụng.",
+    lead: "Bạn có thể bổ sung giấy tờ doanh nghiệp, liên hệ, giới thiệu công ty và tin tuyển dụng chi tiết sau.",
+    account: "Doanh nghiệp",
+    preference: "Tuyển dụng",
+    google: "Tiếp tục với Google",
+    divider: "hoặc đăng ký bằng email",
+    company: "Tên doanh nghiệp",
+    country: "Trụ sở chính",
+    industry: "Lĩnh vực",
+    size: "Quy mô công ty",
+    email: "Email công việc",
+    password: "Mật khẩu",
+    passwordHint: "Tối thiểu 6 ký tự",
+    next: "Tiếp tục",
+    back: "Quay lại",
+    needs: "Vị trí cần tuyển",
+    skills: "Kỹ năng ưu tiên",
+    mode: "Hình thức làm việc",
+    optional: "Không bắt buộc · bổ sung trong tin tuyển dụng",
+    terms: "Tôi đồng ý với Điều khoản sử dụng và Chính sách quyền riêng tư của KONEXA.",
+    transaction: "Tôi đồng ý với điều khoản không giao dịch ngoài nền tảng.",
+    privacy: "Tôi đồng ý với thông báo phân tích tin nhắn an toàn và chuyển dữ liệu xuyên biên giới.",
+    marketing: "Gửi cho tôi cập nhật về ứng viên và dịch vụ. (Không bắt buộc)",
+    submit: "Tạo tài khoản doanh nghiệp",
+    submitting: "Đang tạo tài khoản",
+    required: "Vui lòng kiểm tra các mục bắt buộc.",
+    confirmationTitle: "Hãy kiểm tra email.",
+    confirmationBody: "Xác nhận email rồi đăng nhập để tạo tin tuyển dụng đầu tiên.",
+    login: "Đi đến đăng nhập",
+    later: "Xác minh doanh nghiệp trước khi đăng tin",
+  },
+} as const;
+
+function ChoiceChip({ selected, onClick, children }: { key?: React.Key; selected: boolean; onClick: () => void; children: React.ReactNode }) {
+  return <button type="button" aria-pressed={selected} onClick={onClick} className={`rounded-full border px-3.5 py-2 text-sm font-semibold transition ${selected ? "border-[#17342d] bg-[#17342d] text-white" : "border-[#17342d]/15 bg-white text-[#315149] hover:border-[#17342d]/40"}`}>{children}</button>;
+}
+
 export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegisterFormProps) {
-  const { registerUser, googleLogin, studentProfile } = useApp();
-  const { success, error, info } = useToast();
-  
+  const { registerUser, googleLogin } = useApp();
+  const { locale } = useLocale();
+  const { error } = useToast();
+  const t = copy[locale];
   const [step, setStep] = useState(1);
-  const totalSteps = 4; // Steps 1 to 3 are forms, Step 4 is Onboarding Recommendations & Verification status
-  
-  // Form State
+  const [authMethod, setAuthMethod] = useState<"email" | "google">("email");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
+  const [agreements, setAgreements] = useState({ terms: false, transaction: false, privacy: false, marketing: false });
+  const [selectedNeeds, setSelectedNeeds] = useState<string[]>([]);
+  const [workMode, setWorkMode] = useState("");
   const [formData, setFormData] = useState<Partial<CompanyProfile>>({
     companyName: "",
-    businessRegistrationNumber: "",
     country: "South Korea",
     industry: "",
     companySize: "",
-    website: "",
-    linkedin: "",
-    contactPerson: "",
-    position: "",
-    corporateEmail: "",
-    phoneNumber: "",
-    companyIntroduction: "",
-    hiringIndustry: "",
-    preferredMajors: [],
     requiredSkills: [],
     preferredLanguages: [],
-    companyBenefits: [],
-    remotePolicy: "",
     recruitmentStatus: "Open",
-    officeLocation: "",
-    notificationPreferences: { email: true, system: true },
+    website: "",
+    description: "",
     verified: false,
     verifiedStatus: "Pending",
-    description: ""
+    notificationPreferences: { email: true, system: true },
+    onboardingCompleted: false,
   });
 
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [termsAgreement, setTermsAgreement] = useState(false);
-  const [nonCircumventionAgreement, setNonCircumventionAgreement] = useState(false);
-  const [privacyTransferConsent, setPrivacyTransferConsent] = useState(false);
-  const [password, setPassword] = useState("");
-  const [authMethod, setAuthMethod] = useState<"email" | "google">("email");
-  const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
+  const setField = <K extends keyof CompanyProfile>(key: K, value: CompanyProfile[K]) => setFormData((current) => ({ ...current, [key]: value }));
+  const toggle = (list: string[], value: string, setter: (next: string[]) => void) => setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+  const validateAccount = () => {
+    if (!formData.companyName?.trim() || !formData.country || !formData.industry || !formData.companySize) return false;
+    if (authMethod === "email" && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 6)) return false;
+    return true;
+  };
+  const validateAgreements = () => agreements.terms && agreements.transaction && agreements.privacy;
 
-  // Custom skills or benefits inputs helpers
-  const [skillInput, setSkillInput] = useState("");
-  const [benefitInput, setBenefitInput] = useState("");
-
-  // AI Matching Report State
-  const [aiReport, setAiReport] = useState<{
-    verificationStatus: string;
-    auditDetails: string;
-    matchingTalentsCount: number;
-    recommendedCandidates: string[];
-    matchingStrategy: string;
-  } | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
-
-  const updateField = (key: string, value: any) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
-    if (errors[key]) {
-      setErrors(prev => {
-        const copy = { ...prev };
-        delete copy[key];
-        return copy;
-      });
+  const goNext = () => {
+    if (!validateAccount()) {
+      error(t.required, t.required);
+      return;
     }
+    setStep(2);
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (ev.target?.result) {
-          const res = ev.target.result as string;
-          setLogoPreview(res);
-          updateField("companyLogo", res);
-          success("Logo selected", "The organization logo preview is ready for profile submission.");
-        }
-      };
-      reader.readAsDataURL(file);
+  const profilePayload = {
+    ...formData,
+    hiringIndustry: selectedNeeds.join(", "),
+    remotePolicy: workMode,
+    corporateEmail: authMethod === "email" ? email : "",
+    description: formData.industry ? `${formData.industry} company` : "",
+    notificationPreferences: { email: true, system: true },
+  };
+  const consentBundle = {
+    terms: agreements.terms,
+    nonCircumvention: agreements.transaction,
+    messageAnalysis: agreements.privacy,
+    crossBorderPrivacy: agreements.privacy,
+    marketing: agreements.marketing,
+    documentVersion: "2026-07-27",
+  };
+
+  const submitEmail = async () => {
+    if (!validateAccount() || !validateAgreements()) {
+      error(t.required, t.required);
+      return;
     }
-  };
-
-  const addSkill = () => {
-    if (!skillInput.trim()) return;
-    const current = formData.requiredSkills || [];
-    if (current.includes(skillInput.trim())) return;
-    updateField("requiredSkills", [...current, skillInput.trim()]);
-    setSkillInput("");
-  };
-
-  const removeSkill = (sk: string) => {
-    updateField("requiredSkills", (formData.requiredSkills || []).filter(s => s !== sk));
-  };
-
-  const addBenefit = () => {
-    if (!benefitInput.trim()) return;
-    const current = formData.companyBenefits || [];
-    if (current.includes(benefitInput.trim())) return;
-    updateField("companyBenefits", [...current, benefitInput.trim()]);
-    setBenefitInput("");
-  };
-
-  const removeBenefit = (ben: string) => {
-    updateField("companyBenefits", (formData.companyBenefits || []).filter(b => b !== ben));
-  };
-
-  const validateStep = (): boolean => {
-    const nextErrors: { [key: string]: string } = {};
-    if (step === 1) {
-      if (!formData.companyName?.trim()) nextErrors.companyName = "Corporate Legal Entity Name is required.";
-      if (!formData.businessRegistrationNumber?.trim()) nextErrors.businessRegistrationNumber = "Business Registration Number is vital for corporate compliance audits.";
-      if (!formData.website?.trim()) nextErrors.website = "Company website URL is required.";
-      if (!formData.country?.trim()) nextErrors.country = "Headquarters country is required.";
-      if (!formData.industry?.trim()) nextErrors.industry = "Industry is required.";
-      if (!formData.companySize?.trim()) nextErrors.companySize = "Company size is required.";
-      if (!formData.officeLocation?.trim()) nextErrors.officeLocation = "Headquarters address is required.";
-    } else if (step === 2) {
-      if (!formData.contactPerson?.trim()) nextErrors.contactPerson = "Contact Person Representative Name is required.";
-      if (!formData.position?.trim()) nextErrors.position = "Representative position is required.";
-      if (authMethod === "email" && (!formData.corporateEmail?.trim() || !formData.corporateEmail.includes("@"))) {
-        nextErrors.corporateEmail = "A valid corporate workspace email is required.";
-      }
-      if (authMethod === "email" && (!password.trim() || password.length < 6)) {
-        nextErrors.password = "A password of at least 6 characters is required for your credential account.";
-      }
-      if (!formData.companyIntroduction?.trim()) nextErrors.companyIntroduction = "Please write a brief corporate overview introduction.";
-      if (!formData.phoneNumber?.trim()) nextErrors.phoneNumber = "Representative phone is required.";
-    } else if (step === 3) {
-      if (!formData.requiredSkills?.length) nextErrors.requiredSkills = "At least one required skill is needed.";
-      if (!termsAgreement || !nonCircumventionAgreement || !privacyTransferConsent) nextErrors.terms = "필수 이용약관, 소개요금·이탈거래 약정, 메시지 분석·국외이전 고지에 모두 동의해야 합니다.";
-    }
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  };
-
-  const handleNext = () => {
-    if (validateStep()) {
-      setStep(prev => prev + 1);
-    } else {
-      error("Validation Failed", "Please address all mandatory highlighted fields.");
-    }
-  };
-
-  const handleBack = () => {
-    setStep(prev => Math.max(1, prev - 1));
-  };
-
-  // Business verification and talent matching run only after authenticated backend setup.
-  // Do not show fabricated registry results or candidate counts during registration.
-  const triggerAiMatching = () => {
-    setIsAiLoading(false);
-    setAiReport({
-      verificationStatus: "Pending KONEXA review",
-      auditDetails: "사업자등록증과 기업 프로필이 제출되었습니다. 관리자 검토와 연결된 검증 서버가 확인을 완료한 뒤 상태가 갱신됩니다.",
-      matchingTalentsCount: 0,
-      recommendedCandidates: [],
-      matchingStrategy: "기업 검증 및 프로젝트 조건 저장 후, 인증된 인재 데이터에 한해 매칭 결과를 제공합니다."
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateStep()) return;
-
-    // description field fallback
-    const desc = formData.companyIntroduction || "Corporate software matching partner.";
+    setIsSubmitting(true);
     try {
-      const result = await registerUser(
-        formData.corporateEmail || "partner@company.com",
-        formData.companyName || "Horizon Partner",
-        UserRole.COMPANY,
-        undefined,
-        {
-          ...formData,
-          description: desc
-        },
-        password,
-        {
-          terms: termsAgreement,
-          nonCircumvention: nonCircumventionAgreement,
-          messageAnalysis: privacyTransferConsent,
-          crossBorderPrivacy: privacyTransferConsent,
-          documentVersion: "2026-07-15",
-        }
-      );
-      setEmailConfirmationRequired(result.emailConfirmationRequired);
-
-      setStep(4);
-      triggerAiMatching();
-    } catch (err: any) {
-      error("Registration failed", err.message || "An account creation error occurred.");
+      const result = await registerUser(email, formData.companyName!.trim(), UserRole.COMPANY, undefined, profilePayload, password, consentBundle);
+      if (result.emailConfirmationRequired) setEmailConfirmationRequired(true);
+      else onSuccess();
+    } catch {
+      // registerUser reports the actionable error through the shared toast.
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleGoogleSubmit = async () => {
-    if (!validateStep()) return;
-    const safeProfile = { ...formData, description: formData.companyIntroduction || "Corporate software matching partner." };
-    delete safeProfile.companyLogo;
+  const submitGoogle = async () => {
+    if (!validateAccount() || !validateAgreements()) {
+      error(t.required, t.required);
+      return;
+    }
+    setIsSubmitting(true);
     try {
-      await googleLogin(UserRole.COMPANY, {
-        mode: "register",
-        profileData: safeProfile as Record<string, unknown>,
-        consentBundle: {
-          terms: termsAgreement,
-          nonCircumvention: nonCircumventionAgreement,
-          messageAnalysis: privacyTransferConsent,
-          crossBorderPrivacy: privacyTransferConsent,
-          documentVersion: "2026-07-15",
-        },
-      });
-    } catch (err: any) {
-      error("Google 회원가입 실패", err.message || "Google 인증을 시작할 수 없습니다.");
+      await googleLogin(UserRole.COMPANY, { mode: "register", profileData: profilePayload, consentBundle });
+    } catch {
+      setIsSubmitting(false);
     }
   };
+
+  if (emailConfirmationRequired) {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#f7f6f1] px-5">
+        <section className="w-full max-w-lg rounded-[2rem] border border-[#17342d]/10 bg-white p-8 text-center shadow-[0_30px_90px_rgba(23,52,45,.1)] sm:p-12">
+          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#dff8ea] text-[#23644e]"><Mail className="h-6 w-6" /></span>
+          <h1 className="mt-6 font-display text-3xl font-bold tracking-[-.04em] text-[#17342d]">{t.confirmationTitle}</h1>
+          <p className="mt-4 leading-7 text-[#557069]">{t.confirmationBody}</p>
+          <button type="button" onClick={onCancel} className="mt-8 rounded-full bg-[#17342d] px-6 py-3 text-sm font-bold text-white">{t.login}</button>
+        </section>
+      </main>
+    );
+  }
 
   return (
-    <div id="company-onboarding" className="max-w-3xl mx-auto py-12 px-6">
-      {/* Head section */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <span className="text-[10px] font-mono font-extrabold text-neutral-400 uppercase tracking-widest block mb-1">
-            Corporate Sponsor Deployment
-          </span>
-          <h2 className="font-display font-black text-3xl text-neutral-900 tracking-tight">
-            Register Partner Entity
-          </h2>
-        </div>
-        
-        {/* Save status */}
-        <div className="max-w-[220px] text-right text-[10px] leading-relaxed text-neutral-400">
-          입력 내용은 제출 전까지 이 브라우저 탭에만 유지됩니다.
-        </div>
-      </div>
-
-      {/* Steps bar */}
-      {step <= 3 && (
-        <div className="mb-10">
-          <div className="flex justify-between text-xs font-sans font-bold text-neutral-400 mb-2">
-            <span>Corporate Checklist: Step {step} of 3</span>
-            <span>{Math.round(((step - 1) / 2) * 100)}% Completed</span>
-          </div>
-          <div className="h-1.5 w-full bg-neutral-100 rounded-full overflow-hidden">
-            <motion.div 
-              className="h-full bg-black rounded-full"
-              initial={{ width: "0%" }}
-              animate={{ width: `${((step - 1) / 2) * 100}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-1 mt-3">
-            {["Corporate Profile", "Verification & Bio", "Hiring Specs"].map((t, idx) => (
-              <span 
-                key={t} 
-                className={`text-[9px] font-mono uppercase font-black text-center ${
-                  step === idx + 1 ? "text-neutral-900" : "text-neutral-300"
-                }`}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Main Container Card */}
-      <div className="bg-white rounded-3xl border border-neutral-200 p-8 shadow-premium relative min-h-[420px]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25 }}
-            className="space-y-6"
-          >
-            {/* STEP 1: CORPORATE IDENTITY */}
-            {step === 1 && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-display font-extrabold text-xl text-neutral-900">Corporate Legal Identity</h3>
-                  <p className="font-sans text-xs text-neutral-400 mt-0.5">Supply corporate identification, registry values, and web URLs to begin.</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  {/* Logo Picker */}
-                  <div className="md:col-span-1 flex flex-col items-center justify-center border border-dashed border-neutral-200 rounded-2xl p-4 bg-neutral-50 hover:bg-neutral-100/50 transition-colors relative">
-                    {logoPreview ? (
-                      <img src={logoPreview} alt="Logo" className="w-16 h-16 object-contain shadow-xs" />
-                    ) : (
-                      <Building2 className="w-8 h-8 text-neutral-400" />
-                    )}
-                    <span className="text-[10px] font-sans font-bold text-neutral-500 mt-2 text-center">Corporate Logo</span>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleLogoChange}
-                      className="absolute inset-0 opacity-0 cursor-pointer" 
-                    />
-                  </div>
-
-                  {/* Company Details */}
-                  <div className="md:col-span-3 space-y-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-neutral-700">Company Name *</label>
-                      <input
-                        type="text"
-                        value={formData.companyName || ""}
-                        onChange={(e) => updateField("companyName", e.target.value)}
-                        placeholder="Horizon Labs Inc."
-                        className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden focus:border-black"
-                      />
-                      {errors.companyName && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.companyName}</span>}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-700">Business Registration Number *</label>
-                        <div className="relative">
-                          <FileCheck2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                          <input
-                            type="text"
-                            value={formData.businessRegistrationNumber || ""}
-                            onChange={(e) => updateField("businessRegistrationNumber", e.target.value)}
-                            placeholder="120-88-14569"
-                            className="w-full h-11 pl-10 pr-4 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-sans focus:outline-hidden focus:border-black"
-                          />
-                        </div>
-                        {errors.businessRegistrationNumber && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.businessRegistrationNumber}</span>}
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-700">Website URL *</label>
-                        <div className="relative">
-                          <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                          <input
-                            type="text"
-                            value={formData.website || ""}
-                            onChange={(e) => updateField("website", e.target.value)}
-                            placeholder="https://horizonlabs.io"
-                            className="w-full h-11 pl-10 pr-4 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-sans focus:outline-hidden focus:border-black"
-                          />
-                        </div>
-                        {errors.website && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.website}</span>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Corporate HQ Country *</label>
-                    <input
-                      type="text"
-                      value={formData.country || ""}
-                      onChange={(e) => updateField("country", e.target.value)}
-                      placeholder="South Korea"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Primary Industry Sector *</label>
-                    <input
-                      type="text"
-                      value={formData.industry || ""}
-                      onChange={(e) => updateField("industry", e.target.value)}
-                      placeholder="AI, Developer Tooling, SaaS"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Company Size Bracket *</label>
-                    <select
-                      value={formData.companySize || ""}
-                      onChange={(e) => updateField("companySize", e.target.value)}
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-3 text-xs font-sans focus:outline-hidden"
-                    >
-                      <option value="1-10 employees">1-10 employees (Early)</option>
-                      <option value="10-50 employees">10-50 employees (Growth)</option>
-                      <option value="50-250 employees">50-250 employees (Midsize)</option>
-                      <option value="250+ Enterprise">250+ employees (Enterprise)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">LinkedIn Organization Page</label>
-                    <input
-                      type="text"
-                      value={formData.linkedin || ""}
-                      onChange={(e) => updateField("linkedin", e.target.value)}
-                      placeholder="https://linkedin.com/company/horizonlabs"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Office Physical Location Address *</label>
-                    <input
-                      type="text"
-                      value={formData.officeLocation || ""}
-                      onChange={(e) => updateField("officeLocation", e.target.value)}
-                      placeholder="Gangnam Teheran-ro, Seoul"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-                </div>
+    <main className="min-h-screen bg-[#f7f6f1] px-4 py-6 sm:px-8 sm:py-10">
+      <div className="mx-auto max-w-4xl">
+        <button type="button" onClick={step === 1 ? onCancel : () => setStep(1)} className="inline-flex items-center gap-2 text-sm font-bold text-[#48645d]"><ArrowLeft className="h-4 w-4" />{t.back}</button>
+        <section className="mt-5 overflow-hidden rounded-[2rem] border border-[#17342d]/10 bg-white shadow-[0_30px_90px_rgba(23,52,45,.09)]">
+          <div className="grid lg:grid-cols-[.72fr_1.28fr]">
+            <aside className="bg-[#17342d] p-7 text-white sm:p-10">
+              <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[.12em] text-[#b9f4d0]"><Sparkles className="h-4 w-4" />{t.eyebrow}</span>
+              <h1 className="mt-5 font-display text-3xl font-bold leading-tight tracking-[-.04em] sm:text-4xl">{t.title}</h1>
+              <p className="mt-5 text-sm leading-7 text-white/70">{t.lead}</p>
+              <div className="mt-8 space-y-3 text-sm font-semibold">
+                {[t.account, t.preference].map((label, index) => <div key={label} className={`flex items-center gap-3 ${step >= index + 1 ? "text-white" : "text-white/40"}`}><span className={`grid h-7 w-7 place-items-center rounded-full ${step > index + 1 ? "bg-[#b9f4d0] text-[#17342d]" : "border border-white/30"}`}>{step > index + 1 ? <Check className="h-4 w-4" /> : index + 1}</span>{label}</div>)}
               </div>
-            )}
+              <p className="mt-10 flex items-center gap-2 text-xs text-white/60"><ShieldCheck className="h-4 w-4 text-[#b9f4d0]" />{t.later}</p>
+            </aside>
 
-            {/* STEP 2: REPRESENTATIVE & BIO */}
-            {step === 2 && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-display font-extrabold text-xl text-neutral-900">Partner Representative Contact</h3>
-                  <p className="font-sans text-xs text-neutral-400 mt-0.5">Identify the prime human point of contact who authorizes candidate testing.</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-1.5">
-                  <button type="button" onClick={() => setAuthMethod("google")} className={`h-10 rounded-xl text-xs font-bold ${authMethod === "google" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>Google로 가입</button>
-                  <button type="button" onClick={() => setAuthMethod("email")} className={`h-10 rounded-xl text-xs font-bold ${authMethod === "email" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-400"}`}>이메일로 가입</button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Contact Person Name *</label>
-                    <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                      <input
-                        type="text"
-                        value={formData.contactPerson || ""}
-                        onChange={(e) => updateField("contactPerson", e.target.value)}
-                        placeholder="Yoon-Woo Park"
-                        className="w-full h-11 pl-10 pr-4 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-sans focus:outline-hidden focus:border-black"
-                      />
+            <form onSubmit={(event) => event.preventDefault()} className="p-6 sm:p-10">
+              <AnimatePresence mode="wait">
+                {step === 1 ? (
+                  <motion.div key="company-account" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}>
+                    <button type="button" aria-pressed={authMethod === "google"} onClick={() => setAuthMethod("google")} className={`flex w-full items-center justify-center gap-3 rounded-xl border px-4 py-3.5 text-sm font-bold transition ${authMethod === "google" ? "border-[#4361ee] bg-[#eaf0ff] text-[#324fc0]" : "border-[#17342d]/15 text-[#17342d] hover:bg-[#f7f6f1]"}`}><Globe2 className="h-4 w-4 text-[#4361ee]" />{t.google}</button>
+                    <button type="button" onClick={() => setAuthMethod("email")} className="my-6 flex w-full items-center gap-3 text-xs font-semibold text-[#81918c]"><span className="h-px flex-1 bg-[#17342d]/10" /><span className={authMethod === "email" ? "text-[#17342d]" : ""}>{t.divider}</span><span className="h-px flex-1 bg-[#17342d]/10" /></button>
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <label className="sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.company} *</span><input autoComplete="organization" value={formData.companyName || ""} onChange={(event) => setField("companyName", event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>
+                      <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.country} *</span><select value={formData.country || ""} onChange={(event) => setField("country", event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 bg-white px-4 py-3">{countries.map((item) => <option key={item}>{item}</option>)}</select></label>
+                      <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.industry} *</span><select value={formData.industry || ""} onChange={(event) => setField("industry", event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 bg-white px-4 py-3"><option value="">—</option>{industries.map((item) => <option key={item}>{item}</option>)}</select></label>
+                      <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.size} *</span><select value={formData.companySize || ""} onChange={(event) => setField("companySize", event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 bg-white px-4 py-3"><option value="">—</option>{sizes.map((item) => <option key={item}>{item}</option>)}</select></label>
+                      {authMethod === "email" && <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.email} *</span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>}
+                      {authMethod === "email" && <label className="sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.password} *</span><input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.passwordHint} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>}
                     </div>
-                    {errors.contactPerson && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.contactPerson}</span>}
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Job Title Position *</label>
-                    <input
-                      type="text"
-                      value={formData.position || ""}
-                      onChange={(e) => updateField("position", e.target.value)}
-                      placeholder="Lead Recruiter / CTO"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden focus:border-black"
-                    />
-                  </div>
-                </div>
-
-                {authMethod === "email" ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">Representative Corporate Email *</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                      <input
-                        type="email"
-                        value={formData.corporateEmail || ""}
-                        onChange={(e) => updateField("corporateEmail", e.target.value)}
-                        placeholder="yoonwoo@horizonlabs.io"
-                        className="w-full h-11 pl-10 pr-4 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-sans focus:outline-hidden focus:border-black"
-                      />
-                    </div>
-                    {errors.corporateEmail && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.corporateEmail}</span>}
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700 font-sans">Account Password *</label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="At least 6 characters"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden focus:border-black"
-                    />
-                    {errors.password && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.password}</span>}
-                  </div>
-                </div> : <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-5 text-blue-800">마지막 단계에서 Google 계정으로 인증합니다. 기업 인증은 별도로 사업자등록 확인 후 완료됩니다.</div>}
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-neutral-700 font-sans">Corporate Mobile Phone *</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                    <input
-                      type="text"
-                      value={formData.phoneNumber || ""}
-                      onChange={(e) => updateField("phoneNumber", e.target.value)}
-                      placeholder="+82-10-9876-5432"
-                      className="w-full h-11 pl-10 pr-4 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-sans focus:outline-hidden focus:border-black"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-neutral-700 font-sans">Corporate Introduction Mission *</label>
-                  <textarea
-                    value={formData.companyIntroduction || ""}
-                    onChange={(e) => updateField("companyIntroduction", e.target.value)}
-                    rows={4}
-                    placeholder="Provide a description of your company, core products, and corporate values..."
-                    className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl p-4 text-xs font-sans focus:outline-hidden focus:border-black leading-relaxed font-light"
-                  />
-                  {errors.companyIntroduction && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.companyIntroduction}</span>}
-                </div>
-              </div>
-            )}
-
-            {/* STEP 3: HIRING PARAMETERS */}
-            {step === 3 && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-display font-extrabold text-xl text-neutral-900">Talent Requirements & Specs</h3>
-                  <p className="font-sans text-xs text-neutral-400 mt-0.5">Detail what skill stacks and majors qualify for your active developer listings.</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Remote Office Policy</label>
-                    <input
-                      type="text"
-                      value={formData.remotePolicy || ""}
-                      onChange={(e) => updateField("remotePolicy", e.target.value)}
-                      placeholder="Hybrid (2 days onsite)"
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-neutral-700">Initial Recruitment Pipeline Status</label>
-                    <select
-                      value={formData.recruitmentStatus || "Open"}
-                      onChange={(e) => updateField("recruitmentStatus", e.target.value)}
-                      className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-3 text-xs font-sans focus:outline-hidden"
-                    >
-                      <option value="Open">Active Hiring (Challenges active)</option>
-                      <option value="Closed">Inactive (Hold / Closed)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Required Tech Skills Tags */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-700 block">Required Skill Competencies * (e.g. React, PyTorch)</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={skillInput}
-                      onChange={(e) => setSkillInput(e.target.value)}
-                      placeholder="React"
-                      className="flex-1 h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={addSkill}
-                      className="px-4 h-11 bg-black text-white hover:bg-neutral-800 rounded-xl flex items-center justify-center cursor-pointer transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {(formData.requiredSkills || []).map(s => (
-                      <span key={s} className="text-[10px] font-sans font-bold text-neutral-700 bg-neutral-100 border border-neutral-200 px-2.5 py-1 rounded-full flex items-center gap-1">
-                        <span>{s}</span>
-                        <button type="button" onClick={() => removeSkill(s)} className="text-neutral-400 hover:text-rose-500 font-bold ml-1 font-mono">×</button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Company Benefits Tags */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-700 block">Organization Benefits (e.g. Stock options, Lunch)</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={benefitInput}
-                      onChange={(e) => setBenefitInput(e.target.value)}
-                      placeholder="Stock Options"
-                      className="flex-1 h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={addBenefit}
-                      className="px-4 h-11 bg-black text-white hover:bg-neutral-800 rounded-xl flex items-center justify-center cursor-pointer transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {(formData.companyBenefits || []).map(b => (
-                      <span key={b} className="text-[10px] font-sans font-bold text-neutral-700 bg-neutral-100 border border-neutral-200 px-2.5 py-1 rounded-full flex items-center gap-1">
-                        <span>{b}</span>
-                        <button type="button" onClick={() => removeBenefit(b)} className="text-neutral-400 hover:text-rose-500 font-bold ml-1 font-mono">×</button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Terms Acceptance */}
-                <div className="pt-2">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={termsAgreement}
-                      onChange={(e) => setTermsAgreement(e.target.checked)}
-                      className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
-                    />
-                    <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
-                      <span>I authorize the verification audits of our physical business coordinates and registry, and agree to keep workspace postings compliant with <strong>KONEXA Sponsor Regulations</strong>. *</span>
-                    </div>
-                  </label>
-                  <label className="flex items-start gap-3 cursor-pointer mt-3">
-                    <input
-                      type="checkbox"
-                      checked={nonCircumventionAgreement}
-                      onChange={(e) => setNonCircumventionAgreement(e.target.checked)}
-                      className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
-                    />
-                    <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
-                      KONEXA를 통해 최초 소개받은 인재와 관계회사·대표자 개인·외주업체를 포함한 우회계약을 체결하는 경우 이를 신고하고, 소개일로부터 12개월 이내에는 사전 약정된 정상 전환수수료를 지급하는 정책을 확인했습니다. *
-                    </div>
-                  </label>
-                  <label className="flex items-start gap-3 cursor-pointer mt-3">
-                    <input
-                      type="checkbox"
-                      checked={privacyTransferConsent}
-                      onChange={(e) => setPrivacyTransferConsent(e.target.checked)}
-                      className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-0.5"
-                    />
-                    <div className="text-xs font-sans text-neutral-500 leading-tight select-none">
-                      계약 전 연락처 공유 방지를 위한 메시지 패턴 탐지와 한국·해외 간 개인정보 이전 고지를 확인했습니다. 위험기록에는 메시지 원문을 복사하지 않습니다. *
-                    </div>
-                  </label>
-                  {errors.terms && <span className="text-[10px] text-rose-500 font-mono font-bold block">{errors.terms}</span>}
-                </div>
-              </div>
-            )}
-
-            {/* STEP 4: AI RECRUITING RECOMMENDATION SCREEN */}
-            {step === 4 && (
-              <div className="space-y-6">
-                <div className="text-center py-4">
-                  <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center mx-auto mb-3 shadow-xs animate-pulse">
-                    <Sparkles className="w-6 h-6 text-teal-600" />
-                  </div>
-                  <h3 className="font-display font-black text-2xl text-neutral-900">Partner Entity Initialized</h3>
-                  <p className="font-sans text-xs text-neutral-400 mt-0.5">Our semantic parser is indexing your corporate targets against live developer portfolios.</p>
-                </div>
-
-                {isAiLoading ? (
-                  <div className="py-12 flex flex-col items-center justify-center space-y-4">
-                    <Cpu className="w-10 h-10 text-neutral-300 animate-spin" />
-                    <span className="text-xs font-sans text-neutral-500 font-bold">Auditing registry credentials & running semantic talent scanning...</span>
-                  </div>
+                    <button type="button" onClick={goNext} className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white">{t.next}<ArrowRight className="h-4 w-4" /></button>
+                  </motion.div>
                 ) : (
-                  aiReport && (
-                    <motion.div 
-                      className="space-y-6"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.4 }}
-                    >
-                      {/* Security Status Box */}
-                      <div className="bg-neutral-50 border border-neutral-200 p-6 rounded-2xl space-y-3 shadow-xs">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-mono font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-lg">
-                            Verification: {aiReport.verificationStatus}
-                          </span>
-                          <span className="text-[9px] font-mono text-neutral-400">Compliance Audit Active</span>
-                        </div>
-                        <p className="font-sans text-xs text-neutral-500 leading-relaxed font-light">
-                          {aiReport.auditDetails}
-                        </p>
-                      </div>
-
-                      {/* Hiring Recommendation Matches */}
-                      <div className="p-6 border border-neutral-200 rounded-2xl bg-white space-y-4 shadow-premium">
-                        <div>
-                          <span className="text-[10px] font-mono font-bold text-teal-600 uppercase tracking-widest block mb-1">
-                            AI Recommendation Matches (after verification)
-                          </span>
-                          <h4 className="font-display font-bold text-base text-neutral-900">
-                            Semantic Candidates matched: {aiReport.matchingTalentsCount} profiles
-                          </h4>
-                          <p className="font-sans text-xs text-neutral-400 leading-relaxed font-light mt-1">
-                            {aiReport.matchingStrategy}
-                          </p>
-                        </div>
-
-                        {/* Profiles preview list */}
-                        <div className="space-y-2 pt-2 border-t border-neutral-100">
-                          <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-widest">Recommended Matches</span>
-                          {aiReport.recommendedCandidates.map((c, i) => (
-                            <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-neutral-50 border border-neutral-200/50 text-xs font-sans">
-                              <span className="font-bold text-neutral-800">{c}</span>
-                              <span className="text-[10px] font-mono text-green-600 bg-green-50 border border-green-100/50 px-2 py-0.5 rounded-md">98% Match</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => emailConfirmationRequired ? onCancel() : onSuccess()}
-                        className="w-full h-12 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-colors"
-                      >
-                        <span>{emailConfirmationRequired ? "Confirm Email, Then Sign In" : "Launch First Code Challenge & Enter Workspace"}</span>
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </motion.div>
-                  )
+                  <motion.div key="company-hiring" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+                    <fieldset><legend className="text-base font-black text-[#17342d]">{t.needs}</legend><p className="mt-1 text-xs text-[#738781]">{t.optional}</p><div className="mt-4 flex flex-wrap gap-2">{needs.map((item) => <ChoiceChip key={item} selected={selectedNeeds.includes(item)} onClick={() => toggle(selectedNeeds, item, setSelectedNeeds)}>{item}</ChoiceChip>)}</div></fieldset>
+                    <fieldset className="mt-7"><legend className="text-base font-black text-[#17342d]">{t.skills}</legend><p className="mt-1 text-xs text-[#738781]">{t.optional}</p><div className="mt-4 flex flex-wrap gap-2">{skills.map((item) => <ChoiceChip key={item} selected={Boolean(formData.requiredSkills?.includes(item))} onClick={() => toggle(formData.requiredSkills || [], item, (next) => setField("requiredSkills", next))}>{item}</ChoiceChip>)}</div></fieldset>
+                    <fieldset className="mt-7"><legend className="text-base font-black text-[#17342d]">{t.mode}</legend><div className="mt-4 flex flex-wrap gap-2">{workModes.map((item) => <ChoiceChip key={item} selected={workMode === item} onClick={() => setWorkMode(workMode === item ? "" : item)}>{item}</ChoiceChip>)}</div></fieldset>
+                    <div className="mt-7 space-y-3 rounded-2xl bg-[#f5f7f2] p-4">
+                      {([
+                        ["terms", t.terms],
+                        ["transaction", t.transaction],
+                        ["privacy", t.privacy],
+                        ["marketing", t.marketing],
+                      ] as const).map(([key, label]) => <label key={key} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#3f5d55]"><input type="checkbox" checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#17342d]" /><span>{label}{key !== "marketing" && <strong className="ml-1 text-[#4361ee]">*</strong>}</span></label>)}
+                    </div>
+                    <button type="button" disabled={isSubmitting} onClick={() => void (authMethod === "google" ? submitGoogle() : submitEmail())} className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">{isSubmitting ? t.submitting : t.submit}<Building2 className="h-4 w-4" /></button>
+                  </motion.div>
                 )}
-              </div>
-            )}
-
-            {/* Step Controls Footer */}
-            {step <= 3 && (
-              <div className="border-t border-neutral-100 pt-6 flex justify-between gap-4">
-                <button
-                  type="button"
-                  onClick={step === 1 ? onCancel : handleBack}
-                  className="px-5 h-11 border border-neutral-200 hover:bg-neutral-50 rounded-xl text-xs font-sans font-semibold text-neutral-600 flex items-center gap-1 transition-colors cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>{step === 1 ? "Exit Onboarding" : "Previous Step"}</span>
-                </button>
-
-                {step < 3 ? (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="px-5 h-11 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
-                  >
-                    <span>Proceed Forward</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={authMethod === "google" ? handleGoogleSubmit : handleSubmit}
-                    className="px-5 h-11 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-sans font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
-                  >
-                    <span>{authMethod === "google" ? "Google로 기업 가입" : "이메일로 기업 가입"}</span>
-                    <ShieldCheck className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+              </AnimatePresence>
+            </form>
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

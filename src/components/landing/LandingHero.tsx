@@ -12,6 +12,7 @@ import CompanyRegisterForm from "../auth/CompanyRegisterForm";
 import EarlyBirdCampaign from "./EarlyBirdCampaign";
 import NexusMotionField from "./NexusMotionField";
 import CinematicTrustJourney from "./CinematicTrustJourney";
+import PublicOpportunityPreview from "./PublicOpportunityPreview";
 import { db } from "../../config/supabase";
 import { addDoc, collection } from "../../lib/supabaseStore";
 import { useToast } from "../ui/Toast";
@@ -217,6 +218,13 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
           </section>
 
           <div className="ticker border-y border-[#17342d]/10 bg-[#17342d] py-4 text-[#f8f5eb]"><div className="ticker-track">{[...t.ribbon, ...t.ribbon].map((item, index) => <span key={`${item}-${index}`}><Sparkles className="h-3 w-3 text-[#b9f4d0]" />{item}</span>)}</div></div>
+
+          <PublicOpportunityPreview
+            locale={locale}
+            onLogin={() => setIsAuthModalOpen(true)}
+            onStudent={() => setActiveRegisterRole(UserRole.STUDENT)}
+            onCompany={() => setActiveRegisterRole(UserRole.COMPANY)}
+          />
 
           <EarlyBirdCampaign locale={locale} onStudent={() => setActiveRegisterRole(UserRole.STUDENT)} onCompany={() => setActiveRegisterRole(UserRole.COMPANY)} />
 
