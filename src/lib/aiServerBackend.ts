@@ -420,13 +420,13 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
       const supabase = getSupabaseAdmin();
       const [{ data: profileRow, error: profileError }, { data: projectRows, error: projectError }] = await Promise.all([
         supabase.from("app_records").select("data").eq("collection_name", "student_profiles").eq("record_id", req.user.uid).maybeSingle(),
-        supabase.from("app_records").select("record_id,data").eq("collection_name", "projects").eq("data->>status", "open").limit(20),
+        supabase.from("konexa_projects").select("id,title,requirements,tags").eq("status", "open").order("published_at", { ascending: false }).limit(20),
       ]);
       if (profileError) throw profileError;
       if (projectError) throw projectError;
       if (!profileRow?.data) return res.status(404).json({ error: "Complete your student profile before generating a roadmap" });
       const profile = profileRow.data as Record<string, any>;
-      const projects = (projectRows || []).map((row: any) => ({ id: row.record_id, title: String(row.data?.title || ""), requirements: list(row.data?.requirements, 20), tags: list(row.data?.tags, 20) }));
+      const projects = (projectRows || []).map((row: any) => ({ id: row.id, title: String(row.title || ""), requirements: list(row.requirements, 20), tags: list(row.tags, 20) }));
       const { response, model } = await generateGeminiContent({
         contents: JSON.stringify({
           careerGoal: String(req.body?.careerGoal || profile.preferredJob || "").slice(0, 500),

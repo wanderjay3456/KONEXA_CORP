@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  Bookmark, Brain, BriefcaseBusiness, Camera, Code, CreditCard, FileSearch,
+  Bookmark, Brain, BriefcaseBusiness, Building2, Camera, Code, CreditCard, FileSearch,
   FileText, FolderKanban, Home, Landmark, Map, Scale, User, Users2,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
@@ -17,6 +17,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     ? [
         { id: "career-home", label: "대시보드", icon: Home },
         { id: "project-marketplace", label: "프로젝트", icon: Code },
+        { id: "applications", label: "내 지원서", icon: FileText },
         { id: "ai-workspace", label: "AI 코치", icon: Brain },
         { id: "career-roadmap", label: "AI 로드맵", icon: Map },
         { id: "resume-builder", label: "AI 이력서 검토", icon: FileSearch },
@@ -38,6 +39,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           { id: "employee-conversions", label: "채용 전환", icon: FileText },
           { id: "company-payments", label: "기업 결제", icon: Landmark },
           { id: "trust-operations", label: "계약·보호·리뷰", icon: Scale },
+          { id: "identity", label: "기업 정보·인증", icon: Building2 },
         ]
       : [{ id: "trust-operations", label: "운영·분쟁 관리", icon: Scale }];
 

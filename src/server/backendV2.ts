@@ -9,7 +9,9 @@ import {
   isTransactionalEmailConfigured,
   sendTransactionalEmail,
   type EmailTemplate,
+  EMAIL_TEMPLATES,
 } from "./email";
+import { reviewVisibilityFilter, shouldDeliverAccountEmail } from './workflowVisibility';
 import {
   ApiInputError,
   enumValue,
@@ -44,18 +46,7 @@ const publicReadRateLimit = rateLimit({
   legacyHeaders: false,
 });
 
-const supportedOutboxTemplates = new Set<EmailTemplate>([
-  "welcome",
-  "application_received",
-  "application_status",
-  "new_application",
-  "project_published",
-  "contract_action",
-  "milestone_action",
-  "payment_status",
-  "subscription_activated",
-  "payment_failed",
-]);
+const supportedOutboxTemplates = new Set<EmailTemplate>(EMAIL_TEMPLATES);
 
 function requestId(req: Request) {
   const supplied = req.header("x-request-id");
@@ -136,7 +127,7 @@ export async function processNotificationOutboxBatch(limit = 20) {
     "konexa_claim_notification_outbox_v2",
     { p_worker_id: workerId, p_limit: Math.max(1, Math.min(limit, 100)) },
   );
-  const summary = { claimed: claimed?.length || 0, sent: 0, failed: 0 };
+  const summary = { claimed: claimed?.length || 0, sent: 0, failed: 0, suppressed: 0 };
 
   for (const item of claimed || []) {
     try {
@@ -146,6 +137,21 @@ export async function processNotificationOutboxBatch(limit = 20) {
       const { data, error } = await getSupabaseAdmin().auth.admin.getUserById(item.recipient_id);
       if (error) throw error;
       if (!data.user?.email) throw new Error("Recipient email is unavailable");
+
+      const { data: records, error: preferencesError } = await getSupabaseAdmin()
+        .from('app_records').select('collection_name,data').eq('owner_id', item.recipient_id)
+        .in('collection_name', ['users', 'student_profiles', 'company_profiles']);
+      if (preferencesError) throw preferencesError;
+      const user = records?.find(row => row.collection_name === 'users')?.data || {};
+      const profile = records?.find(row => row.collection_name === `${user.role}_profiles`)?.data || {};
+      if (!shouldDeliverAccountEmail(profile, user)) {
+        const { error: suppressionError } = await getSupabaseAdmin().from('konexa_notification_outbox')
+          .update({ status: 'suppressed', last_error: 'disabled_by_preferences_or_account', locked_at: null, locked_by: null })
+          .eq('id', item.id).eq('locked_by', workerId);
+        if (suppressionError) throw suppressionError;
+        summary.suppressed += 1;
+        continue;
+      }
 
       const payload = item.payload && typeof item.payload === "object" ? item.payload : {};
       const email = await sendTransactionalEmail({
@@ -530,6 +536,7 @@ export function registerBackendV2Routes(app: Express) {
         p_summary: payload.summary,
         p_idempotency_key: keyFromRequest(req),
       });
+      processOutboxSoon();
       res.status(201).json({ data, requestId: requestId(req) });
     } catch (error) {
       routeError(res, error, "The dispute could not be opened.");
@@ -552,6 +559,7 @@ export function registerBackendV2Routes(app: Express) {
         p_comment: payload.comment,
         p_idempotency_key: keyFromRequest(req),
       });
+      processOutboxSoon();
       res.status(201).json({ data, requestId: requestId(req) });
     } catch (error) {
       routeError(res, error, "The verified transaction review could not be saved.");
@@ -576,6 +584,7 @@ export function registerBackendV2Routes(app: Express) {
           p_decision: decision,
           p_idempotency_key: keyFromRequest(req),
         });
+        processOutboxSoon();
         res.json({ data, requestId: requestId(req) });
       } catch (error) {
         routeError(res, error, "The review moderation decision could not be saved.");
@@ -603,7 +612,7 @@ export function registerBackendV2Routes(app: Express) {
       let signatureQuery = supabase.from("konexa_contract_signatures").select("*");
       if (!isAdmin) signatureQuery = signatureQuery.eq("signer_id", id);
       let reviewQuery = supabase.from("konexa_reviews").select("*");
-      if (!isAdmin) reviewQuery = reviewQuery.or(`reviewer_id.eq.${id},reviewee_id.eq.${id}`);
+      if (!isAdmin) reviewQuery = reviewQuery.or(reviewVisibilityFilter(id));
       let passportQuery = supabase.from("konexa_work_passport_entries").select("*");
       if (!isAdmin) passportQuery = passportQuery.eq("student_id", company ? "00000000-0000-0000-0000-000000000000" : id);
 

@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
 
-export default function ProfileSettingsView() {
+export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteProfile?: () => void }) {
   const { studentProfile, updateStudentProfile, companyProfile, updateCompanyProfile, logoutUser } = useApp();
   const { success, error, info } = useToast();
   
@@ -59,9 +59,7 @@ export default function ProfileSettingsView() {
   const handleSaveStudent = async () => {
     setIsSaving(true);
     try {
-      await updateStudentProfile(studentForm as any);
-      
-      success("프로필 저장 완료", "Supabase 프로필 정보가 업데이트되었습니다.");
+      await updateStudentProfile(studentForm);
     } catch (err: any) {
       error("Synchronization Failed", err.message || "Failed to sync updates.");
     } finally {
@@ -161,8 +159,9 @@ export default function ProfileSettingsView() {
         {activeSubTab === "profile" && (
           <div className="space-y-6">
             <div className="border-b border-neutral-100 pb-4">
-              <h4 className="font-display font-bold text-lg text-neutral-900">Profile Identity Anchors</h4>
-              <p className="text-neutral-400 text-xs mt-0.5">Maintain basic personal details, country location coordinates, and timezone alignments.</p>
+              <h4 className="font-display font-bold text-lg text-neutral-900">Your profile</h4>
+              <p className="text-neutral-500 text-sm leading-6 mt-1">Keep your details up to date. Complete your required information and documents before applying for projects.</p>
+              {onCompleteProfile && <button type="button" onClick={onCompleteProfile} className="mt-4 rounded-xl bg-neutral-950 px-4 py-3 text-sm font-semibold text-white">Complete required profile & documents</button>}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

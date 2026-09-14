@@ -39,7 +39,8 @@ export default function ProjectMarketplace() {
     }
     setSubmitting(true);
     try {
-      await applyToProject(selected.id, proposal.trim());
+      const saved = await applyToProject(selected.id, proposal.trim());
+      if (!saved) return;
       setSelected(null);
       setProposal("");
     } finally {

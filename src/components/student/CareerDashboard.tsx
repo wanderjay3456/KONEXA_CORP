@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useApp } from "../../context/AppContext";
 import { 
   TrendingUp, Shield, Star, Award, Zap, Calendar as CalendarIcon, 
@@ -6,7 +6,6 @@ import {
   Bookmark, Briefcase, ChevronRight, Play, Check, Sparkles, 
   Github, FileText, ArrowUpRight, MessageSquare, Plus, Bell
 } from "lucide-react";
-import { useToast } from "../ui/Toast";
 import { motion } from "motion/react";
 
 interface CareerDashboardProps {
@@ -15,12 +14,11 @@ interface CareerDashboardProps {
 
 export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
   const { studentProfile, projects, applications, notifications: liveNotifications, markNotificationRead } = useApp();
-  const { success, info } = useToast();
-  const [dailyStreakChecked, setDailyStreakChecked] = useState(false);
 
   // Generate some state data
   const reviewedApplications = applications.filter((application) => application.status === "reviewed");
-  const trustScore = studentProfile?.trustScore ?? 0;
+  const hasVerifiedEvidence = (studentProfile?.completedProjects ?? 0) > 0;
+  const trustScore = hasVerifiedEvidence ? studentProfile?.trustScore ?? 0 : 0;
   const performanceScore = reviewedApplications.length
     ? Math.round(reviewedApplications.reduce((total, application) => total + (Number(application.score) || 0), 0) / reviewedApplications.length)
     : 0;
@@ -29,7 +27,7 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
 
   // Track achievements, badges, certificates
   const badges = [
-    ...(reviewedApplications.length ? [{ id: "verified-project", name: "Verified Project", desc: `AI 또는 운영 검토가 완료된 프로젝트 ${reviewedApplications.length}건`, icon: Zap, color: "text-amber-500 bg-amber-50 border-amber-100" }] : []),
+    ...(reviewedApplications.length ? [{ id: "reviewed-application", name: "Application Reviewed", desc: `AI 또는 운영 검토가 완료된 지원서 ${reviewedApplications.length}건. 프로젝트 수행 인증과는 별개입니다.`, icon: Zap, color: "text-amber-500 bg-amber-50 border-amber-100" }] : []),
     ...(studentProfile?.earlyPioneerEligible ? [{ id: "early-pioneer", name: "Early Pioneer", desc: "얼리버드 필수 조건을 완료한 실제 계정", icon: Shield, color: "text-teal-500 bg-teal-50 border-teal-100" }] : []),
   ];
 
@@ -43,31 +41,23 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
     read: Boolean(notification.readAt),
   }));
 
-  const [weeklyGoals, setWeeklyGoals] = useState([
-    { id: "g1", text: "이력서 등록 완료", completed: Boolean(studentProfile?.resumeUrl) },
-    { id: "g2", text: "1분 자기소개 영상 등록", completed: Boolean(studentProfile?.introVideoPath) },
-    { id: "g3", text: "실제 기업 프로젝트 지원", completed: applications.length > 0 }
-  ]);
+  const weeklyGoals = [
+    { id: "g1", text: "이력서 등록 완료", completed: Boolean(studentProfile?.resumeUrl), tab: 'profile' },
+    { id: "g2", text: "1분 자기소개 영상 등록", completed: Boolean(studentProfile?.introVideoPath), tab: 'intro-video' },
+    { id: "g3", text: "실제 기업 프로젝트 지원", completed: applications.length > 0, tab: 'project-marketplace' }
+  ];
 
-  const calendarEvents = projects.filter((project) => project.applicationDeadline).slice(0, 5).map((project) => ({
+  const calendarEvents = projects.filter((project) => project.applicationDeadline && Number.isFinite(Date.parse(project.applicationDeadline))).slice(0, 5).map((project) => ({
     id: project.id,
     title: project.title,
     date: new Date(project.applicationDeadline || "").toLocaleDateString("en-US", { month: "long", day: "numeric" }),
+    month: new Date(project.applicationDeadline || '').toLocaleDateString('en-US', { month: 'short' }),
+    day: new Date(project.applicationDeadline || '').getDate(),
     type: "deadline",
   }));
 
-  const handleClaimDailyEXP = () => {
-    if (dailyStreakChecked) return;
-    setDailyStreakChecked(true);
-    info("확인 완료", "신뢰 점수와 프로젝트 실적은 검증된 활동에서만 변경됩니다.");
-  };
-
   const handleMarkNotificationRead = async (id: string) => {
     await markNotificationRead(id);
-  };
-
-  const toggleGoal = (id: string) => {
-    setWeeklyGoals(prev => prev.map(g => g.id === id ? { ...g, completed: !g.completed } : g));
   };
 
   return (
@@ -90,24 +80,19 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
         {/* Daily Streak & Gamified EXP Tracker */}
         <div className="md:col-span-4 bg-white p-5 rounded-3xl border border-neutral-200 shadow-sm flex items-center justify-between gap-4">
           <div className="space-y-1">
-            <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-wider block">VERIFIED ACTIVITY</span>
+            <span className="text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-wider block">APPLICATION REVIEWS</span>
             <div className="flex items-center gap-1">
               <Flame className="w-5 h-5 text-rose-500 fill-rose-500 animate-pulse" />
               <span className="font-display font-black text-2xl text-neutral-900">{reviewedApplications.length} Reviews</span>
             </div>
-            <p className="text-[10px] text-neutral-400">검토가 완료된 프로젝트만 활동 기록에 반영됩니다.</p>
+            <p className="text-[10px] text-neutral-400">지원서 검토 현황입니다. 프로젝트 완료 경력과는 별개입니다.</p>
           </div>
           <button 
-            disabled={dailyStreakChecked}
-            onClick={handleClaimDailyEXP}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-              dailyStreakChecked 
-                ? "bg-emerald-50 text-emerald-600 border border-emerald-100" 
-                : "bg-neutral-900 text-white hover:bg-black cursor-pointer shadow-sm"
-            }`}
+            onClick={() => onNavigate('applications')}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all bg-neutral-900 text-white hover:bg-black shadow-sm"
           >
-            {dailyStreakChecked ? <Check className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
-            <span>{dailyStreakChecked ? "Claimed" : "Check-In"}</span>
+            <FileText className="w-3.5 h-3.5" />
+            <span>View applications</span>
           </button>
         </div>
       </div>
@@ -120,7 +105,7 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
           <div className="flex justify-between items-start">
             <div className="space-y-0.5">
               <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">Trust Score</span>
-              <div className="text-3xl font-display font-black text-neutral-900">{trustScore}</div>
+              <div className="text-3xl font-display font-black text-neutral-900">{hasVerifiedEvidence ? trustScore : '—'}</div>
             </div>
             <div className="p-2 bg-blue-50 border border-blue-100 rounded-xl text-blue-600">
               <Shield className="w-4 h-4" />
@@ -131,8 +116,8 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
               <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${trustScore}%` }}></div>
             </div>
             <div className="flex justify-between text-[9px] text-neutral-400 font-mono">
-              <span>MIN TRUST: 70</span>
-              <span className="text-blue-600 font-bold">Verified record</span>
+              <span>{hasVerifiedEvidence ? 'Project evidence' : 'Not assessed yet'}</span>
+              <span className="text-blue-600 font-bold">{hasVerifiedEvidence ? 'Recorded activity' : 'Complete a project first'}</span>
             </div>
           </div>
         </div>
@@ -317,15 +302,15 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
                     <CalendarIcon className="w-4 h-4 text-neutral-400" />
                     <span>My Calendar</span>
                   </h3>
-                  <span className="text-[9px] font-mono font-bold text-neutral-400">JULY 2026</span>
+                  <span className="text-[9px] font-mono font-bold text-neutral-400">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
                 </div>
 
                 <div className="space-y-3">
                   {calendarEvents.map((evt) => (
                     <div key={evt.id} className="flex gap-3 items-start text-xs font-sans">
                       <div className="w-12 text-center shrink-0 p-1.5 bg-neutral-50 rounded-lg border border-neutral-200/50">
-                        <span className="text-[9px] font-mono font-bold text-neutral-400 block uppercase">JULY</span>
-                        <span className="text-sm font-display font-bold text-neutral-800 block leading-none">{evt.date.split(" ")[1]}</span>
+                        <span className="text-[9px] font-mono font-bold text-neutral-400 block uppercase">{evt.month}</span>
+                        <span className="text-sm font-display font-bold text-neutral-800 block leading-none">{evt.day}</span>
                       </div>
                       <div className="min-w-0 flex-1">
                         <span className="font-semibold text-neutral-800 block truncate">{evt.title}</span>
@@ -447,15 +432,16 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
           <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs space-y-4">
             <div>
               <h3 className="font-display font-bold text-sm text-neutral-900">Weekly Milestones</h3>
-              <p className="font-sans text-[10px] text-neutral-400 mt-0.5">Fulfill goals to multiplier your weekly streak EXP.</p>
+              <p className="font-sans text-xs leading-relaxed text-neutral-500 mt-1">Progress updates automatically when you complete each step.</p>
             </div>
 
             <div className="space-y-2.5">
               {weeklyGoals.map((g) => (
-                <div 
+                <button
+                  type="button"
                   key={g.id} 
-                  onClick={() => toggleGoal(g.id)}
-                  className={`p-3.5 rounded-xl border flex gap-3 items-center cursor-pointer transition-all ${
+                  onClick={() => onNavigate(g.tab)}
+                  className={`w-full text-left p-3.5 rounded-xl border flex gap-3 items-center cursor-pointer transition-all ${
                     g.completed 
                       ? "bg-emerald-50/20 border-emerald-100 text-neutral-500" 
                       : "bg-neutral-50/50 border-neutral-200 text-neutral-700 hover:border-neutral-300"
@@ -471,7 +457,7 @@ export default function CareerDashboard({ onNavigate }: CareerDashboardProps) {
                   <span className={`text-xs font-sans ${g.completed ? "line-through text-neutral-400" : "font-medium"}`}>
                     {g.text}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           </div>

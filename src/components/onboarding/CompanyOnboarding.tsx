@@ -219,6 +219,7 @@ export default function CompanyOnboarding({ onComplete, onCancel }: CompanyOnboa
         uploadedFields.businessRegistrationDocumentPath = await uploadPrivateFile("business-documents", uid, licenseFile);
       }
       const updatedProfile = {
+        ...companyProfile,
         ...formData,
         ...uploadedFields,
         onboardingCompleted: true,

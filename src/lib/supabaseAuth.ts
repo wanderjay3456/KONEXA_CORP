@@ -130,7 +130,8 @@ export async function createUserWithEmailAndPassword(
     },
   });
   if (error) throw error;
-  cachedUser = data.user;
+  // An unconfirmed sign-up is not an authenticated session.
+  cachedUser = data.session?.user || null;
   return { user: userAdapter(data.user), session: data.session };
 }
 

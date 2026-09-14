@@ -106,7 +106,7 @@ interface AppContextType {
   markAllNotificationsRead: () => Promise<void>;
   activeRole: UserRole;
   setActiveRole: (role: UserRole) => void;
-  applyToProject: (projectId: string, codeSubmission: string) => Promise<void>;
+  applyToProject: (projectId: string, codeSubmission: string) => Promise<boolean>;
   createProject: (title: string, description: string, requirements: string[], difficulty: ProjectDifficulty, reward: string, tags: string[], details?: Partial<Project>) => Promise<boolean>;
   updateStudentProfile: (profile: Partial<StudentProfile>) => Promise<boolean>;
   updateCompanyProfile: (profile: Partial<CompanyProfile>) => Promise<boolean>;
@@ -153,11 +153,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // 1 & 2. Persistent Supabase Authentication Synchronization Hook
   useEffect(() => {
-    let authCallbackInFlight = false;
+    let authVersion = 0;
     let rejectedGoogleUid: string | null = null;
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (authCallbackInFlight) return;
-      authCallbackInFlight = true;
+      const version = ++authVersion;
+      const isCurrent = () => version === authVersion;
       try {
       if (user) {
         console.log("[KONEXA] Active Auth State Detected. UID:", user.uid, "Anonymous:", user.isAnonymous);
@@ -174,6 +174,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           try {
             const userDocRef = doc(db, "users", user.uid);
             let userSnapshot = await getDoc(userDocRef);
+            if (!isCurrent()) return;
             
             if (userSnapshot.exists()) {
               const pendingIntent = getPendingGoogleAuthIntent();
@@ -186,6 +187,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   body: JSON.stringify({ registrationId }),
                 });
                 const registrationPayload = await registrationResponse.json().catch(() => null);
+                if (!isCurrent()) return;
                 clearGoogleRegistrationId();
                 clearPendingGoogleAuthIntent();
                 if (!registrationResponse.ok) {
@@ -210,6 +212,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                   return;
                 }
                 userSnapshot = await getDoc(userDocRef);
+                if (!isCurrent()) return;
               } else if (pendingIntent?.role === "admin" && initialProfile.role !== UserRole.ADMIN) {
                 clearPendingGoogleAuthIntent();
                 if (rejectedGoogleUid !== user.uid) {
@@ -249,6 +252,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 const snapshot = await getDoc(doc(db, collectionName, uid));
                 return snapshot.exists() ? snapshot.data() : null;
               });
+              if (!isCurrent()) return;
               setStudentProfile(workspace.student);
               setCompanyProfile(workspace.company);
               setActiveRole(uProfile.role);
@@ -261,9 +265,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               error("계정 설정을 완료할 수 없습니다", "인증 계정과 KONEXA 회원 기록이 일치하지 않습니다. 회원가입을 다시 진행하거나 관리자에게 문의해 주세요.");
             }
           } catch (err) {
-            console.error("Error loading user Supabase data:", err);
+            if (isCurrent()) {
+              setCurrentUser(null);
+              setStudentProfile(null);
+              setCompanyProfile(null);
+              console.error("Error loading user Supabase data:", err);
+              error("Workspace unavailable", "Please reload to try again. Your saved account has not been deleted.");
+            }
           } finally {
-            setIsAuthReady(true);
+            if (isCurrent()) setIsAuthReady(true);
           }
         }
       } else {
@@ -278,11 +288,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsAuthReady(true);
       }
       } finally {
-        authCallbackInFlight = false;
+        if (isCurrent()) setIsAuthReady(true);
       }
     });
 
-    return () => unsubscribe();
+    return () => { authVersion += 1; unsubscribe(); };
   }, []);
 
   // 3. Real-time Supabase listeners
@@ -411,10 +421,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       success("지원서 제출 완료", "지원서와 활동 기록이 안전하게 저장되었습니다.");
       info("AI 보조 검토 시작", "AI 평가는 참고자료로만 저장되며 실제 프로젝트 완료 경력에는 포함되지 않습니다.");
       void triggerEvaluation(payload.data.id);
-
+      return true;
     } catch (err: any) {
-      handleSupabaseError(err, OperationType.WRITE, "applications");
       error("지원서 제출 실패", err?.message || "입력 내용을 확인하고 다시 시도해 주세요.");
+      return false;
     }
   };
 
@@ -506,7 +516,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const validationErrors = getStudentCompletionErrors(updated);
         if (Object.keys(validationErrors).length > 0) throw new Error(firstValidationMessage(validationErrors));
       }
-      setStudentProfile(updated);
       await setDoc(doc(db, "student_profiles", updated.uid), updated, { merge: true });
       await setDoc(doc(db, "protected_contacts", updated.uid), {
         userId: updated.uid,
@@ -517,6 +526,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         portfolio: updated.portfolio || "",
         updatedAt: Date.now(),
       }, { merge: true });
+      setStudentProfile(updated);
       
       await logSystemAction(
         "STUDENT_PROFILE_UPDATE",
@@ -544,8 +554,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const validationErrors = getCompanyCompletionErrors(updated);
         if (Object.keys(validationErrors).length > 0) throw new Error(firstValidationMessage(validationErrors));
       }
-      setCompanyProfile(updated);
       await setDoc(doc(db, "company_profiles", updated.uid), updated, { merge: true });
+      setCompanyProfile(updated);
 
       await logSystemAction(
         "COMPANY_PROFILE_UPDATE",
@@ -576,7 +586,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!password) throw new Error("A password is required for registration.");
       if (!displayName.trim()) throw new Error("이름 또는 기업명을 입력해 주세요.");
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error("올바른 이메일 주소를 입력해 주세요.");
-      if (password.length < 6) throw new Error("비밀번호는 6자 이상이어야 합니다.");
+      if (password.length < 8) throw new Error("비밀번호는 8자 이상이어야 합니다.");
       const requiredConsents = ["terms", "nonCircumvention", "messageAnalysis", "crossBorderPrivacy"];
       if (requiredConsents.some((key) => consentBundle?.[key] !== true)) {
         throw new Error("필수 약관과 개인정보 고지에 모두 동의해 주세요.");
@@ -613,9 +623,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       await setDoc(doc(db, "users", authUid), profile);
 
-      setCurrentUser(profile);
-      setActiveRole(role);
-
       if (role === UserRole.STUDENT) {
         const sProfile = {
           uid: authUid,
@@ -623,10 +630,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           skills: studentData?.skills || [],
           github: studentData?.github || "",
           bio: studentData?.bio || "",
+          ...studentData,
           trustScore: 0,
           completedProjects: 0,
           createdAt: now,
-          ...studentData
         };
         await setDoc(doc(db, "student_profiles", authUid), sProfile);
         await setDoc(doc(db, "protected_contacts", authUid), {
@@ -646,20 +653,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           companyName: companyData?.companyName || displayName,
           website: companyData?.website || "",
           description: companyData?.description || "",
+          ...companyData,
           verified: false,
           verifiedStatus: "Pending",
           createdAt: now,
-          ...companyData
         };
         await setDoc(doc(db, "company_profiles", authUid), cProfile);
         setCompanyProfile(cProfile);
         setStudentProfile(null);
       }
 
+      setActiveRole(role);
+      setCurrentUser(profile);
       await logSystemAction(
         "AUTH_REGISTER",
-        `Registered new user (${role}): ${displayName} (${email})`
-      );
+        `Registered new user (${role}): ${authUid}`
+      ).catch(() => console.warn("Registration audit could not be recorded"));
       success("Welcome to KONEXA!", `Account created successfully as a ${role}.`);
       return { emailConfirmationRequired: false };
     } catch (err: any) {
