@@ -52,11 +52,12 @@ export default function ResumeBuilder() {
         const res = await fetch("/api/gemini/analyze-pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pdfBase64: base64, role: "student" })
+          body: JSON.stringify({ pdfBase64: base64, role: "student" }),
+          signal: AbortSignal.timeout(55_000),
         });
         
-        if (!res.ok) throw new Error("Failed to analyze PDF");
         const analysis = await res.json();
+        if (!res.ok) throw new Error(analysis.error || 'The PDF could not be analyzed. Your profile has not changed.');
         
         setPdfAnalysis(analysis);
         
@@ -65,7 +66,7 @@ export default function ResumeBuilder() {
           if (!saved) { info('PDF 분석 완료', '분석은 저장했지만 프로필 기술 업데이트는 실패했습니다. 결과를 확인한 뒤 다시 저장해 주세요.'); return; }
         }
         
-        success("PDF Analyzed Successfully", "Your profile has been augmented with data from your resume.");
+        success("PDF analysis saved", analysis.extractedSkills?.length ? "Extracted skills have been saved to your profile. Please review them for accuracy." : "Analysis was saved. No new skills were added to your profile.");
       } catch (err: any) {
         info("Analysis Failed", err.message);
       } finally {

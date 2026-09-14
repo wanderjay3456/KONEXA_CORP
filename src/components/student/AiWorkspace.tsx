@@ -116,8 +116,8 @@ export default function AiWorkspace() {
 
           {/* Scrollable messages context */}
           <div className="flex-1 overflow-y-auto space-y-4 my-4 p-2 scrollbar bg-neutral-50/20 border border-neutral-100 rounded-2xl">
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex gap-3 max-w-[85%] ${msg.role === "user" ? "ml-auto flex-row-reverse" : ""}`}>
+            {messages.map((msg) => (
+              <div key={msg.id} className={`flex gap-3 max-w-[90%] ${msg.role === "user" ? "ml-auto flex-row-reverse" : ""}`}>
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[10px] border shrink-0 ${
                   msg.role === "user" ? "bg-neutral-100 text-neutral-700 border-neutral-200/50" : "bg-purple-50 text-purple-600 border-purple-100/50"
                 }`}>
@@ -126,7 +126,7 @@ export default function AiWorkspace() {
                 <div data-no-translate={msg.content !== activeCoach.greet || undefined} className={`p-4 rounded-2xl text-sm font-sans leading-7 whitespace-pre-wrap break-words ${
                   msg.role === "user" 
                     ? "bg-neutral-900 text-white rounded-tr-none" 
-                    : "bg-white border border-neutral-200/40 rounded-tl-none text-neutral-700 font-light"
+                    : "bg-white border border-neutral-200/40 rounded-tl-none text-neutral-700 font-normal"
                 }`}>
                   {msg.content}
                 </div>
@@ -154,7 +154,7 @@ export default function AiWorkspace() {
               disabled={typing}
               onChange={(e) => setInputMsg(e.target.value)}
               placeholder={`Consult ${activeCoach.name} regarding your profile details...`}
-              className="flex-1 bg-neutral-50 border border-neutral-200 focus:border-black/50 rounded-2xl px-4 py-2.5 text-xs font-sans focus:outline-hidden transition-colors"
+              className="min-w-0 flex-1 bg-neutral-50 border border-neutral-200 focus:border-black/50 rounded-2xl px-4 py-2.5 text-sm font-sans focus:outline-hidden transition-colors"
             />
             <button 
               type="submit" 

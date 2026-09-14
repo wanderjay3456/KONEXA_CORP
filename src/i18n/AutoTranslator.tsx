@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLocale, type Locale } from "./LocaleContext";
+import { canApplyUiTranslation, preservesTranslationNumbers } from './translationSafety';
 
 type TranslationCache = Record<string, string>;
 type TextState = { original: string; lastApplied: string };
@@ -9,7 +10,7 @@ type TranslationTarget =
   | { kind: "text"; node: Text; source: string; context: TranslationContext }
   | { kind: "attribute"; node: HTMLElement; attribute: string; source: string; context: TranslationContext };
 
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const TRANSLATABLE_ATTRIBUTES = ["placeholder", "title", "aria-label"];
 const textStates = new WeakMap<Text, TextState>();
 const attributeStates = new WeakMap<HTMLElement, Map<string, AttrState>>();
@@ -114,14 +115,18 @@ function applyTranslation(target: TranslationTarget, translated: string) {
   if (!translated) return;
   if (target.kind === "text") {
     const state = textStates.get(target.node);
-    if (!state) return;
+    if (!state || !canApplyUiTranslation({ ...state, source: target.source, translated,
+      connected: target.node.isConnected, excluded: isExcluded(target.node.parentElement), current: target.node.textContent || '' })) return;
+    if (target.node.textContent === translated) return;
     target.node.textContent = translated;
     textStates.set(target.node, { ...state, lastApplied: translated });
     return;
   }
   const states = attributeStates.get(target.node);
   const state = states?.get(target.attribute);
-  if (!state) return;
+  if (!state || !canApplyUiTranslation({ ...state, source: target.source, translated,
+    connected: target.node.isConnected, excluded: isExcluded(target.node), current: target.node.getAttribute(target.attribute) || '' })) return;
+  if (target.node.getAttribute(target.attribute) === translated) return;
   target.node.setAttribute(target.attribute, translated);
   states!.set(target.attribute, { ...state, lastApplied: translated });
 }
@@ -129,20 +134,20 @@ function applyTranslation(target: TranslationTarget, translated: string) {
 export default function AutoTranslator() {
   const { locale } = useLocale();
   const localeRef = useRef(locale);
-  const runningRef = useRef(false);
-  const rerunRef = useRef(false);
 
   useEffect(() => {
     localeRef.current = locale;
     let timer: number | undefined;
     let cancelled = false;
+    let running = false;
+    let rerun = false;
 
     const translatePage = async () => {
-      if (runningRef.current) {
-        rerunRef.current = true;
+      if (running) {
+        rerun = true;
         return;
       }
-      runningRef.current = true;
+      running = true;
       try {
         const activeLocale = localeRef.current;
         const targets = collectTargets();
@@ -167,13 +172,14 @@ export default function AutoTranslator() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ locale: activeLocale, texts: batch, contexts }),
+            signal: AbortSignal.timeout(15_000),
           });
           if (!response.ok) break;
           const payload = await response.json() as { translations?: string[] };
-          if (localeRef.current !== activeLocale) break;
+          if (cancelled || localeRef.current !== activeLocale) break;
           batchKeys.forEach((key, index) => {
             const translated = payload.translations?.[index]?.trim();
-            if (!translated) return;
+            if (!translated || !preservesTranslationNumbers(batchTargets[index].source, translated)) return;
             cache[key] = translated;
             byKey.get(key)?.forEach((target) => applyTranslation(target, translated));
           });
@@ -182,9 +188,9 @@ export default function AutoTranslator() {
       } catch (error) {
         console.warn("[KONEXA] UI localization fallback unavailable:", error);
       } finally {
-        runningRef.current = false;
-        if (rerunRef.current && !cancelled) {
-          rerunRef.current = false;
+        running = false;
+        if (rerun && !cancelled) {
+          rerun = false;
           window.setTimeout(translatePage, 80);
         }
       }
