@@ -11,7 +11,7 @@ import AiRecruitmentCenter from "../company/AiRecruitmentCenter";
 import HiringPipelineView from "../company/HiringPipelineView";
 import CompanyBookmarks from "../company/CompanyBookmarks";
 
-const CompanyOnboarding = lazy(() => import("../onboarding/CompanyOnboarding"));
+const CompanyOnboarding = lazy(() => import("../onboarding/RequiredProfileSetup"));
 const StudentProfileReview = lazy(() => import("../company/StudentProfileReview"));
 
 interface CompanyDashboardProps {

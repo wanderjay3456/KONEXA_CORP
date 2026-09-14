@@ -8,11 +8,14 @@ import Sidebar from "./components/layout/Sidebar";
 import { StatusPage } from "./components/status/StatusPage";
 import AutoTranslator from "./i18n/AutoTranslator";
 import { LocaleProvider } from "./i18n/LocaleContext";
+import { getCompanyCompletionErrors, getStudentCompletionErrors } from "./lib/profileCompletion";
 
 const StudentDashboard = lazy(() => import("./components/dashboard/StudentDashboard"));
 const CompanyDashboard = lazy(() => import("./components/dashboard/CompanyDashboard"));
 const TrustOperationsCenter = lazy(() => import("./components/trust/TrustOperationsCenter"));
 const AdminDashboard = lazy(() => import("./components/dashboard/AdminDashboard"));
+const RequiredProfileSetup = lazy(() => import("./components/onboarding/RequiredProfileSetup"));
+const PendingGoogleRegistration = lazy(() => import("./components/auth/PendingGoogleRegistration"));
 
 function WorkspaceLoading() {
   return (
@@ -28,7 +31,7 @@ function WorkspaceLoading() {
 }
 
 function AppContent() {
-  const { activeRole, setActiveRole, currentUser, logoutUser, isAuthReady } = useApp();
+  const { activeRole, setActiveRole, currentUser, studentProfile, companyProfile, logoutUser, isAuthReady } = useApp();
   
   // Track active tab within each dashboard role
   const [activeTab, setActiveTab] = useState("career-home");
@@ -60,6 +63,20 @@ function AppContent() {
 
   if (!currentUser) {
     return <LandingHero onEnterApp={handleEnterApp} />;
+  }
+
+  if (currentUser.onboardingStatus === "pending_google") {
+    return <Suspense fallback={<WorkspaceLoading />}><PendingGoogleRegistration /></Suspense>;
+  }
+
+  // Authentication creates the account; onboarding makes it usable. Keep
+  // incomplete users out of business screens until every required profile
+  // field and document has been persisted successfully.
+  if (currentUser.role === UserRole.STUDENT && (!studentProfile?.onboardingCompleted || Object.keys(getStudentCompletionErrors(studentProfile)).length > 0)) {
+    return <Suspense fallback={<WorkspaceLoading />}><RequiredProfileSetup key={currentUser.uid} /></Suspense>;
+  }
+  if (currentUser.role === UserRole.COMPANY && (!companyProfile?.onboardingCompleted || Object.keys(getCompanyCompletionErrors(companyProfile)).length > 0)) {
+    return <Suspense fallback={<WorkspaceLoading />}><RequiredProfileSetup key={currentUser.uid} /></Suspense>;
   }
 
   return (

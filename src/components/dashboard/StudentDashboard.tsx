@@ -10,7 +10,7 @@ import CareerRoadmap from "../student/CareerRoadmap";
 import ResumeBuilder from "../student/ResumeBuilder";
 import StudentApplications from "../student/StudentApplications";
 
-const StudentOnboarding = lazy(() => import("../onboarding/StudentOnboarding"));
+const StudentOnboarding = lazy(() => import("../onboarding/RequiredProfileSetup"));
 
 interface StudentDashboardProps {
   activeTab: string;

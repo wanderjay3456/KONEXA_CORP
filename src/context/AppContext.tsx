@@ -22,7 +22,7 @@ import {
   getGoogleRegistrationId,
   clearGoogleRegistrationId,
 } from "../lib/supabaseAuth";
-import { db, auth } from "../lib/supabaseAuth";
+import { db, auth, supabase } from "../lib/supabaseAuth";
 import { 
   UserRole, 
   UserProfile, 
@@ -41,6 +41,7 @@ import { isEarlyBirdOpen } from "../config/earlyBird";
 import { useLocale } from "../i18n/LocaleContext";
 import { authCopy, authErrorMessage } from "../i18n/authCopy";
 import { loadWorkspaceProfiles } from "../lib/workspaceProfile";
+import { persistCompletedProfile } from "../lib/profilePersistence";
 
 // --- START FIRESTORE ERROR HANDLING PROTOCOL ---
 enum OperationType {
@@ -114,6 +115,8 @@ interface AppContextType {
   registerUser: (email: string, displayName: string, role: UserRole, studentData?: Partial<StudentProfile>, companyData?: Partial<CompanyProfile>, password?: string, consentBundle?: Record<string, unknown>) => Promise<{ emailConfirmationRequired: boolean }>;
   loginUser: (email: string, role: UserRole, password?: string) => Promise<{ emailConfirmationRequired: boolean }>;
   googleLogin: (role: UserRole, options?: GoogleLoginOptions) => Promise<void>;
+  completeGoogleRegistration: (role: UserRole, consentBundle: Record<string, unknown>) => Promise<void>;
+  refreshWorkspaceProfile: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   logoutUser: () => Promise<void>;
   reviewApplication: (applicationId: string, status: ApplicationStatus, feedback: string, score: number) => Promise<void>;
@@ -196,25 +199,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                     registrationPayload?.error?.message
                     || "Google registration could not be completed",
                   );
-                  if (rejectedGoogleUid !== user.uid) {
-                    rejectedGoogleUid = user.uid;
-                    await signOut(auth);
-                  }
-                  setCurrentUser(null);
-                  setStudentProfile(null);
-                  setCompanyProfile(null);
                   error(
                     registrationMessage.includes("KONEXA_ROLE_CONFLICT") ? "계정 유형이 이미 등록되어 있습니다" : "Google 가입을 완료하지 못했습니다",
                     registrationMessage.includes("KONEXA_ROLE_CONFLICT")
-                      ? "이 Google 이메일은 이미 다른 유형의 KONEXA 계정으로 등록되어 있습니다. 기존 계정으로 로그인하거나 다른 Google 계정을 사용해 주세요."
-                      : "가입 세션이 만료되었거나 필수 동의 확인에 실패했습니다. 가입 화면에서 다시 시작해 주세요."
+                      ? "이미 등록된 계정 유형으로 로그인합니다."
+                      : "Google 로그인은 유지됩니다. 계정 유형과 필수 동의를 다시 확인해 주세요."
                   );
-                  setIsAuthReady(true);
-                  return;
                 }
                 userSnapshot = await getDoc(userDocRef);
                 if (!isCurrent()) return;
-              } else if (pendingIntent?.role === "admin" && initialProfile.role !== UserRole.ADMIN) {
+              }
+              if (pendingIntent?.role === "admin" && initialProfile.role !== UserRole.ADMIN) {
                 clearPendingGoogleAuthIntent();
                 if (rejectedGoogleUid !== user.uid) {
                   rejectedGoogleUid = user.uid;
@@ -227,14 +222,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setIsAuthReady(true);
                 return;
               } else if (initialProfile.onboardingStatus === "pending_google") {
-                clearPendingGoogleAuthIntent();
-                if (rejectedGoogleUid !== user.uid) {
-                  rejectedGoogleUid = user.uid;
-                  await signOut(auth);
-                }
-                error("Google 가입 세션이 만료되었습니다", "가입 화면에서 Google 회원가입을 다시 시작해 주세요.");
-                setIsAuthReady(true);
-                return;
+                // This is a valid Google session whose KONEXA role/consent setup
+                // has not finished yet. Keep the session and render the secure
+                // completion gate instead of falsely labelling it as expired.
               } else if (pendingIntent) {
                 clearPendingGoogleAuthIntent();
               }
@@ -517,8 +507,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const validationErrors = getStudentCompletionErrors(updated);
         if (Object.keys(validationErrors).length > 0) throw new Error(firstValidationMessage(validationErrors));
       }
-      await setDoc(doc(db, "student_profiles", updated.uid), updated, { merge: true });
-      await setDoc(doc(db, "protected_contacts", updated.uid), {
+      const contacts = {
         userId: updated.uid,
         talentId: updated.uid,
         email: currentUser?.email || "",
@@ -526,8 +515,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         linkedin: updated.linkedin || "",
         portfolio: updated.portfolio || "",
         updatedAt: Date.now(),
-      }, { merge: true });
-      setStudentProfile(updated);
+      };
+      if (profile.onboardingCompleted === true && (!studentProfile.onboardingCompleted || updated.identityDocumentPath !== studentProfile.identityDocumentPath)) {
+        await persistCompletedProfile(supabase, "student", updated, currentUser?.email || "", contacts);
+      } else {
+        await setDoc(doc(db, "student_profiles", updated.uid), updated, { merge: true });
+        await setDoc(doc(db, "protected_contacts", updated.uid), contacts, { merge: true });
+      }
+      const savedProfile = await getDoc(doc(db, "student_profiles", updated.uid));
+      setStudentProfile(savedProfile.data() as StudentProfile);
       
       await logSystemAction(
         "STUDENT_PROFILE_UPDATE",
@@ -555,8 +551,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const validationErrors = getCompanyCompletionErrors(updated);
         if (Object.keys(validationErrors).length > 0) throw new Error(firstValidationMessage(validationErrors));
       }
-      await setDoc(doc(db, "company_profiles", updated.uid), updated, { merge: true });
-      setCompanyProfile(updated);
+      if (profile.onboardingCompleted === true && (!companyProfile.onboardingCompleted || updated.businessRegistrationDocumentPath !== companyProfile.businessRegistrationDocumentPath)) {
+        await persistCompletedProfile(supabase, "company", updated, currentUser?.email || "");
+      } else {
+        await setDoc(doc(db, "company_profiles", updated.uid), updated, { merge: true });
+      }
+      const savedProfile = await getDoc(doc(db, "company_profiles", updated.uid));
+      setCompanyProfile(savedProfile.data() as CompanyProfile);
 
       await logSystemAction(
         "COMPANY_PROFILE_UPDATE",
@@ -605,71 +606,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         company_profile: companyData || undefined,
         consent_bundle: consentBundle || undefined,
       });
-      const authUid = credential.user.uid;
-      
-      const now = Date.now();
-
-      const profile: UserProfile = {
-        uid: authUid,
-        email,
-        displayName,
-        role,
-        createdAt: now
-      };
-
       if (!credential.session) {
         success("Verify your email", "Your account is ready. Open the confirmation link sent to your email, then sign in.");
         return { emailConfirmationRequired: true };
       }
 
-      await setDoc(doc(db, "users", authUid), profile);
-
-      if (role === UserRole.STUDENT) {
-        const sProfile = {
-          uid: authUid,
-          name: displayName,
-          skills: studentData?.skills || [],
-          github: studentData?.github || "",
-          bio: studentData?.bio || "",
-          ...studentData,
-          trustScore: 0,
-          completedProjects: 0,
-          createdAt: now,
-        };
-        await setDoc(doc(db, "student_profiles", authUid), sProfile);
-        await setDoc(doc(db, "protected_contacts", authUid), {
-          userId: authUid,
-          talentId: authUid,
-          email,
-          github: sProfile.github || "",
-          linkedin: sProfile.linkedin || "",
-          portfolio: sProfile.portfolio || "",
-          updatedAt: now,
-        });
-        setStudentProfile(sProfile);
-        setCompanyProfile(null);
-      } else if (role === UserRole.COMPANY) {
-        const cProfile = {
-          uid: authUid,
-          companyName: companyData?.companyName || displayName,
-          website: companyData?.website || "",
-          description: companyData?.description || "",
-          ...companyData,
-          verified: false,
-          verifiedStatus: "Pending",
-          createdAt: now,
-        };
-        await setDoc(doc(db, "company_profiles", authUid), cProfile);
-        setCompanyProfile(cProfile);
-        setStudentProfile(null);
-      }
-
-      setActiveRole(role);
+      // The auth trigger creates the account, consent receipt and profile in
+      // one database transaction. Never overwrite its server-owned fields.
+      const userSnapshot = await getDoc(doc(db, "users", credential.user.uid));
+      if (!userSnapshot.exists()) throw new Error("Account setup is unavailable. Please sign in again.");
+      const profile = userSnapshot.data() as UserProfile;
+      const workspace = await loadWorkspaceProfiles(profile, async (collectionName, uid) => {
+        const snapshot = await getDoc(doc(db, collectionName, uid));
+        return snapshot.exists() ? snapshot.data() : null;
+      });
+      setStudentProfile(workspace.student);
+      setCompanyProfile(workspace.company);
+      setActiveRole(profile.role);
       setCurrentUser(profile);
-      await logSystemAction(
-        "AUTH_REGISTER",
-        `Registered new user (${role}): ${authUid}`
-      ).catch(() => console.warn("Registration audit could not be recorded"));
       success("Welcome to KONEXA!", `Account created successfully as a ${role}.`);
       return { emailConfirmationRequired: false };
     } catch (err: any) {
@@ -746,6 +700,94 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       error(authCopy[locale].googleError, authErrorMessage(err, locale));
       throw err;
     }
+  };
+
+  const completeGoogleRegistration = async (
+    role: UserRole,
+    consentBundle: Record<string, unknown>,
+  ) => {
+    if (![UserRole.STUDENT, UserRole.COMPANY].includes(role)) {
+      throw new Error("Only student and company self-registration is supported.");
+    }
+    const authenticatedUser = auth.currentUser;
+    if (!authenticatedUser?.uid) {
+      throw new Error("Your Google session is unavailable. Please sign in again.");
+    }
+
+    const displayName = authenticatedUser.displayName || currentUser?.displayName || "KONEXA Member";
+    const profileData = role === UserRole.STUDENT
+      ? {
+          name: displayName,
+          skills: [],
+          github: "",
+          bio: "",
+          onboardingCompleted: false,
+          notificationPreferences: { email: true, push: true, marketing: consentBundle.marketing === true },
+          privacySettings: { publicProfile: true, showResume: false },
+        }
+      : {
+          companyName: displayName,
+          website: "",
+          description: "",
+          onboardingCompleted: false,
+          notificationPreferences: { email: true, system: true },
+        };
+
+    const registrationResponse = await fetch("/api/auth/google-registration-intents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        role: role === UserRole.COMPANY ? "company" : "student",
+        consents: consentBundle,
+        profile: profileData,
+      }),
+    });
+    const registrationPayload = await registrationResponse.json().catch(() => null);
+    const registrationId = registrationPayload?.data?.registrationId;
+    if (!registrationResponse.ok || !registrationId) {
+      throw new Error(registrationPayload?.error?.message || "Google registration could not be initialized.");
+    }
+
+    const completionResponse = await fetch("/api/auth/google-registration-complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ registrationId }),
+    });
+    const completionPayload = await completionResponse.json().catch(() => null);
+    if (!completionResponse.ok) {
+      throw new Error(completionPayload?.error?.message || "Google registration could not be completed.");
+    }
+
+    const userSnapshot = await getDoc(doc(db, "users", authenticatedUser.uid));
+    if (!userSnapshot.exists()) {
+      throw new Error("KONEXA account setup could not be loaded.");
+    }
+    const profile = userSnapshot.data() as UserProfile;
+    const workspace = await loadWorkspaceProfiles(profile, async (collectionName, uid) => {
+      const snapshot = await getDoc(doc(db, collectionName, uid));
+      return snapshot.exists() ? snapshot.data() : null;
+    });
+    clearPendingGoogleAuthIntent();
+    clearGoogleRegistrationId();
+    setStudentProfile(workspace.student);
+    setCompanyProfile(workspace.company);
+    setActiveRole(profile.role);
+    setCurrentUser(profile);
+    success(
+      locale === "ko" ? "Google 가입이 완료되었습니다" : locale === "vi" ? "Đã hoàn tất đăng ký bằng Google" : "Google registration complete",
+      locale === "ko" ? "이제 필수 프로필을 작성해 주세요." : locale === "vi" ? "Bây giờ hãy hoàn thiện hồ sơ bắt buộc." : "Now complete your required profile.",
+    );
+  };
+
+  const refreshWorkspaceProfile = async () => {
+    if (!currentUser || auth.currentUser?.uid !== currentUser.uid) return;
+    const workspace = await loadWorkspaceProfiles(currentUser, async (collectionName, uid) => {
+      const snapshot = await getDoc(doc(db, collectionName, uid));
+      return snapshot.exists() ? snapshot.data() : null;
+    });
+    if (auth.currentUser?.uid !== currentUser.uid) return;
+    setStudentProfile(workspace.student);
+    setCompanyProfile(workspace.company);
   };
 
   const resetPassword = async (email: string) => {
@@ -879,6 +921,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         registerUser,
         loginUser,
         googleLogin,
+        completeGoogleRegistration,
+        refreshWorkspaceProfile,
         resetPassword,
         logoutUser,
         reviewApplication,

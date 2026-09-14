@@ -65,8 +65,21 @@ function userAdapter(user: User | null): any {
       email: user.email || null,
     })),
     getIdToken: async () => {
-      const { data } = await supabase.auth.getSession();
-      return data.session?.access_token || "";
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      let session = data.session;
+
+      // autoRefreshToken normally refreshes in the background. Refresh once here
+      // as well when an API request lands near expiry so we never send
+      // `Authorization: Bearer ` and misreport a healthy account as expired.
+      if (session?.expires_at && session.expires_at <= Math.floor(Date.now() / 1000) + 30) {
+        const refreshed = await supabase.auth.refreshSession();
+        if (refreshed.error) throw refreshed.error;
+        session = refreshed.data.session;
+      }
+
+      cachedUser = session?.user || null;
+      return session?.access_token || "";
     },
     __supabaseUser: user,
   };
@@ -89,17 +102,31 @@ export const auth = {
   authStateReady: initializeAuth,
   onAuthStateChanged(callback: (user: any) => void) {
     let active = true;
+    let lastIdentity: string | undefined;
+    const notify = (user: User | null) => {
+      const identity = user ? `${user.id}:${user.updated_at}:${user.email_confirmed_at}` : "signed-out";
+      if (!active || identity === lastIdentity) return;
+      lastIdentity = identity;
+      callback(userAdapter(user));
+    };
     void initializeAuth()
-      .then(() => active && callback(userAdapter(cachedUser)))
+      .then(() => notify(cachedUser))
       .catch(() => {
         // A failed session read must not leave the entire site loading forever.
         readyPromise = null;
         cachedUser = null;
-        if (active) callback(null);
+        notify(null);
       });
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       cachedUser = session?.user || null;
-      if (active) callback(userAdapter(cachedUser));
+      const nextUser = cachedUser;
+
+      // Supabase documents a client deadlock when an auth callback awaits
+      // another Supabase call. AppContext loads the user's database profile, so
+      // always move that work outside the auth callback's internal lock.
+      setTimeout(() => {
+        notify(nextUser);
+      }, 0);
     });
     return () => {
       active = false;
@@ -181,7 +208,7 @@ export async function signInWithPopup(
     }
   } else {
     clearPendingGoogleAuthIntent();
-    if (intent.role === "admin" && typeof window !== "undefined") {
+    if (typeof window !== "undefined") {
       window.sessionStorage.setItem(
         GOOGLE_AUTH_INTENT_KEY,
         JSON.stringify({ ...intent, createdAt: Date.now() }),

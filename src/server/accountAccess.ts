@@ -4,5 +4,6 @@ export function accountAccessDecision(profile: Record<string, unknown>): Account
   if (profile.accountStatus === 'Suspended') return 'suspended';
   if (profile.onboardingStatus === 'pending_google') return 'incomplete';
   if (!['student', 'company', 'admin'].includes(String(profile.role))) return 'invalid_role';
+  if (['student', 'company'].includes(String(profile.role)) && profile.profileCompleted === false) return 'incomplete';
   return 'allowed';
 }
