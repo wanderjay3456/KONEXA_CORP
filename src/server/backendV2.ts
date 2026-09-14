@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { deferNotificationWork } from "./deferredWork";
+import { isTransientDependencyError } from './dependencyResilience';
 import type { Express, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import { getSupabaseAdmin } from "./supabaseAdmin";
@@ -67,6 +68,12 @@ function asErrorMessage(error: unknown) {
 }
 
 function routeError(res: Response, error: unknown, fallback = "The request could not be completed.") {
+  if (isTransientDependencyError(error)) {
+    console.warn('KONEXA database dependency is temporarily unavailable');
+    res.setHeader('Retry-After', '3');
+    res.status(503).json({ error: { code: 'SERVICE_UNAVAILABLE', message: 'The data service is temporarily unavailable. Please try again shortly.' } });
+    return;
+  }
   const message = asErrorMessage(error);
   const inputError = error instanceof ApiInputError;
   const declaredStatus = Number((error as { statusCode?: unknown })?.statusCode);
