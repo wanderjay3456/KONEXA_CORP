@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { generateWithModelFallback, normalizeStructuredResponse } from '../src/server/providerResponse';
-import { existingSmtpDelivery, smtpSecurity } from '../src/server/smtpPolicy';
+import { existingSmtpDelivery, smtpAuthentication, smtpSecurity } from '../src/server/smtpPolicy';
 
 test('structured AI accepts complete JSON with harmless wrappers and trailing prose', () => {
   for (const text of ['{"ok":true}', '```json\n{"ok":true}\n```', 'Result:\n{"ok":true}\nResponse complete.']) {
@@ -35,7 +35,15 @@ test('SMTP uses implicit TLS on 465 and required STARTTLS on submission ports', 
   assert.deepEqual(smtpSecurity(465,'false'),{secure:true,requireTLS:false});
   for (const port of [25,587,2587]) assert.deepEqual(smtpSecurity(port,'true'),{secure:false,requireTLS:true});
   assert.deepEqual(smtpSecurity(2465,'true'),{secure:true,requireTLS:false});
+  assert.deepEqual(smtpSecurity(2465,'false'),{secure:true,requireTLS:false});
   assert.throws(()=>smtpSecurity(0));
+});
+
+test('Resend SMTP uses its fixed username and existing API key only on its exact host', () => {
+  assert.deepEqual(smtpAuthentication(' SMTP.RESEND.COM ','dashboard@example.invalid',' re_test_only '),{user:'resend',pass:'re_test_only'});
+  assert.deepEqual(smtpAuthentication('smtp.other.invalid',' account ',' untouched '),{user:'account',pass:' untouched '});
+  assert.deepEqual(smtpAuthentication('smtp.resend.com.other.invalid','account','password'),{user:'account',pass:'password'});
+  assert.throws(()=>smtpAuthentication('smtp.resend.com','account','dashboard-password'),/API key/);
 });
 test('SMTP in-progress delivery is never reported as sent', () => {
   assert.equal(existingSmtpDelivery('sent'),'sent');
