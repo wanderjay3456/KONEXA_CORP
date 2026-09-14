@@ -3,7 +3,7 @@ import { generateWithModelFallback } from './providerResponse';
 
 let client: GoogleGenAI | null = null;
 
-const defaultModels = (process.env.GEMINI_MODELS || "gemini-3.5-flash,gemini-3.1-flash-lite")
+const defaultModels = (process.env.GEMINI_MODELS || "gemini-3.1-flash-lite,gemini-3.5-flash")
   .split(",")
   .map((model) => model.trim())
   .filter(Boolean);
@@ -21,7 +21,7 @@ export async function generateGeminiContent(request: Record<string, any>, models
   return generateWithModelFallback(models, async model => {
     const response = await getAIClient().models.generateContent({
       ...request, model,
-      config: { ...request.config, httpOptions: { ...request.config?.httpOptions, timeout: 25_000 } },
+      config: { ...request.config, httpOptions: { ...request.config?.httpOptions, timeout: Math.max(1_000, Math.min(25_000, Number(request.config?.httpOptions?.timeout) || 25_000)) } },
     } as any);
     return { ...response, text: response.text };
   }, request.config?.responseMimeType === 'application/json');

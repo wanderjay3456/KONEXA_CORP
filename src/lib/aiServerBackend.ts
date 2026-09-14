@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "../server/supabaseAdmin";
+import { requireAssessmentScore, requireAssessmentText } from '../server/assessmentValidation';
 
 type GenerateGeminiContent = (request: Record<string, any>, models?: string[]) => Promise<{ response: any; model: string }>;
 
@@ -252,24 +253,23 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
         return;
       }
       const projectId = String(req.query?.projectId || "").trim();
-      if (!projectId) {
+      if (!/^[0-9a-f-]{36}$/i.test(projectId)) {
         res.status(400).json({ error: "A real project ID is required for matching" });
         return;
       }
 
       const supabase = getSupabaseAdmin();
       const { data: projectRecord, error: projectError } = await supabase
-        .from("app_records")
-        .select("record_id,data")
-        .eq("collection_name", "projects")
-        .eq("record_id", projectId)
+        .from("konexa_projects")
+        .select("id,company_id,title,description,requirements,tags,work_type,duration_weeks,status")
+        .eq("id", projectId)
         .maybeSingle();
       if (projectError) throw projectError;
       if (!projectRecord) {
         res.status(404).json({ error: "Project not found" });
         return;
       }
-      const project = projectRecord.data as Record<string, any>;
+      const project = { ...projectRecord, companyId: projectRecord.company_id, workMode: projectRecord.work_type, expectedDuration: projectRecord.duration_weeks };
       if (req.user.role !== "admin" && project.companyId !== req.user.uid) {
         res.status(403).json({ error: "You can only match talent to your own project" });
         return;
@@ -292,6 +292,7 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
         .from("app_records")
         .select("record_id,data")
         .eq("collection_name", "talent_cards")
+        .eq('is_public', true)
         .limit(20);
       if (talentError) throw talentError;
       const candidates = (talentRows || []).map((row: any) => ({
@@ -348,7 +349,6 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
             requirements: list(project.requirements, 30),
             tags: list(project.tags, 30),
             workMode: project.workMode,
-            location: project.location,
             expectedDuration: project.expectedDuration,
           },
           candidates,
@@ -372,6 +372,9 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
         const id = String(item?.id || "");
         const candidate = candidateMap.get(id);
         if (!candidate || seen.has(id)) return [];
+        requireAssessmentText(item.explanation, 'explanation');
+        requireAssessmentScore(item.suitabilityScore, 'suitabilityScore');
+        requireAssessmentScore(item.confidence, 'confidence');
         seen.add(id);
         const skillGaps = Array.isArray(item.skillGaps) ? item.skillGaps.slice(0, 8).map((gap: any) => ({
           skill: String(gap?.skill || "").slice(0, 100),
@@ -440,6 +443,12 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
       });
       const parsed = JSON.parse(response.text || "{}");
       const projectIds = new Set(projects.map((project) => project.id));
+      requireAssessmentText(parsed.summary, 'summary');
+      if (!Array.isArray(parsed.milestones) || !parsed.milestones.length) throw new Error('AI roadmap has no milestones');
+      for (const milestone of parsed.milestones) {
+        requireAssessmentText(milestone?.title, 'milestone title');
+        requireAssessmentText(milestone?.nextAction, 'next action');
+      }
       const result = {
         summary: String(parsed.summary || "").slice(0, 2_000),
         milestones: Array.isArray(parsed.milestones) ? parsed.milestones.slice(0, 6).map((item: any) => ({ title: String(item?.title || "").slice(0, 160), nextAction: String(item?.nextAction || "").slice(0, 600), evidenceNeeded: String(item?.evidenceNeeded || "").slice(0, 400) })).filter((item: any) => item.title) : [],
@@ -485,6 +494,8 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
       });
       const parsed = JSON.parse(response.text || "{}");
       const result = { score: score(parsed.score), summary: String(parsed.summary || "").slice(0, 2_000), strengths: list(parsed.strengths, 10), issues: list(parsed.issues, 10), recommendedEdits: list(parsed.recommendedEdits, 10), model };
+      requireAssessmentText(parsed.summary, 'summary');
+      requireAssessmentScore(parsed.score, 'score');
       const assessmentId = await persistAssessment({
         requestedBy: req.user.uid,
         subjectUserId: req.user.uid,

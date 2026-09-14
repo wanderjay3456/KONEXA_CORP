@@ -5,6 +5,7 @@ import {
   Target, Award, BookOpen, Clock, Activity, Briefcase, Zap, ShieldAlert, User
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
+import { useAiChat } from '../../lib/useAiChat';
 
 interface Coach {
   id: string;
@@ -34,61 +35,11 @@ export default function AiWorkspace() {
   const [selectedCoachId, setSelectedCoachId] = useState("career");
   const activeCoach = coaches.find(c => c.id === selectedCoachId) || coaches[0];
 
-  // Chat message thread
-  const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([
-    { role: "assistant", content: activeCoach.greet }
-  ]);
-  const [inputMsg, setInputMsg] = useState("");
-  const [typing, setTyping] = useState(false);
-
-  // When changing coach, reseed conversation thread
-  const handleSelectCoach = (coachId: string) => {
-    setSelectedCoachId(coachId);
-    const target = coaches.find(c => c.id === coachId) || coaches[0];
-    setMessages([
-      { role: "assistant", content: target.greet }
-    ]);
-    setInputMsg("");
-  };
-
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputMsg.trim()) return;
-
-    const userMsg = { role: "user", content: inputMsg };
-    setMessages(prev => [...prev, userMsg]);
-    setInputMsg("");
-    setTyping(true);
-
-    try {
-      // Forward to backend gemini chat routing with live student profile details
-      const response = await fetch("/api/gemini/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [...messages, userMsg],
-          context: {
-            coachType: activeCoach.name,
-            studentProfile: {
-              name: studentProfile?.name,
-              skills: studentProfile?.skills,
-              bio: studentProfile?.bio,
-              trustScore: studentProfile?.trustScore,
-              completedProjects: studentProfile?.completedProjects
-            }
-          }
-        })
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok || !payload.reply) throw new Error(payload.error || "AI 코치가 응답하지 않았습니다.");
-      setMessages(prev => [...prev, { role: "assistant", content: payload.reply }]);
-    } catch (cause) {
-      error("AI 코치 연결 오류", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
-    } finally {
-      setTyping(false);
-    }
-  };
+  const chat = useAiChat(selectedCoachId, activeCoach.greet);
+  const { messages, input: inputMsg, setInput: setInputMsg } = chat;
+  const typing = chat.busy || chat.restoring;
+  const handleSelectCoach = (coachId: string) => { if (!chat.busy) setSelectedCoachId(coachId); };
+  const handleSend = (e: React.FormEvent) => { e.preventDefault(); void chat.send(); };
 
   return (
     <div className="flex-1 overflow-y-auto bg-neutral-50 p-6 space-y-6 scrollbar">
@@ -103,7 +54,7 @@ export default function AiWorkspace() {
             AI Coach Suite
           </h1>
           <p className="font-sans text-xs text-neutral-400 mt-1">
-            등록한 프로필과 대화 내용을 바탕으로 진로, 이력서, 포트폴리오, 면접과 프로젝트 준비를 도와드립니다.
+            등록한 프로필과 대화를 바탕으로 준비를 돕습니다. 대화는 계정에 저장되며 Gemini로 처리됩니다. 비밀번호·신분증 번호·영업비밀은 입력하지 마세요.
           </p>
         </div>
       </div>
@@ -125,6 +76,7 @@ export default function AiWorkspace() {
               return (
                 <button
                   key={c.id}
+                  disabled={chat.busy}
                   onClick={() => handleSelectCoach(c.id)}
                   className={`w-full p-3.5 rounded-2xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
                     isActive
@@ -156,10 +108,10 @@ export default function AiWorkspace() {
               </div>
               <div>
                 <h3 className="font-display font-black text-sm text-neutral-900">{activeCoach.name}</h3>
-                <span className="text-[9px] font-mono font-bold text-neutral-400 block mt-0.5 uppercase tracking-wider">MODEL: GEMINI-3.5-FLASH</span>
+                <span className="text-[11px] text-neutral-600 block mt-1">{chat.model || 'AI · 결과는 참고용입니다'}</span>
               </div>
             </div>
-            <span className={`w-2.5 h-2.5 rounded-full ${typing ? "bg-amber-400 animate-pulse" : "bg-emerald-500"}`} />
+            <button onClick={chat.reload} disabled={typing} aria-label="Reload saved conversation" className="rounded-lg border border-neutral-200 p-2 disabled:opacity-40"><RefreshCw size={16} /></button>
           </div>
 
           {/* Scrollable messages context */}
@@ -171,7 +123,7 @@ export default function AiWorkspace() {
                 }`}>
                   {msg.role === "user" ? <User className="w-3.5 h-3.5" /> : "AI"}
                 </div>
-                <div className={`p-4 rounded-2xl text-xs font-sans leading-relaxed whitespace-pre-wrap ${
+                <div data-no-translate={msg.content !== activeCoach.greet || undefined} className={`p-4 rounded-2xl text-sm font-sans leading-7 whitespace-pre-wrap break-words ${
                   msg.role === "user" 
                     ? "bg-neutral-900 text-white rounded-tr-none" 
                     : "bg-white border border-neutral-200/40 rounded-tl-none text-neutral-700 font-light"
@@ -198,6 +150,8 @@ export default function AiWorkspace() {
             <input 
               type="text"
               value={inputMsg}
+              maxLength={4000}
+              disabled={typing}
               onChange={(e) => setInputMsg(e.target.value)}
               placeholder={`Consult ${activeCoach.name} regarding your profile details...`}
               className="flex-1 bg-neutral-50 border border-neutral-200 focus:border-black/50 rounded-2xl px-4 py-2.5 text-xs font-sans focus:outline-hidden transition-colors"

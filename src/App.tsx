@@ -16,6 +16,7 @@ const TrustOperationsCenter = lazy(() => import("./components/trust/TrustOperati
 const AdminDashboard = lazy(() => import("./components/dashboard/AdminDashboard"));
 const RequiredProfileSetup = lazy(() => import("./components/onboarding/RequiredProfileSetup"));
 const PendingGoogleRegistration = lazy(() => import("./components/auth/PendingGoogleRegistration"));
+const SupportChatbot = lazy(() => import('./components/support/SupportChatbot'));
 
 function WorkspaceLoading() {
   return (
@@ -126,6 +127,7 @@ export default function App() {
         <AppProvider>
           <AutoTranslator />
           <AppContent />
+          <Suspense fallback={null}><SupportChatbot /></Suspense>
         </AppProvider>
       </LocaleProvider>
     </ToastProvider>
