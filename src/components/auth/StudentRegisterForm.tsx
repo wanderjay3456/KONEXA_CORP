@@ -39,7 +39,7 @@ const copy = {
     country: "현재 거주 국가",
     email: "이메일",
     password: "비밀번호",
-    passwordHint: "6자 이상",
+    passwordHint: "8자 이상",
     next: "다음",
     back: "이전",
     role: "관심 직무",
@@ -77,7 +77,7 @@ const copy = {
     country: "Current country",
     email: "Email",
     password: "Password",
-    passwordHint: "At least 6 characters",
+    passwordHint: "At least 8 characters",
     next: "Continue",
     back: "Back",
     role: "Roles you are interested in",
@@ -115,7 +115,7 @@ const copy = {
     country: "Quốc gia đang cư trú",
     email: "Email",
     password: "Mật khẩu",
-    passwordHint: "Tối thiểu 6 ký tự",
+    passwordHint: "Tối thiểu 8 ký tự",
     next: "Tiếp tục",
     back: "Quay lại",
     role: "Vị trí bạn quan tâm",
@@ -197,7 +197,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
 
   const validateAccount = () => {
     if (!formData.name?.trim() || !formData.currentCountry) return false;
-    if (authMethod === "email" && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 6)) return false;
+    if (authMethod === "email" && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8)) return false;
     return true;
   };
 
@@ -310,7 +310,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                       <label className="sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.name} *</span><input autoComplete="name" value={formData.name || ""} onChange={(event) => setField("name", event.target.value)} placeholder={t.namePlaceholder} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>
                       <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.country} *</span><select value={formData.currentCountry || ""} onChange={(event) => setField("currentCountry", event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 bg-white px-4 py-3 outline-none focus:border-[#4361ee]">{COUNTRY_OPTIONS.map((country) => <option key={country.value} value={country.value}>{optionLabel(country, locale)}</option>)}</select></label>
                       {authMethod === "email" && <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.email} *</span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>}
-                      {authMethod === "email" && <label className="sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.password} *</span><input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.passwordHint} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>}
+                      {authMethod === "email" && <label className="sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.password} *</span><input type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.passwordHint} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>}
                     </div>
                     <button type="button" onClick={goNext} className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white">{t.next}<ArrowRight className="h-4 w-4" /></button>
                   </motion.div>

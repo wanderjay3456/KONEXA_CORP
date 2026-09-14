@@ -21,6 +21,9 @@ const copy = {
     private: "연락처 비공개",
     weeks: "주",
     loading: "공개 공고를 불러오고 있습니다.",
+    failedTitle: "공고를 불러오지 못했습니다.",
+    failedBody: "일시적인 연결 문제일 수 있습니다. 잠시 후 다시 확인해 주세요.",
+    retry: "다시 불러오기",
     emptyTitle: "첫 공개 공고를 준비하고 있습니다.",
     emptyBody: "가짜 공고는 표시하지 않습니다. 학생 계정을 만들면 새 공고 알림을 받을 수 있고, 기업은 간단한 양식으로 첫 공고를 등록할 수 있습니다.",
     student: "인재로 시작",
@@ -36,6 +39,9 @@ const copy = {
     private: "Contact protected",
     weeks: "weeks",
     loading: "Loading public opportunities.",
+    failedTitle: "We could not load the opportunities.",
+    failedBody: "There may be a temporary connection issue. Please try again.",
+    retry: "Try again",
     emptyTitle: "The first public opportunities are being prepared.",
     emptyBody: "We do not display fake job posts. Create a talent account for new-role alerts, or register a company to publish the first opportunity.",
     student: "Join as talent",
@@ -51,6 +57,9 @@ const copy = {
     private: "Đã ẩn liên hệ",
     weeks: "tuần",
     loading: "Đang tải cơ hội công khai.",
+    failedTitle: "Không thể tải danh sách cơ hội.",
+    failedBody: "Có thể kết nối đang gặp sự cố tạm thời. Vui lòng thử lại.",
+    retry: "Thử lại",
     emptyTitle: "Các cơ hội công khai đầu tiên đang được chuẩn bị.",
     emptyBody: "KONEXA không hiển thị tin tuyển dụng giả. Tạo tài khoản ứng viên để nhận thông báo hoặc đăng ký doanh nghiệp để đăng cơ hội đầu tiên.",
     student: "Tham gia với tư cách ứng viên",
@@ -76,28 +85,37 @@ export default function PublicOpportunityPreview({ locale, onLogin, onStudent, o
   const t = copy[locale];
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
+    let mounted = true;
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
+    setLoading(true);
+    setFailed(false);
     void fetch("/api/public/projects", { signal: controller.signal })
       .then(async (response) => {
         const payload = await response.json().catch(() => null);
         if (!response.ok) throw new Error(payload?.error?.message || "Public opportunities are unavailable");
-        const publicProjects = (Array.isArray(payload?.data) ? payload.data : [])
+        if (!Array.isArray(payload?.data)) throw new Error("Invalid public project response");
+        const publicProjects = payload.data
           .map((item) => item as Project)
           .filter((project) => project.status === ProjectStatus.OPEN && Boolean(project.companyName) && Boolean(project.title) && isPublicMarketProject(project))
           .sort((left, right) => createdAtValue(right) - createdAtValue(left))
           .slice(0, 3);
+        if (!mounted) return;
         setProjects(publicProjects);
         setLoading(false);
       })
       .catch((error) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (!mounted) return;
         setProjects([]);
+        setFailed(true);
         setLoading(false);
-      });
-    return () => controller.abort();
-  }, []);
+      }).finally(() => window.clearTimeout(timeout));
+    return () => { mounted = false; controller.abort(); window.clearTimeout(timeout); };
+  }, [attempt]);
 
   const topSkills = useMemo(() => {
     const counts = new Map<string, number>();
@@ -127,6 +145,12 @@ export default function PublicOpportunityPreview({ locale, onLogin, onStudent, o
           <div role="status" aria-live="polite" className="mt-12 grid gap-4 md:grid-cols-3">
             <span className="sr-only">{t.loading}</span>
             {[0, 1, 2].map((item) => <div key={item} className="h-64 animate-pulse rounded-[1.7rem] bg-[#17342d]/5" />)}
+          </div>
+        ) : failed ? (
+          <div role="status" className="mt-12 rounded-3xl border border-[#17342d]/15 bg-white p-8 text-center">
+            <h3 className="text-xl font-semibold text-[#17342d]">{t.failedTitle}</h3>
+            <p className="mt-3 text-sm leading-7 text-[#557069]">{t.failedBody}</p>
+            <button type="button" onClick={() => setAttempt(value => value + 1)} className="mt-5 rounded-xl bg-[#17342d] px-5 py-3 text-sm font-semibold text-white">{t.retry}</button>
           </div>
         ) : projects.length > 0 ? (
           <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-3">

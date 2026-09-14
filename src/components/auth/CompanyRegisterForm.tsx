@@ -50,7 +50,7 @@ const copy = {
     size: "기업 규모",
     email: "업무용 이메일",
     password: "비밀번호",
-    passwordHint: "6자 이상",
+    passwordHint: "8자 이상",
     next: "다음",
     back: "이전",
     needs: "채용하려는 직무",
@@ -91,7 +91,7 @@ const copy = {
     size: "Company size",
     email: "Work email",
     password: "Password",
-    passwordHint: "At least 6 characters",
+    passwordHint: "At least 8 characters",
     next: "Continue",
     back: "Back",
     needs: "Roles you want to hire",
@@ -132,7 +132,7 @@ const copy = {
     size: "Quy mô công ty",
     email: "Email công việc",
     password: "Mật khẩu",
-    passwordHint: "Tối thiểu 6 ký tự",
+    passwordHint: "Tối thiểu 8 ký tự",
     next: "Tiếp tục",
     back: "Quay lại",
     needs: "Vị trí cần tuyển",
@@ -201,7 +201,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
   const toggle = (list: string[], value: string, setter: (next: string[]) => void) => setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
   const validateAccount = () => {
     if (!formData.companyName?.trim() || !formData.country || !formData.industry || !formData.companySize) return false;
-    if (authMethod === "email" && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 6)) return false;
+    if (authMethod === "email" && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8)) return false;
     return true;
   };
   const validateAgreements = () => agreements.terms && agreements.transaction && agreements.privacy;
@@ -310,7 +310,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
                       <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.industry} *</span><select value={formData.industry || ""} onChange={(event) => setField("industry", event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 bg-white px-4 py-3"><option value="">—</option>{INDUSTRY_OPTIONS.map((item) => <option key={item.value} value={item.value}>{optionLabel(item, locale)}</option>)}</select></label>
                       <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.size} *</span><select value={formData.companySize || ""} onChange={(event) => setField("companySize", event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 bg-white px-4 py-3"><option value="">—</option>{sizes.map((item) => <option key={item.value} value={item.value}>{locale === "ko" ? item.ko : locale === "vi" ? item.vi : item.value}</option>)}</select></label>
                       {authMethod === "email" && <label><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.email} *</span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>}
-                      {authMethod === "email" && <label className="sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.password} *</span><input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.passwordHint} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>}
+                      {authMethod === "email" && <label className="sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.password} *</span><input type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.passwordHint} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]" /></label>}
                     </div>
                     <button type="button" onClick={goNext} className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white">{t.next}<ArrowRight className="h-4 w-4" /></button>
                   </motion.div>

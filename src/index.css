@@ -362,7 +362,7 @@ html[lang="vi"] .hero-heading {
   text-wrap: balance;
 }
 
-.konexa-light h2 {
+.konexa-light h2:not(#auth-title) {
   font-size: clamp(1.6rem, 6.6vw, 3rem);
 }
 
