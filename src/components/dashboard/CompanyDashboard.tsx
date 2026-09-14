@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { lazy, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import ProjectCreationWizard from "../company/ProjectCreationWizard";
 import ApplicationManagement from "../company/ApplicationManagement";
@@ -11,19 +11,24 @@ import AiRecruitmentCenter from "../company/AiRecruitmentCenter";
 import HiringPipelineView from "../company/HiringPipelineView";
 import CompanyBookmarks from "../company/CompanyBookmarks";
 
+const CompanyOnboarding = lazy(() => import("../onboarding/CompanyOnboarding"));
+const StudentProfileReview = lazy(() => import("../company/StudentProfileReview"));
+
 interface CompanyDashboardProps {
   activeTab: string;
   onNavigate: (tabId: string) => void;
 }
 
 export default function CompanyDashboard({ activeTab, onNavigate }: CompanyDashboardProps) {
-  const [, setSelectedStudentId] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState("");
   const [, setSelectedApplication] = useState<Application | null>(null);
 
   if (activeTab === "company-home") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><CompanyHome onNavigate={onNavigate} onSelectStudent={setSelectedStudentId} /></div>;
   if (activeTab === "create-challenge") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><ProjectCreationWizard onNavigate={onNavigate} /></div>;
   if (activeTab === "company-projects") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><CompanyProjectList onNavigate={onNavigate} /></div>;
-  if (activeTab === "company-applications") {
+  if (activeTab === "identity" || activeTab === "profile") return <CompanyOnboarding onComplete={() => onNavigate('company-home')} onCancel={() => onNavigate('company-home')} />;
+  if (activeTab === "student-review") return <div className="flex-1 overflow-y-auto bg-neutral-50 p-6"><StudentProfileReview studentId={selectedStudentId} onNavigate={onNavigate} /></div>;
+  if (activeTab === "company-applications" || activeTab === "applications") {
     return (
       <div className="flex-1 overflow-y-auto bg-neutral-50 p-6">
         <ApplicationManagement onNavigate={onNavigate} onSelectStudent={setSelectedStudentId} onSelectApplication={setSelectedApplication} />

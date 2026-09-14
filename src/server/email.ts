@@ -5,17 +5,13 @@ import { Resend } from "resend";
 import { adminDb, FieldValue } from "./supabaseAdmin";
 import type { AuthenticatedRequest } from "./security";
 
-export type EmailTemplate =
-  | "welcome"
-  | "application_received"
-  | "application_status"
-  | "new_application"
-  | "project_published"
-  | "contract_action"
-  | "milestone_action"
-  | "payment_status"
-  | "subscription_activated"
-  | "payment_failed";
+export const EMAIL_TEMPLATES = [
+  'welcome', 'application_received', 'application_status', 'new_application',
+  'project_published', 'contract_action', 'milestone_action', 'payment_status',
+  'subscription_activated', 'payment_failed', 'introduction_requested',
+  'review_updated', 'dispute_action',
+] as const;
+export type EmailTemplate = typeof EMAIL_TEMPLATES[number];
 
 interface SendEmailInput {
   to: string;
@@ -72,7 +68,7 @@ function escapeHtml(value: unknown) {
     .replaceAll("'", "&#039;");
 }
 
-function renderEmail(template: EmailTemplate, data: SendEmailInput["data"] = {}) {
+export function renderEmail(template: EmailTemplate, data: SendEmailInput["data"] = {}) {
   const appUrl = process.env.APP_URL || "https://konexa.co.kr";
   const name = escapeHtml(data.name || "KONEXA member");
   const plan = escapeHtml(data.plan || "Pro AI Matchmaker");
@@ -83,7 +79,7 @@ function renderEmail(template: EmailTemplate, data: SendEmailInput["data"] = {})
     welcome: {
       subject: "Welcome to KONEXA",
       heading: `Welcome, ${name}`,
-      body: "Your verified KONEXA account is ready. Complete your profile to start matching with projects and talent.",
+      body: "Your KONEXA account is ready. Complete your profile and verification to start matching with projects and talent.",
       action: "Open KONEXA",
     },
     application_received: {
@@ -101,7 +97,7 @@ function renderEmail(template: EmailTemplate, data: SendEmailInput["data"] = {})
     new_application: {
       subject: "A new candidate applied on KONEXA",
       heading: "A new application arrived",
-      body: `A verified KONEXA member submitted an application for ${project}. Review the evidence and update the hiring stage in your company workspace.`,
+      body: `A KONEXA member submitted an application for ${project}. Review the evidence and update the hiring stage in your company workspace.`,
       action: "Review application",
     },
     project_published: {
@@ -139,6 +135,21 @@ function renderEmail(template: EmailTemplate, data: SendEmailInput["data"] = {})
       heading: "Please update your payment method",
       body: "Stripe could not complete your latest subscription payment. Update your payment method in the secure billing portal to avoid service interruption.",
       action: "Manage billing",
+    },
+    introduction_requested: {
+      subject: 'You have a new KONEXA introduction request', heading: 'New introduction request',
+      body: 'A company has requested an introduction. Review the opportunity in KONEXA. Your private contact details remain protected until the required agreement steps are completed.',
+      action: 'Review request',
+    },
+    review_updated: {
+      subject: 'Your KONEXA review was updated', heading: `Review ${status}`,
+      body: 'Open your workspace to check your review status. Private review content is not shared with the other party before the publication requirements are met.',
+      action: 'View review status',
+    },
+    dispute_action: {
+      subject: 'A KONEXA dispute requires attention', heading: 'Dispute update',
+      body: 'A dispute was recorded for your project. Review the case in your secure workspace and provide supporting information to the KONEXA operations team.',
+      action: 'View case',
     },
   };
 

@@ -193,6 +193,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
       }
       // First, save the complete profile fields to local state & database
       const updatedProfile = {
+        ...studentProfile,
         ...formData,
         ...uploadedFields,
         // Mark onboarding completed!

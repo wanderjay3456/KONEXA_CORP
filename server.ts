@@ -613,6 +613,19 @@ Never invent capabilities, guarantees, credentials, discounts, deadlines, or leg
         .select("id")
         .single();
       if (assessmentError) throw assessmentError;
+      const { error: profileSaveError } = await getSupabaseAdmin().rpc('konexa_save_profile_analysis', {
+        p_user_id: profileOwner,
+        p_collection: profileCollection,
+        p_analysis: {
+          aiAnalysisStatus: 'completed',
+          aiAnalysis: analysis,
+          aiCareerReadiness: analysis.careerReadiness,
+          aiEmployabilityScore: analysis.employabilityScore,
+          aiAnalyzedAt: Date.now(),
+          aiAssessmentId: assessment.id,
+        },
+      });
+      if (profileSaveError) throw profileSaveError;
       res.json({ ...analysis, model, assessmentId: assessment.id });
     } catch (error: any) {
       console.error("Gemini Profile Analysis Error:", error);

@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { getSupabaseAuthClient } from "./supabaseAdmin";
+import { accountAccessDecision } from "./accountAccess";
 
 export type AppRole = "student" | "company" | "admin" | "ai";
 
@@ -47,6 +48,17 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     if (profileError) throw profileError;
 
     const profile = profileRecord.data as Record<string, any>;
+    const access = accountAccessDecision(profile);
+    // Google registration completion is the only operation a pending account
+    // may perform; it validates the server-owned registration intent itself.
+    const completingRegistration = access === 'incomplete'
+      && req.path === '/api/auth/google-registration-complete';
+    if (access !== 'allowed' && !completingRegistration) {
+      sendAuthError(res, 403, access === 'suspended'
+        ? 'This account is suspended. Contact KONEXA support.'
+        : 'Complete KONEXA registration before using protected services.');
+      return;
+    }
     req.user = {
       uid: user.id,
       email: user.email,
