@@ -43,7 +43,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
   const { success, error, info } = useToast();
   
   const [step, setStep] = useState(1);
-  const totalSteps = 9;
+  const totalSteps = 4;
   
   // Local onboarding state initialized with current profile or defaults
   const [formData, setFormData] = useState<Partial<StudentProfile>>({
@@ -118,31 +118,26 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
 
   const validateStep = (): boolean => {
     const nextErrors: { [key: string]: string } = {};
-    if (step === 2) {
+    if (step === 1) {
       if (!formData.name?.trim()) nextErrors.name = "Legal Name is required.";
       if (!formData.nationality?.trim()) nextErrors.nationality = "Nationality is required.";
       if (!formData.currentCountry?.trim()) nextErrors.currentCountry = "Current country is required.";
       if (!formData.timezone?.trim()) nextErrors.timezone = "TimeZone is required.";
-    } else if (step === 3) {
       if (!formData.university?.trim()) nextErrors.university = "University Name is required.";
       if (!formData.degree?.trim()) nextErrors.degree = "Degree level is required.";
       if (!formData.major?.trim()) nextErrors.major = "Academic major is required.";
       if (!formData.graduationYear?.trim()) nextErrors.graduationYear = "Graduation year is required.";
       if (!proofFile && !studentProfile?.identityDocumentPath) nextErrors.identityDocumentPath = "학적 증빙 서류를 업로드해 주세요.";
-    } else if (step === 4) {
+    } else if (step === 2) {
       if (!formData.englishLevel?.trim()) nextErrors.englishLevel = "English level is required.";
-    } else if (step === 5) {
       if (!formData.skills?.length) nextErrors.skills = "At least one skill is required.";
-    } else if (step === 6) {
+    } else if (step === 3) {
       if (!formData.preferredJob?.trim()) nextErrors.preferredJob = "Preferred role is required.";
       if (!formData.availability?.trim()) nextErrors.availability = "Availability is required.";
       if (!Number.isFinite(formData.preferredWeeklyPayKrw) || Number(formData.preferredWeeklyPayKrw) <= 0) nextErrors.preferredWeeklyPayKrw = "희망 주급을 입력해 주세요.";
-    } else if (step === 7) {
-      if (!formData.github?.trim() && !formData.portfolio?.trim()) nextErrors.github = "GitHub or a portfolio URL is required.";
       if (!resumeFile && !studentProfile?.resumeUrl) nextErrors.resumeUrl = "PDF 이력서를 업로드해 주세요.";
-    } else if (step === 8) {
+    } else if (step === 4) {
       if (!formData.bio?.trim()) nextErrors.bio = "Biography pitch is required.";
-    } else if (step === 9) {
       if (!termsAgreement) nextErrors.terms = "You must agree to the platform security terms.";
     }
     setErrors(nextErrors);
@@ -298,7 +293,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                 KONEXA INTERACTIVE PORTAL
               </span>
               <h2 className="font-display font-extrabold text-2xl tracking-tight text-white">
-                Technical Talent Onboarding
+                Talent Profile Setup
               </h2>
             </div>
             
@@ -312,15 +307,10 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-mono text-neutral-400 font-bold">
               <span>Step {step} of {totalSteps}: {
-                step === 1 ? "System Welcome" :
-                step === 2 ? "Identity Anchors" :
-                step === 3 ? "University Path" :
-                step === 4 ? "Language Assessment" :
-                step === 5 ? "Technical Skill Set" :
-                step === 6 ? "Career Vectors" :
-                step === 7 ? "Engineering Links" :
-                step === 8 ? "Creative Biography" :
-                "Security & Privacy"
+                step === 1 ? "Identity and education" :
+                step === 2 ? "Languages and capabilities" :
+                step === 3 ? "Work preferences and resume" :
+                "Introduction and privacy"
               }</span>
               <span>{getEstTime()}</span>
             </div>
@@ -345,15 +335,15 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                 className="space-y-6"
               >
                 {/* STEP 1: WELCOME */}
-                {step === 1 && (
+                {false && (
                   <div className="space-y-6">
                     <div className="space-y-2">
                       <h3 className="font-display font-black text-xl text-white tracking-tight flex items-center gap-2">
                         <Sparkles className="w-5 h-5 text-teal-400" />
-                        <span>Welcome to your AI Onboarding Journey</span>
+                        <span>Complete your verified talent profile</span>
                       </h3>
                       <p className="text-neutral-400 text-xs leading-relaxed font-light">
-                        At KONEXA, registration is not the end of onboarding — it is the absolute start of your AI journey. We match your real technical submissions directly with international software teams. Complete this 9-step setup to customize your AI recruiter algorithms.
+                        Add the information Korean companies need to evaluate a real project match. Your academic proof and resume stay private and are released only through the platform's verified workflow.
                       </p>
                     </div>
 
@@ -362,8 +352,8 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                       <div className="border border-white/10 rounded-2xl p-5 bg-white/5 flex flex-col items-center justify-center text-center space-y-3">
                         <Cpu className="w-10 h-10 text-teal-400 animate-pulse" />
                         <div>
-                          <span className="text-xs font-bold block">Interactive Matchmaker</span>
-                          <p className="text-[10px] text-neutral-400 font-light mt-1">Our autonomous engines scan your entries in real-time to locate corporate sponsorships.</p>
+                          <span className="text-xs font-bold block">Evidence-based matching</span>
+                          <p className="text-[10px] text-neutral-400 font-light mt-1">Your skills, language ability and availability are compared with real project requirements.</p>
                         </div>
                       </div>
 
@@ -373,15 +363,15 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                         <div className="space-y-2 text-xs">
                           <div className="flex items-center gap-2 text-neutral-300">
                             <CheckCircle className="w-3.5 h-3.5 text-teal-400" />
-                            <span>Academic Status Verified</span>
+                            <span>Academic status and identity document</span>
                           </div>
                           <div className="flex items-center gap-2 text-neutral-300">
                             <CheckCircle className="w-3.5 h-3.5 text-teal-400" />
-                            <span>GitHub Code Repo Connected</span>
+                            <span>Resume and optional work samples</span>
                           </div>
                           <div className="flex items-center gap-2 text-neutral-300">
                             <CheckCircle className="w-3.5 h-3.5 text-teal-400" />
-                            <span>Self-Assessed Language Skill</span>
+                            <span>Language and work preferences</span>
                           </div>
                         </div>
                       </div>
@@ -390,11 +380,11 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                 )}
 
                 {/* STEP 2: PROFILE SETTINGS */}
-                {step === 2 && (
+                {step === 1 && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="font-display font-bold text-lg text-white">Identity & Localization</h3>
-                      <p className="text-neutral-400 text-xs">Let’s secure your official legal name, localization metrics, and contact coordinates.</p>
+                      <h3 className="font-display font-bold text-lg text-white">Basic information</h3>
+                      <p className="text-neutral-400 text-xs">Use the information shown on your academic or identity document.</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -460,7 +450,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-300">Emergency Contact (Phone/Name)</label>
+                        <label className="text-xs font-bold text-neutral-300">Emergency contact (optional)</label>
                         <input
                           type="text"
                           value={formData.emergencyContact || ""}
@@ -474,11 +464,11 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                 )}
 
                 {/* STEP 3: EDUCATION BACKGROUND */}
-                {step === 3 && (
+                {step === 1 && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="font-display font-bold text-lg text-white">Academic Integrity Background</h3>
-                      <p className="text-neutral-400 text-xs">Verify your academic degree level and field of specialization.</p>
+                      <h3 className="font-display font-bold text-lg text-white">Education and enrollment</h3>
+                      <p className="text-neutral-400 text-xs">Tell companies what you study and provide one private proof document.</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -500,7 +490,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                           type="text"
                           value={formData.major || ""}
                           onChange={(e) => updateField("major", e.target.value)}
-                          placeholder="Computer Science & Engineering"
+                          placeholder="Your field of study"
                           className="w-full h-11 bg-white/5 border border-white/10 rounded-xl px-4 text-xs font-sans focus:outline-hidden text-white"
                         />
                         {errors.major && <span className="text-[10px] text-rose-400 font-mono font-bold block">{errors.major}</span>}
@@ -565,11 +555,11 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                 )}
 
                 {/* STEP 4: LANGUAGE PROFICIENCIES */}
-                {step === 4 && (
+                {step === 2 && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="font-display font-bold text-lg text-white">Language Proficiencies</h3>
-                      <p className="text-neutral-400 text-xs">Self-assess your multi-lingual capability level to unlock cross-border matches.</p>
+                      <h3 className="font-display font-bold text-lg text-white">Language ability</h3>
+                      <p className="text-neutral-400 text-xs">Choose the level you can use during real work and interviews.</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -619,10 +609,10 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                 )}
 
                 {/* STEP 5: TECHNICAL SKILLS */}
-                {step === 5 && (
+                {step === 2 && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="font-display font-bold text-lg text-white">Technical Core Skills</h3>
+                      <h3 className="font-display font-bold text-lg text-white">Capabilities and practical skills</h3>
                       <p className="text-neutral-400 text-xs">Toggle and declare your stack specializations for Gemini indexing.</p>
                     </div>
 
@@ -670,7 +660,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                 )}
 
                 {/* STEP 6: CAREER GOALS */}
-                {step === 6 && (
+                {step === 3 && (
                   <div className="space-y-6">
                     <div>
                       <h3 className="font-display font-bold text-lg text-white">Career Vector & Expectations</h3>
@@ -758,16 +748,16 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                 )}
 
                 {/* STEP 7: RESUME UPLOAD */}
-                {step === 7 && (
+                {step === 3 && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="font-display font-bold text-lg text-white">Technical Anchors & Artifacts</h3>
-                      <p className="text-neutral-400 text-xs">Verify your technical code repos, and attach your latest resume PDF.</p>
+                      <h3 className="font-display font-bold text-lg text-white">Resume and work samples</h3>
+                      <p className="text-neutral-400 text-xs">Upload your resume. Add public work samples only when they help explain your field.</p>
                     </div>
 
                     <div className="space-y-4">
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-neutral-300">GitHub Profile URL *</label>
+                        <label className="text-xs font-bold text-neutral-300">GitHub profile (optional)</label>
                         <div className="relative">
                           <Github className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                           <input
@@ -778,7 +768,6 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                             className="w-full h-11 pl-10 pr-4 bg-white/5 border border-white/10 hover:border-white/20 focus:border-white rounded-xl text-xs font-sans focus:outline-hidden text-white transition-colors"
                           />
                         </div>
-                        {errors.github && <span className="text-[10px] text-rose-400 font-mono font-bold block">{errors.github}</span>}
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -812,13 +801,13 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                       </div>
 
                       <div className="space-y-2 pt-2">
-                        <label className="text-xs font-bold text-neutral-300 block">Professional Engineering Resume (Required PDF) *</label>
+                        <label className="text-xs font-bold text-neutral-300 block">Resume (PDF required) *</label>
                         <div className="border border-dashed border-white/10 rounded-2xl p-6 text-center bg-white/5 hover:bg-white/10 transition-colors relative flex flex-col items-center justify-center">
                           <UploadCloud className="w-8 h-8 text-neutral-400 mb-2" />
                           <span className="text-xs font-bold text-white">
-                            {resumeFile ? `Attached Resume: ${resumeFile.name}` : studentProfile?.resumeUrl ? "Resume already uploaded" : "Click to select or drag Resume PDF here"}
+                            {resumeFile ? `Attached resume: ${resumeFile.name}` : studentProfile?.resumeUrl ? "Resume already uploaded" : "Select your resume PDF"}
                           </span>
-                          <span className="text-[10px] text-neutral-500 font-mono mt-1">Our server-side Gemini system will immediately index this document.</span>
+                          <span className="text-[10px] text-neutral-500 font-mono mt-1">Stored privately for verification and matching.</span>
                           <input 
                             type="file" 
                             accept=".pdf" 
@@ -833,11 +822,11 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                 )}
 
                 {/* STEP 8: BIOGRAPHY & PITCH */}
-                {step === 8 && (
+                {step === 4 && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="font-display font-bold text-lg text-white">Interactive Pitch Biography</h3>
-                      <p className="text-neutral-400 text-xs">Write a brief biographical profile summary or technical pitch for companies.</p>
+                      <h3 className="font-display font-bold text-lg text-white">Short introduction</h3>
+                      <p className="text-neutral-400 text-xs">Explain what you can contribute, the work you enjoy and what you want to learn.</p>
                     </div>
 
                     <div className="space-y-2">
@@ -846,7 +835,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                         value={formData.bio || ""}
                         onChange={(e) => updateField("bio", e.target.value)}
                         rows={6}
-                        placeholder="I am a dedicated software engineer specializing in interactive TypeScript applications and real-time backend integrations..."
+                        placeholder="Describe your strengths, relevant experience and the kind of work you want to do."
                         className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-white rounded-2xl p-4 text-xs font-sans focus:outline-hidden text-white leading-relaxed font-light transition-colors"
                       />
                       {errors.bio && <span className="text-[10px] text-rose-400 font-mono font-bold block">{errors.bio}</span>}
@@ -855,11 +844,11 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                 )}
 
                 {/* STEP 9: PRIVACY & FINALIZATION */}
-                {step === 9 && (
+                {step === 4 && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="font-display font-bold text-lg text-white">Security & Privacy Guardrails</h3>
-                      <p className="text-neutral-400 text-xs">Authorize security constraints, configure visibility toggles, and finalize onboarding.</p>
+                      <h3 className="font-display font-bold text-lg text-white">Privacy and consent</h3>
+                      <p className="text-neutral-400 text-xs">Choose what verified companies can see and confirm that your information is accurate.</p>
                     </div>
 
                     <div className="space-y-4">
@@ -902,7 +891,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                             className="rounded border-white/20 text-teal-500 focus:ring-teal-500 bg-neutral-800 cursor-pointer mt-0.5"
                           />
                           <span className="leading-tight">
-                            I verify that all academic degrees and linked portfolios represent my personal, authentic work. I authorize the <strong>Gemini AI sandbox compiler</strong> to review and score all future code submissions. *
+                            I confirm that the education, resume and work samples are accurate and belong to me. I agree that KONEXA may use automated analysis to support matching; final decisions are made by people. *
                           </span>
                         </label>
                         {errors.terms && <span className="text-[10px] text-rose-400 font-mono font-bold block">{errors.terms}</span>}
@@ -930,7 +919,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                   onClick={handleNext}
                   className="px-6 h-11 rounded-xl bg-white text-black hover:bg-neutral-200 font-sans text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
                 >
-                  <span>{step === totalSteps ? "Initiate AI Core Audit" : "Continue"}</span>
+                  <span>{step === totalSteps ? "Save and finish" : "Continue"}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -944,9 +933,9 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
             <div className="w-14 h-14 rounded-2xl bg-teal-950/50 border border-teal-500/30 flex items-center justify-center mx-auto shadow-lg animate-pulse">
               <Sparkles className="w-8 h-8 text-teal-400" />
             </div>
-            <h3 className="font-display font-black text-2xl sm:text-[1.75rem] leading-tight tracking-tight text-white">KONEXA AI Onboarding Analytics</h3>
+            <h3 className="font-display font-black text-2xl sm:text-[1.75rem] leading-tight tracking-tight text-white">Profile review</h3>
             <p className="text-neutral-400 text-sm leading-6 font-light max-w-lg mx-auto">
-              Our server-side Gemini LLM is actively indexing your credentials, portfolio, resume syntax, and work vectors.
+              Your verified information is being saved. Automated analysis may provide matching guidance when the service is available.
             </p>
           </div>
 
@@ -998,7 +987,7 @@ export default function StudentOnboarding({ onComplete, onCancel }: StudentOnboa
                   <div className="flex items-center justify-between border-b border-white/10 pb-4">
                     <span className="text-xs font-mono font-bold text-teal-400 uppercase tracking-wider flex items-center gap-1">
                       <ShieldCheck className="w-4 h-4" />
-                      <span>Gemini Technical Profile Audit</span>
+                      <span>Automated profile guidance</span>
                     </span>
                     <span className="text-[9px] font-mono text-neutral-500">Server-side Gemini analysis</span>
                   </div>

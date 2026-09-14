@@ -32,9 +32,9 @@ export function getStudentCompletionErrors(profile: Partial<StudentProfile>): Pr
   if (!required(profile.graduationYear)) errors.graduationYear = "졸업 예정 연도를 입력해 주세요.";
   if (!required(profile.englishLevel)) errors.englishLevel = "영어 수준을 선택해 주세요.";
   if (!profile.skills?.length) errors.skills = "보유 기술을 하나 이상 입력해 주세요.";
-  if (!validUrl(profile.github) && !validUrl(profile.portfolio)) {
-    errors.github = "GitHub 또는 포트폴리오 URL을 하나 이상 입력해 주세요.";
-  }
+  // A public portfolio is useful evidence, but making it mandatory excludes
+  // non-software roles and students whose work is confidential. The resume and
+  // academic proof remain the required evidence and are reviewed privately.
   if (!required(profile.preferredJob)) errors.preferredJob = "희망 직무를 입력해 주세요.";
   if (!required(profile.availability)) errors.availability = "업무 가능 시점을 입력해 주세요.";
   if (!Number.isFinite(profile.preferredWeeklyPayKrw) || Number(profile.preferredWeeklyPayKrw) <= 0) {

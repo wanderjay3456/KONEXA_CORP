@@ -1,0 +1,31 @@
+name: Production smoke check
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: true
+
+jobs:
+  verify-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify public site and health endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 20 \
+            --retry 2 --retry-all-errors https://konexa.co.kr/ > /dev/null
+          curl --fail --silent --show-error --location --max-time 20 \
+            --retry 2 --retry-all-errors https://konexa.co.kr/api/health/live \
+            | grep -q '"status":"live"'
+          curl --fail --silent --show-error --location --max-time 20 \
+            --retry 2 --retry-all-errors https://konexa.co.kr/api/health/ready \
+            | grep -q '"status":"ready"'
