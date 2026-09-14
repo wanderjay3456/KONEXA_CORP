@@ -29,3 +29,8 @@ jobs:
           curl --fail --silent --show-error --location --max-time 20 \
             --retry 2 --retry-all-errors https://konexa.co.kr/api/health/ready \
             | grep -q '"status":"ready"'
+          curl --fail --silent --show-error --location --max-time 20 \
+            --retry 2 --retry-all-errors https://konexa.co.kr/status > /dev/null
+          curl --fail --silent --show-error --location --max-time 20 \
+            --retry 2 --retry-all-errors https://konexa.co.kr/api/public/projects \
+            | grep -q '"data":'
