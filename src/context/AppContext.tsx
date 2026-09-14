@@ -4,6 +4,7 @@ import {
   onSnapshot, 
   addDoc, 
   setDoc, 
+  updateDoc,
   getDoc,
   doc,
   query,
@@ -102,8 +103,8 @@ interface AppContextType {
   logs: SystemLog[];
   notifications: NotificationRecord[];
   unreadNotificationCount: number;
-  markNotificationRead: (notificationId: string) => Promise<void>;
-  markAllNotificationsRead: () => Promise<void>;
+  markNotificationRead: (notificationId: string) => Promise<boolean>;
+  markAllNotificationsRead: () => Promise<boolean>;
   activeRole: UserRole;
   setActiveRole: (role: UserRole) => void;
   applyToProject: (projectId: string, codeSubmission: string) => Promise<boolean>;
@@ -772,13 +773,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const markNotificationRead = async (notificationId: string) => {
     const target = notifications.find((item) => item.id === notificationId);
-    if (!target || target.readAt) return;
-    await setDoc(doc(db, "notifications", notificationId), { readAt: Date.now() }, { merge: true });
+    if (!target || target.readAt) return true;
+    try {
+      const readAt = Date.now();
+      await updateDoc(doc(db, "notifications", notificationId), { readAt });
+      setNotifications((items) => items.map((item) => item.id === notificationId ? { ...item, readAt } : item));
+      return true;
+    } catch {
+      error(locale === 'ko' ? '알림 상태를 저장하지 못했습니다.' : locale === 'vi' ? 'Không thể lưu trạng thái thông báo.' : 'Could not save notification status.',
+        locale === 'ko' ? '연결을 확인한 뒤 다시 시도해 주세요.' : locale === 'vi' ? 'Vui lòng kiểm tra kết nối và thử lại.' : 'Check your connection and try again.');
+      return false;
+    }
   };
 
   const markAllNotificationsRead = async () => {
     const unread = notifications.filter((item) => !item.readAt);
-    await Promise.all(unread.map((item) => setDoc(doc(db, "notifications", item.id), { readAt: Date.now() }, { merge: true })));
+    const results = await Promise.all(unread.map((item) => markNotificationRead(item.id)));
+    return results.every(Boolean);
   };
 
   const reviewApplication = async (

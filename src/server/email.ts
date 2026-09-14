@@ -4,6 +4,7 @@ import nodemailer, { type Transporter } from "nodemailer";
 import { Resend } from "resend";
 import { adminDb, FieldValue } from "./supabaseAdmin";
 import type { AuthenticatedRequest } from "./security";
+import { existingSmtpDelivery, smtpSecurity } from './smtpPolicy';
 
 export const EMAIL_TEMPLATES = [
   'welcome', 'application_received', 'application_status', 'new_application',
@@ -43,9 +44,12 @@ function getSmtp() {
   smtpClient ||= nodemailer.createTransport({
     host,
     port,
-    secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : port === 465,
+    ...smtpSecurity(port, process.env.SMTP_SECURE),
     auth: { user, pass },
     tls: { minVersion: "TLSv1.2" },
+    connectionTimeout: 15_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 30_000,
     disableFileAccess: true,
     disableUrlAccess: true,
   });
@@ -206,7 +210,9 @@ export async function sendTransactionalEmail(input: SendEmailInput) {
   } catch (error: any) {
     if (error?.code === 6 || error?.code === "already-exists") {
       const existing = await deliveryRef.get();
-      if (["sending", "sent"].includes(String(existing.data()?.status))) return { id: deliveryId };
+      const deliveryState = existingSmtpDelivery(existing.data()?.status);
+      if (deliveryState === 'sent') return { id: deliveryId };
+      if (deliveryState === 'pending') throw new Error('SMTP delivery is unconfirmed; operator verification is required before retrying');
       await deliveryRef.set({ status: "sending", retryAt: FieldValue.serverTimestamp() }, { merge: true });
     } else {
       throw error;

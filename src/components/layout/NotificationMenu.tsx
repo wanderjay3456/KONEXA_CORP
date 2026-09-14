@@ -27,11 +27,23 @@ interface NotificationMenuProps {
 export default function NotificationMenu({ onNavigate }: NotificationMenuProps) {
   const { notifications, unreadNotificationCount, markNotificationRead, markAllNotificationsRead } = useApp();
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const selectNotification = async (notificationId: string, actionTab?: string) => {
-    await markNotificationRead(notificationId);
+    if (saving) return;
+    setSaving(true);
+    const saved = await markNotificationRead(notificationId);
+    setSaving(false);
+    if (!saved) return;
     if (actionTab) onNavigate?.(actionTab);
     setOpen(false);
+  };
+
+  const markAll = async () => {
+    if (saving) return;
+    setSaving(true);
+    await markAllNotificationsRead();
+    setSaving(false);
   };
 
   return (
@@ -46,7 +58,7 @@ export default function NotificationMenu({ onNavigate }: NotificationMenuProps) 
           <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
             <div><div className="text-sm font-black text-neutral-950">알림</div><div className="text-xs text-neutral-600">계정별로 저장되는 실시간 알림입니다.</div></div>
             <div className="flex items-center gap-1">
-              {unreadNotificationCount > 0 && <button type="button" onClick={() => void markAllNotificationsRead()} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-neutral-700 hover:bg-neutral-100"><CheckCheck className="h-3.5 w-3.5" /> 모두 읽음</button>}
+              {unreadNotificationCount > 0 && <button type="button" disabled={saving} onClick={() => void markAll()} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"><CheckCheck className="h-3.5 w-3.5" /> 모두 읽음</button>}
               <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-lg text-neutral-400 hover:bg-neutral-100" aria-label="알림 닫기"><X className="h-4 w-4" /></button>
             </div>
           </div>
@@ -58,7 +70,7 @@ export default function NotificationMenu({ onNavigate }: NotificationMenuProps) 
               const Icon = kindIcons[notification.kind] || Bell;
               const unread = !notification.readAt;
               return (
-                <button type="button" key={notification.id} onClick={() => void selectNotification(notification.id, notification.actionTab)} className={`flex w-full gap-3 border-b border-neutral-100 px-4 py-3 text-left transition hover:bg-neutral-50 ${unread ? "bg-blue-50/50" : "bg-white"}`}>
+                <button type="button" disabled={saving} key={notification.id} onClick={() => void selectNotification(notification.id, notification.actionTab)} className={`flex w-full gap-3 border-b border-neutral-100 px-4 py-3 text-left transition hover:bg-neutral-50 disabled:opacity-50 ${unread ? "bg-blue-50/50" : "bg-white"}`}>
                   <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl ${unread ? "bg-neutral-950 text-white" : "bg-neutral-100 text-neutral-500"}`}><Icon className="h-4 w-4" /></span>
                   <span className="min-w-0 flex-1"><span className="flex items-start justify-between gap-3"><span className="text-sm font-black text-neutral-900">{notification.title}</span><span className="shrink-0 text-[11px] font-medium text-neutral-600">{relativeTime(notification.createdAt)}</span></span><span className="mt-1 block text-xs leading-5 text-neutral-700">{notification.message}</span></span>
                   {unread && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-600" aria-label="읽지 않음" />}

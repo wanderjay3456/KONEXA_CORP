@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { generateWithModelFallback } from './providerResponse';
 
 let client: GoogleGenAI | null = null;
 
@@ -17,15 +18,11 @@ export function getAIClient() {
 }
 
 export async function generateGeminiContent(request: Record<string, any>, models = defaultModels) {
-  let lastError: unknown;
-  for (const model of models) {
-    try {
-      const response = await getAIClient().models.generateContent({ ...request, model } as any);
-      return { response, model };
-    } catch (error) {
-      lastError = error;
-      console.warn(`[KONEXA] Gemini model ${model} failed; trying the next configured model:`, error instanceof Error ? error.message : error);
-    }
-  }
-  throw lastError || new Error("No Gemini model is configured");
+  return generateWithModelFallback(models, async model => {
+    const response = await getAIClient().models.generateContent({
+      ...request, model,
+      config: { ...request.config, httpOptions: { ...request.config?.httpOptions, timeout: 25_000 } },
+    } as any);
+    return { ...response, text: response.text };
+  }, request.config?.responseMimeType === 'application/json');
 }
