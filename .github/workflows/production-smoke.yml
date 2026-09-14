@@ -34,3 +34,11 @@ jobs:
           curl --fail --silent --show-error --location --max-time 20 \
             --retry 2 --retry-all-errors https://konexa.co.kr/api/public/projects \
             | grep -q '"data":'
+          curl --fail --silent --show-error --location --max-time 20 \
+            --retry 2 --retry-all-errors https://konexa.co.kr/api/public/support \
+            | grep -q '"articleCount":'
+          curl --fail --silent --show-error --max-time 20 \
+            --header 'Content-Type: application/json' \
+            --data '{"question":"Is a visa guaranteed?","locale":"en","articleId":"visa"}' \
+            https://konexa.co.kr/api/public/support/chat \
+            | grep -q '"id":"visa"'

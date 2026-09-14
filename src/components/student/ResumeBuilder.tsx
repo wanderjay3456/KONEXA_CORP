@@ -60,8 +60,9 @@ export default function ResumeBuilder() {
         
         setPdfAnalysis(analysis);
         
-        if (analysis.extractedSkills) {
-          updateStudentProfile({ skills: Array.from(new Set([...(studentProfile?.skills || []), ...analysis.extractedSkills])) });
+        if (analysis.extractedSkills?.length) {
+          const saved = await updateStudentProfile({ skills: Array.from(new Set([...(studentProfile?.skills || []), ...analysis.extractedSkills])) });
+          if (!saved) { info('PDF 분석 완료', '분석은 저장했지만 프로필 기술 업데이트는 실패했습니다. 결과를 확인한 뒤 다시 저장해 주세요.'); return; }
         }
         
         success("PDF Analyzed Successfully", "Your profile has been augmented with data from your resume.");
@@ -71,6 +72,7 @@ export default function ResumeBuilder() {
         setIsUploadingPDF(false);
       }
     };
+    reader.onerror = () => { setIsUploadingPDF(false); info('파일 읽기 실패', 'PDF 파일을 다시 선택해 주세요.'); };
     reader.readAsDataURL(file);
   };
 
@@ -116,7 +118,7 @@ export default function ResumeBuilder() {
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest block mb-1 bg-teal-50 border border-teal-100 px-2.5 py-0.5 rounded-md w-fit">
-            AI RESUME SCANNER (ATS-READY)
+            AI RESUME EVIDENCE REVIEW
           </span>
           <h1 className="font-display font-black text-3xl text-neutral-900 tracking-tight">
             AI Resume Builder

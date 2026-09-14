@@ -21,6 +21,7 @@ test('every help article has unique IDs and complete native copy in all three la
 test('help retrieval is multilingual, boundary aware and rejects fabricated model IDs', () => {
   assert.equal(findSupportArticles('Google login does not work')[0]?.article.id, 'google-login');
   assert.equal(findSupportArticles('비자 E7이 보장되나요')[0]?.article.id, 'visa');
+  assert.ok(findSupportArticles('비자 E7이 보장되나요')[0].score >= 7);
   assert.equal(findSupportArticles('Quên mật khẩu')[0]?.article.id, 'password');
   assert.deepEqual(findSupportArticles('recipe for chocolate cake'), []);
   assert.deepEqual(safeSupportIds(['visa', 'visa', 'invented-refund', '<script>']), ['visa']);
@@ -101,4 +102,13 @@ test('AI routes are protected and private histories have owner filters plus data
   const source=readFileSync(new URL('../src/server/coachChat.ts',import.meta.url),'utf8');
   assert.match(source,/\.eq\('user_id', req.user!\.uid\)/);
   assert.doesNotMatch(source,/context\?\.studentProfile|details: error/);
+});
+test('notification recovery can claim only its authenticated recipient and no more than two jobs', () => {
+  const sql=readFileSync(new URL('../supabase/migrations/20260914182115_recipient_notification_dispatch.sql',import.meta.url),'utf8');
+  assert.match(sql,/recipient_id = p_recipient/);
+  assert.match(sql,/for update skip locked/);
+  assert.match(sql,/attempts < 5/);
+  assert.match(sql,/from public,anon,authenticated/);
+  const api=readFileSync(new URL('../src/server/backendV2.ts',import.meta.url),'utf8');
+  assert.match(api,/processNotificationOutboxBatch\(2, req.user!\.uid\)/);
 });

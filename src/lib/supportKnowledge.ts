@@ -179,7 +179,7 @@ export function findSupportArticles(question: string) {
       if (/^[a-z0-9 ]+$/.test(token)) return (` ${normalized} `).includes(` ${token} `);
       return normalized.includes(token);
     });
-    return { article: entry, score: exactTitle ? 100 : matched.reduce((sum, term) => sum + Math.min(term.length, 16), 0) };
+    return { article: entry, score: exactTitle ? 100 : matched.reduce((sum, term) => sum + (/^(konexa|코넥사)$/i.test(term) ? 2 : Math.max(8, Math.min(term.length, 16))), 0) };
   }).filter(item => item.score > 0).sort((a, b) => b.score - a.score).slice(0, 3);
 }
 export function safeSupportIds(value: unknown) {

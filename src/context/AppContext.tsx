@@ -344,6 +344,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     const notificationsQuery = query(collection(db, "notifications"), where("recipientId", "==", currentUser.uid));
+    let lastEmailDispatch = 0;
     const unsubNotifications = onSnapshot(notificationsQuery, (snapshot) => {
       const items: NotificationRecord[] = [];
       snapshot.forEach((notificationDoc) => {
@@ -351,6 +352,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       items.sort((a, b) => b.createdAt - a.createdAt);
       setNotifications(items.slice(0, 100));
+      if (Date.now() - lastEmailDispatch > 60_000 && items.length) {
+        lastEmailDispatch = Date.now();
+        // Best-effort wake-up of this account's durable outbox; in-app delivery is independent.
+        void fetch('/api/v2/notifications/dispatch', { method: 'POST' }).catch(() => {});
+      }
     }, (err) => {
       handleSupabaseError(err, OperationType.GET, "notifications");
     });

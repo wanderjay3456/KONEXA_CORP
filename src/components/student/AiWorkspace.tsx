@@ -123,7 +123,7 @@ export default function AiWorkspace() {
                 }`}>
                   {msg.role === "user" ? <User className="w-3.5 h-3.5" /> : "AI"}
                 </div>
-                <div className={`p-4 rounded-2xl text-xs font-sans leading-relaxed whitespace-pre-wrap ${
+                <div data-no-translate={msg.content !== activeCoach.greet || undefined} className={`p-4 rounded-2xl text-sm font-sans leading-7 whitespace-pre-wrap break-words ${
                   msg.role === "user" 
                     ? "bg-neutral-900 text-white rounded-tr-none" 
                     : "bg-white border border-neutral-200/40 rounded-tl-none text-neutral-700 font-light"

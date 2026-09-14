@@ -128,12 +128,12 @@ interface NotificationOutboxRow {
   idempotency_key: string;
 }
 
-export async function processNotificationOutboxBatch(limit = 20) {
+export async function processNotificationOutboxBatch(limit = 20, recipientId?: string) {
   const workerId = `api-${process.pid}-${crypto.randomUUID()}`;
   const claimed = await rpc<NotificationOutboxRow[]>(
-    "konexa_claim_notification_outbox_v2",
+    recipientId ? 'konexa_claim_recipient_notifications' : "konexa_claim_notification_outbox_v2",
     // Claim only what this serverless invocation can deliver before its deadline.
-    { p_worker_id: workerId, p_limit: Math.max(1, Math.min(limit, 2)) },
+    { p_worker_id: workerId, p_limit: Math.max(1, Math.min(limit, 2)), ...(recipientId ? { p_recipient: recipientId } : {}) },
   );
   const summary = { claimed: claimed?.length || 0, sent: 0, failed: 0, suppressed: 0 };
 
@@ -364,6 +364,13 @@ export function registerBackendV2PublicRoutes(app: Express) {
 }
 
 export function registerBackendV2Routes(app: Express) {
+  const notificationDispatchLimit = rateLimit({ windowMs: 60_000, limit: 2, standardHeaders: 'draft-8', legacyHeaders: false,
+    keyGenerator: (req: AuthenticatedRequest) => req.user!.uid });
+  app.post('/api/v2/notifications/dispatch', notificationDispatchLimit, (req: AuthenticatedRequest, res) => {
+    // Server chooses the authenticated recipient. Client input cannot target others.
+    deferNotificationWork(() => processNotificationOutboxBatch(2, req.user!.uid));
+    res.status(202).json({ queued: true });
+  });
   app.post("/api/v2/projects", async (req: AuthenticatedRequest, res: Response) => {
     try {
       if (!req.user?.uid) throw new ApiInputError("Authentication is required.", "AUTH_REQUIRED", 401);
