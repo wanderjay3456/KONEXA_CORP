@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Bell, CheckCheck, CircleAlert, FileCheck2, ShieldCheck, X } from "lucide-react";
 import { useApp } from "../../context/AppContext";
+import { useLocale } from '../../i18n/LocaleContext';
 import type { NotificationKind } from "../../types";
 
 const kindIcons: Partial<Record<NotificationKind, typeof Bell>> = {
@@ -26,6 +27,8 @@ interface NotificationMenuProps {
 
 export default function NotificationMenu({ onNavigate }: NotificationMenuProps) {
   const { notifications, unreadNotificationCount, markNotificationRead, markAllNotificationsRead } = useApp();
+  const { locale } = useLocale();
+  const unreadLabel = { ko: `읽지 않은 알림 ${unreadNotificationCount}개`, en: `${unreadNotificationCount} unread notifications`, vi: `${unreadNotificationCount} thông báo chưa đọc` }[locale];
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -48,7 +51,7 @@ export default function NotificationMenu({ onNavigate }: NotificationMenuProps) 
 
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen((value) => !value)} className="relative grid h-10 w-10 place-items-center rounded-xl border border-neutral-200 bg-white text-neutral-600 transition hover:bg-neutral-50" aria-label={`알림 ${unreadNotificationCount}개 읽지 않음`} aria-expanded={open}>
+      <button data-no-translate type="button" onClick={() => setOpen((value) => !value)} className="relative grid h-10 w-10 place-items-center rounded-xl border border-neutral-200 bg-white text-neutral-600 transition hover:bg-neutral-50" aria-label={unreadLabel} aria-expanded={open}>
         <Bell className="h-4.5 w-4.5" />
         {unreadNotificationCount > 0 && <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-rose-500 px-1.5 py-0.5 text-[9px] font-black text-white">{unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}</span>}
       </button>

@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { useToast } from '../components/ui/Toast';
 
-type Message = { role: 'user' | 'assistant'; content: string };
+type Message = { id: string; role: 'user' | 'assistant'; content: string };
 export function useAiChat(contextKey: string, greeting = '') {
   const { currentUser } = useApp();
   const { locale } = useLocale();
@@ -22,7 +22,7 @@ export function useAiChat(contextKey: string, greeting = '') {
     controller.current?.abort();
     sending.current = false;
     setBusy(false); setInput(''); setModel(null);
-    setMessages(greeting ? [{ role: 'assistant', content: greeting }] : []);
+    setMessages(greeting ? [{ id: `greeting-${contextKey}`, role: 'assistant', content: greeting }] : []);
     if (!currentUser?.uid || !contextKey) return;
     const request = new AbortController();
     setRestoring(true);
@@ -33,7 +33,7 @@ export function useAiChat(contextKey: string, greeting = '') {
         if (epoch.current !== run) return;
         const turns = Array.isArray(body.turns) ? body.turns : [];
         if (turns.length) {
-          setMessages(turns.flatMap((turn: any) => [{ role: 'user', content: String(turn.question) }, { role: 'assistant', content: String(turn.reply) }]));
+          setMessages(turns.flatMap((turn: any) => [{ id: `${turn.id}-user`, role: 'user', content: String(turn.question) }, { id: `${turn.id}-assistant`, role: 'assistant', content: String(turn.reply) }]));
           setModel(turns.at(-1)?.model || null);
         }
       }).catch(() => {
@@ -46,7 +46,8 @@ export function useAiChat(contextKey: string, greeting = '') {
     const question = input.trim();
     if (!question || sending.current || restoring || !contextKey) return;
     const run = epoch.current;
-    const userMessage: Message = { role: 'user', content: question };
+    const requestId = crypto.randomUUID();
+    const userMessage: Message = { id: `${requestId}-user`, role: 'user', content: question };
     // Keep a bounded recent context, with complete user/assistant pairs.
     let history = messages.slice(-12);
     while (history.reduce((sum, item) => sum + item.content.length, question.length) > 22000) history = history.slice(2);
@@ -57,10 +58,10 @@ export function useAiChat(contextKey: string, greeting = '') {
     const timeout = setTimeout(() => request.abort(), 55_000);
     try {
       const response = await fetch('/api/gemini/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: request.signal,
-        body: JSON.stringify({ messages: [...history, userMessage], contextKey, locale, requestId: crypto.randomUUID() }) });
+        body: JSON.stringify({ messages: [...history, userMessage], contextKey, locale, requestId }) });
       const body = await response.json().catch(() => ({}));
       if (!response.ok || typeof body.reply !== 'string') throw new Error('COACH_UNAVAILABLE');
-      if (epoch.current === run) { setMessages(items => [...items, { role: 'assistant', content: body.reply }]); setModel(body.model || null); }
+      if (epoch.current === run) { setMessages(items => [...items, { id: `${body.generationId || requestId}-assistant`, role: 'assistant', content: body.reply }]); setModel(body.model || null); }
     } catch {
       if (epoch.current === run) {
         setMessages(items => items.slice(0, -1)); setInput(question);
