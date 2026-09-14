@@ -4,6 +4,14 @@
     {
       "source": "/api/(.*)",
       "destination": "/api"
+    },
+    {
+      "source": "/status",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/status/",
+      "destination": "/index.html"
     }
   ],
   "functions": {

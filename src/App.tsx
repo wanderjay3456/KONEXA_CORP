@@ -116,7 +116,7 @@ function AppContent() {
 }
 
 export default function App() {
-  if (window.location.pathname === "/status") {
+  if (window.location.pathname.replace(/\/$/, "") === "/status") {
     return <StatusPage />;
   }
 
