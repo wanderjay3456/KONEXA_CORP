@@ -4,7 +4,7 @@ import nodemailer, { type Transporter } from "nodemailer";
 import { Resend } from "resend";
 import { adminDb, FieldValue } from "./supabaseAdmin";
 import type { AuthenticatedRequest } from "./security";
-import { existingSmtpDelivery, smtpSecurity } from './smtpPolicy';
+import { existingSmtpDelivery, smtpAuthentication, smtpSecurity } from './smtpPolicy';
 
 export const EMAIL_TEMPLATES = [
   'welcome', 'application_received', 'application_status', 'new_application',
@@ -33,7 +33,7 @@ function getResend() {
 }
 
 function getSmtp() {
-  const host = process.env.SMTP_HOST;
+  const host = process.env.SMTP_HOST?.trim().toLowerCase();
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASSWORD;
   const port = Number(process.env.SMTP_PORT || 465);
@@ -45,7 +45,7 @@ function getSmtp() {
     host,
     port,
     ...smtpSecurity(port, process.env.SMTP_SECURE),
-    auth: { user, pass },
+    auth: smtpAuthentication(host, user, pass),
     tls: { minVersion: "TLSv1.2" },
     connectionTimeout: 15_000,
     greetingTimeout: 10_000,
@@ -227,6 +227,8 @@ export async function sendTransactionalEmail(input: SendEmailInput) {
       subject,
       html,
       messageId: `<${deliveryId}@konexa.co.kr>`,
+      ...(process.env.SMTP_HOST?.trim().toLowerCase() === 'smtp.resend.com'
+        ? { headers: { 'Resend-Idempotency-Key': deliveryId } } : {}),
       disableFileAccess: true,
       disableUrlAccess: true,
     });
