@@ -65,3 +65,17 @@ test('AI profile results are merged by a server-only database operation', () => 
   assert.match(migration,/from public, anon, authenticated/);
   assert.match(migration,/set data = data \|\| patch/);
 });
+
+test('server-created notifications use update, not insert/upsert, to mark read', () => {
+  const context=readFileSync(new URL('../src/context/AppContext.tsx',import.meta.url),'utf8');
+  const mark=context.slice(context.indexOf('const markNotificationRead ='),context.indexOf('const reviewApplication ='));
+  assert.match(mark,/await updateDoc/);
+  assert.doesNotMatch(mark,/setDoc\(/);
+  assert.match(mark,/setNotifications/);
+  assert.match(mark,/return false/);
+  const store=readFileSync(new URL('../src/lib/supabaseStore.ts',import.meta.url),'utf8');
+  const update=store.slice(store.indexOf('export async function updateDoc'),store.indexOf('export function onSnapshot'));
+  assert.match(update,/\.update\(/);
+  assert.match(update,/\.single\(\)/);
+  assert.doesNotMatch(update,/upsert/);
+});

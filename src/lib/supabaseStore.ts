@@ -172,6 +172,21 @@ export async function deleteDoc(reference: StoreReference) {
   if (error) throw error;
 }
 
+// Existing server-created records can permit UPDATE while deliberately denying
+// INSERT. Do not use upsert for these records (for example, notifications).
+export async function updateDoc(reference: StoreReference, value: Record<string, any>) {
+  if (!reference.id) throw new Error("A record id is required.");
+  const existing = await getDoc(reference);
+  if (!existing.exists()) throw new Error("The record is unavailable.");
+  const { error } = await supabase.from("app_records")
+    .update({ data: { ...existing.data(), ...value } })
+    .eq("collection_name", reference.collectionName)
+    .eq("record_id", reference.id)
+    .select("record_id")
+    .single();
+  if (error) throw error;
+}
+
 export function onSnapshot(
   reference: StoreReference,
   onNext: (snapshot: StoreSnapshot) => void,
