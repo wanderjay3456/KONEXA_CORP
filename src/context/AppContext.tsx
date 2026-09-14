@@ -36,7 +36,7 @@ import {
   NotificationRecord,
 } from "../types";
 import { useToast } from "../components/ui/Toast";
-import { firstValidationMessage, getCompanyCompletionErrors, getStudentCompletionErrors } from "../lib/profileCompletion";
+import { firstValidationMessage, getCompanyCompletionErrors, getStudentCompletionErrors, profileSaveErrorMessage } from "../lib/profileCompletion";
 import { isEarlyBirdOpen } from "../config/earlyBird";
 import { useLocale } from "../i18n/LocaleContext";
 import { authCopy, authErrorMessage } from "../i18n/authCopy";
@@ -533,7 +533,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       success("Profile Saved", "Your student portfolio was updated successfully.");
       return true;
     } catch (err: any) {
-      error("Profile Save Failed", err.message);
+      error(locale === "ko" ? "프로필 저장을 완료하지 못했습니다" : locale === "vi" ? "Không thể lưu hồ sơ" : "Profile not saved", profileSaveErrorMessage(err, locale));
       return false;
     }
   };
@@ -567,7 +567,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       success("Company Saved", "Your company details have been updated.");
       return true;
     } catch (err: any) {
-      error("Company Save Failed", err.message);
+      error(locale === "ko" ? "기업 정보 저장을 완료하지 못했습니다" : locale === "vi" ? "Không thể lưu hồ sơ doanh nghiệp" : "Company profile not saved", profileSaveErrorMessage(err, locale));
       return false;
     }
   };
