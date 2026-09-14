@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getStudentCompletionErrors } from "../src/lib/profileCompletion";
+import { getStudentCompletionErrors, profileSaveErrorMessage } from "../src/lib/profileCompletion";
 
 const completeNonTechnicalProfile = {
   name: "QA Talent",
@@ -33,4 +33,13 @@ test("private academic proof and resume remain mandatory", () => {
   });
   assert.ok(errors.identityDocumentPath);
   assert.ok(errors.resumeUrl);
+});
+
+test("profile storage failures explain the recovery action without exposing database details", () => {
+  for (const locale of ['ko', 'en', 'vi'] as const) {
+    const missing = profileSaveErrorMessage(new Error('KONEXA_PROFILE_FILE_MISSING:resumeUrl'), locale);
+    assert.ok(missing.length > 20);
+    assert.ok(!missing.includes('KONEXA_PROFILE_FILE_MISSING'));
+    assert.ok(!profileSaveErrorMessage(new Error('secret database internals'), locale).includes('secret'));
+  }
 });

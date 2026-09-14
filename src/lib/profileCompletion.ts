@@ -70,3 +70,23 @@ export function getCompanyCompletionErrors(profile: Partial<CompanyProfile>): Pr
 export function firstValidationMessage(errors: ProfileValidationErrors) {
   return Object.values(errors)[0] || "필수정보를 확인해 주세요.";
 }
+
+export function profileSaveErrorMessage(error: unknown, locale: "ko" | "en" | "vi") {
+  const message = String((error as { message?: string } | null)?.message || "");
+  const index = locale === "ko" ? 0 : locale === "vi" ? 2 : 1;
+  if (message.includes("KONEXA_PROFILE_FILE_MISSING")) return [
+    "필수 서류 파일을 저장소에서 확인할 수 없습니다. 서류 단계에서 파일을 다시 업로드해 주세요.",
+    "A required document is missing from private storage. Please upload the file again in the documents step.",
+    "Không tìm thấy giấy tờ bắt buộc trong kho lưu trữ riêng tư. Vui lòng tải lại tệp ở bước giấy tờ.",
+  ][index];
+  if (message.includes("KONEXA_PROFILE_INCOMPLETE")) return [
+    "필수 프로필 정보가 누락되었습니다. 표시된 항목을 모두 작성해 주세요.",
+    "Required profile details are missing. Please complete all marked fields.",
+    "Hồ sơ còn thiếu thông tin bắt buộc. Vui lòng hoàn tất các mục được đánh dấu.",
+  ][index];
+  return [
+    "프로필을 저장하지 못했습니다. 입력 내용과 연결 상태를 확인한 뒤 다시 시도해 주세요. 문제가 계속되면 운영팀에 문의해 주세요.",
+    "We could not save your profile. Check your details and connection, then retry. Contact support if the problem continues.",
+    "Không thể lưu hồ sơ. Hãy kiểm tra thông tin và kết nối rồi thử lại. Liên hệ hỗ trợ nếu lỗi tiếp diễn.",
+  ][index];
+}

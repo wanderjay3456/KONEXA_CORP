@@ -19,6 +19,7 @@ This release repairs email/Google entry, session restoration and student/company
 
 - `20260914170718_align_profile_completion.sql` — applied to `isrzklwhxdirmgdxgcvs` (`코넥사_final`).
 - `20260914171055_private_profile_visibility.sql` — applied to the same project.
+- `20260914173521_require_uploaded_profile_evidence.sql` — applied; completed profiles require an existing object in the proper private bucket and their own account namespace, not merely a path string.
 
 No real customer source records or authentication accounts were deleted or force-completed. QA writes used two pre-existing, explicitly test-labelled KONEXA-owned inbox aliases.
 
@@ -38,11 +39,17 @@ No real customer source records or authentication accounts were deleted or force
 | Database validation | Transactional authenticated test accepted no public portfolio, rejected missing resume, and denied cross-user profile update; transaction rolled back |
 | Mobile/locales | 390×844 pending-registration layout inspected; English and Vietnamese native copy verified |
 
-The Google provider redirect was checked separately from QA email login. A third-party account chooser/password/CAPTCHA and a real person's agreement acceptance must not be simulated as proof of a completed real-user OAuth signup.
+After production deployment, Google login was also exercised in the user's existing browser with the previously affected account. Google returned to `konexa.co.kr`, the valid pending account reached the role/consent completion screen, and a reload retained the session without the old expiration error. No legal agreements or profile changes were submitted for that real account. The test-created Google session was signed out afterward.
+
+Production QA student and company sessions both loaded their appropriate dashboards and received operations=200/admin-directory=403. The public opportunity endpoint returned 200 and no fabricated jobs. A post-deployment `/status` 404 was fixed in PR #46 with an explicit Vercel rewrite and a regression/scheduled-smoke check.
+
+Additional authenticated database tests proved: missing physical uploads are rejected; real owned uploads for both roles are accepted; foreign-account paths are rejected. All database test transactions were rolled back. The three QA PDFs and ten new QA app records plus the two new QA AI assessments were cleaned up. All twelve original QA app records were restored, both pre-existing QA accounts are Suspended, and no QA talent cards or temporary QA files remain.
 
 ## Regression and release gates
 
-TypeScript checking passed. All 45 unit tests passed, including new atomic profile/review persistence tests. The Vite + Express production build passed (Vite 11.14 seconds; a non-blocking main-chunk size warning remains). The production dependency audit reported zero vulnerabilities. The Windows sandbox initially denied esbuild's parent-directory lookup; rerunning the same build with the scoped approval passed. GitHub CI is also required before merge.
+TypeScript checking, 45 initial unit tests and the Vite + Express production build passed (Vite 11.14 seconds; a non-blocking main-chunk size warning remains). Subsequent regression tests cover Vercel status routing and safe document-error messages. The production dependency audit reported zero vulnerabilities. The Windows sandbox initially denied esbuild's parent-directory lookup; rerunning the same build with the scoped approval passed. PR #45 and PR #46 both passed GitHub CI before merging. Main deployment `cd189b3` reached READY, and the public status page rendered successfully.
+
+The production team was freshly confirmed to be on Vercel **Hobby** during release verification. This is an actual remaining commercial-hosting gate, not an inferred or completed upgrade. Error/fatal runtime-log filtering on the initial auth release found no matching entries; this is a point-in-time observation, not an uptime guarantee. Existing six-hour GitHub production-smoke monitoring remains in place and now covers `/status` and `/api/public/projects` as well as liveness/readiness.
 
 ## Remaining commercial-operation prerequisites
 

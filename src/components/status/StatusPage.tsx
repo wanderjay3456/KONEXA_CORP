@@ -87,10 +87,10 @@ export function StatusPage() {
             <h1 className="max-w-2xl text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
               {loadState.kind === "loading" && "서비스 상태를 확인하고 있습니다."}
               {loadState.kind === "error" && "상태 정보를 불러오지 못했습니다."}
-              {isHealthy && "핵심 서비스가 정상 운영 중입니다."}
+              {isHealthy && "서버와 데이터 연결을 확인했습니다."}
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-neutral-600 sm:text-base">
-              회원가입, AI 분석, 이메일 알림 등 현재 공개된 KONEXA 기능의 연결 상태입니다.
+              데이터베이스 응답과 서비스 연결 설정을 확인합니다. 설정 확인은 개별 AI 요청의 성공이나 이메일 수신까지 보장하는 검사가 아닙니다.
             </p>
           </div>
 
@@ -114,9 +114,9 @@ export function StatusPage() {
                         <h2 className="text-sm font-bold sm:text-base">{service.label}</h2>
                         <p className="mt-1 text-xs leading-5 text-neutral-500 sm:text-sm">{service.description}</p>
                       </div>
-                      <span className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${isPending ? "bg-neutral-100 text-neutral-500" : "bg-emerald-50 text-emerald-700"}`}>
+                      <span className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${isPending ? "bg-neutral-100 text-neutral-500" : enabled ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
                         {isPending ? <Clock3 aria-hidden="true" className="size-3.5" /> : <Check aria-hidden="true" className="size-3.5" />}
-                        {loadState.kind === "loading" ? "확인 중" : isPending ? service.pendingLabel : enabled ? "정상" : "점검 필요"}
+                        {loadState.kind === "loading" ? "확인 중" : isPending ? service.pendingLabel : enabled ? "연결 설정 확인됨" : "점검 필요"}
                       </span>
                     </div>
                   );
