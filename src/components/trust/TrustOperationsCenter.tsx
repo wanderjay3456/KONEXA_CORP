@@ -45,6 +45,7 @@ export default function TrustOperationsCenter() {
   const { success, error, info } = useToast();
   const [snapshot, setSnapshot] = useState<TrustSnapshot>(emptySnapshot);
   const [loading, setLoading] = useState(false);
+  const [loadFailure, setLoadFailure] = useState(false);
   const [activeSection, setActiveSection] = useState<"workflow" | "contracts" | "reviews" | "policy" | "privacy">("workflow");
 
   const [talentId, setTalentId] = useState("");
@@ -69,7 +70,9 @@ export default function TrustOperationsCenter() {
     setLoading(true);
     try {
       setSnapshot(await loadTrustSnapshot());
+      setLoadFailure(false);
     } catch (cause) {
+      setLoadFailure(true);
       error("운영기록 조회 실패", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
     } finally {
       setLoading(false);
@@ -269,6 +272,14 @@ export default function TrustOperationsCenter() {
   };
 
   const signedIn = Boolean(currentUser && currentUser.email !== "guest@konexa.dev");
+
+  if (loadFailure) return (
+    <section role="alert" className="m-4 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-neutral-900">
+      <h2 className="text-lg font-bold">운영 기록을 불러오지 못했습니다.</h2>
+      <p className="mt-2 text-sm leading-6">일시적인 연결 문제입니다. 기존 기록은 삭제되지 않았습니다. 잠시 후 다시 조회해 주세요.</p>
+      <button type="button" disabled={loading} onClick={() => void refresh()} className="mt-4 rounded-xl bg-neutral-950 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{loading ? '확인 중…' : '다시 조회하기'}</button>
+    </section>
+  );
 
   return (
     <div className="flex-1 overflow-y-auto bg-neutral-50 p-4 md:p-7">

@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { getSupabaseAuthClient } from "./supabaseAdmin";
 import { accountAccessDecision } from "./accountAccess";
+import { isTransientDependencyError } from './dependencyResilience';
 
 export type AppRole = "student" | "company" | "admin" | "ai";
 
@@ -68,6 +69,12 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     };
     next();
   } catch (error) {
+    if (isTransientDependencyError(error)) {
+      console.warn('Authentication dependency is temporarily unavailable');
+      res.setHeader('Retry-After', '3');
+      res.status(503).json({ error: { code: 'SERVICE_UNAVAILABLE', message: 'The account service is temporarily unavailable. Please try again shortly; you do not need to sign out.' } });
+      return;
+    }
     console.warn("Rejected API authentication:", error instanceof Error ? error.message : error);
     sendAuthError(res, 401, "The Supabase access token is invalid or expired.");
   }

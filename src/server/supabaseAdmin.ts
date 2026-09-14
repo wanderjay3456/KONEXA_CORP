@@ -1,15 +1,18 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { resilientReadFetch } from './dependencyResilience';
 
 const url = process.env.SUPABASE_URL || "https://isrzklwhxdirmgdxgcvs.supabase.co";
 const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_hOCOp7_lbomazxphp9dQHQ_cVHnJeAP";
 
 let adminClient: SupabaseClient | null = null;
+const databaseFetch = resilientReadFetch();
 
 export function getSupabaseAdmin() {
   const secret = process.env.SUPABASE_SECRET_KEY;
   if (!secret) throw new Error("SUPABASE_SECRET_KEY is not configured");
   adminClient ||= createClient(url, secret, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: databaseFetch },
   });
   return adminClient;
 }
@@ -17,7 +20,7 @@ export function getSupabaseAdmin() {
 export function getSupabaseAuthClient(accessToken?: string) {
   return createClient(url, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined,
+    global: { fetch: databaseFetch, ...(accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : {}) },
   });
 }
 
