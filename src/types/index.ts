@@ -35,6 +35,8 @@ export interface UserProfile {
   role: UserRole;
   createdAt: number;
   accountStatus?: "Active" | "Suspended";
+  authProvider?: "email" | "google";
+  onboardingStatus?: "pending_google" | "complete";
 }
 
 export interface AiProfileAnalysis {

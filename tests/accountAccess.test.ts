@@ -14,3 +14,11 @@ test('unfinished Google onboarding has no business API access', () => {
   assert.equal(accountAccessDecision({ role: 'student', onboardingStatus: 'pending_google' }), 'incomplete');
   assert.equal(accountAccessDecision({ role: 'student', onboardingStatus: 'complete' }), 'allowed');
 });
+
+test('student and company business APIs require a completed profile', () => {
+  assert.equal(accountAccessDecision({ role: 'student', onboardingStatus: 'complete', profileCompleted: false }), 'incomplete');
+  assert.equal(accountAccessDecision({ role: 'company', onboardingStatus: 'complete', profileCompleted: false }), 'incomplete');
+  assert.equal(accountAccessDecision({ role: 'student', onboardingStatus: 'complete', profileCompleted: true }), 'allowed');
+  assert.equal(accountAccessDecision({ role: 'company', onboardingStatus: 'complete', profileCompleted: true }), 'allowed');
+  assert.equal(accountAccessDecision({ role: 'admin', profileCompleted: false }), 'allowed');
+});

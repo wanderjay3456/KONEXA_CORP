@@ -292,8 +292,10 @@ export function registerBackendV2PublicRoutes(app: Express) {
         if (
           consents.terms !== true
           || consents.nonCircumvention !== true
+          || consents.messageAnalysis !== true
           || consents.crossBorderPrivacy !== true
           || typeof consents.documentVersion !== "string"
+          || !consents.documentVersion.trim()
         ) {
           throw new ApiInputError(
             "All required signup agreements must be accepted.",

@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { getSupabaseAuthClient } from "./supabaseAdmin";
 import { accountAccessDecision } from "./accountAccess";
 import { isTransientDependencyError } from './dependencyResilience';
+import { getCompanyCompletionErrors, getStudentCompletionErrors } from '../lib/profileCompletion';
 
 export type AppRole = "student" | "company" | "admin" | "ai";
 
@@ -49,7 +50,21 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     if (profileError) throw profileError;
 
     const profile = profileRecord.data as Record<string, any>;
-    const access = accountAccessDecision(profile);
+    let profileCompleted: boolean | undefined;
+    if (profile.role === 'student' || profile.role === 'company') {
+      const profileCollection = profile.role === 'student' ? 'student_profiles' : 'company_profiles';
+      const { data: completionRecord, error: completionError } = await client
+        .from('app_records')
+        .select('data')
+        .eq('collection_name', profileCollection)
+        .eq('record_id', user.id)
+        .maybeSingle();
+      if (completionError) throw completionError;
+      const details = completionRecord?.data || {};
+      const missing = profile.role === 'student' ? getStudentCompletionErrors(details) : getCompanyCompletionErrors(details);
+      profileCompleted = details.onboardingCompleted === true && Object.keys(missing).length === 0;
+    }
+    const access = accountAccessDecision({ ...profile, profileCompleted });
     // Google registration completion is the only operation a pending account
     // may perform; it validates the server-owned registration intent itself.
     const completingRegistration = access === 'incomplete'
