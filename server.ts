@@ -589,7 +589,7 @@ Never invent capabilities, guarantees, credentials, discounts, deadlines, or leg
         return res.status(403).json({ error: "Document analysis role mismatch" });
       }
       if (typeof pdfBase64 !== "string" || pdfBase64.length < 100 || pdfBase64.length > 14_000_000) {
-        return res.status(413).json({ error: "Provide a base64 PDF no larger than 10 MB" });
+        return res.status(413).json({ error: "Provide a valid PDF smaller than 7.5 MB" });
       }
       if (!/^[A-Za-z0-9+/=\r\n]+$/.test(pdfBase64)) {
         return res.status(400).json({ error: "The PDF payload is not valid base64" });
