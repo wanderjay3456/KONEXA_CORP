@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabase";
+import { createSnapshotRefresh } from './snapshotRefresh';
 
 type Direction = "asc" | "desc";
 type Constraint =
@@ -82,6 +83,12 @@ async function load(reference: StoreReference) {
     .eq("collection_name", reference.collectionName);
 
   if (reference.id) request = request.eq("record_id", reference.id);
+  for (const constraint of reference.constraints || []) {
+    if (constraint.kind === 'where' && /^[A-Za-z][A-Za-z0-9_]*$/.test(constraint.field)
+      && ['string', 'number', 'boolean'].includes(typeof constraint.value)) {
+      request = request.eq(`data->>${constraint.field}`, String(constraint.value));
+    }
+  }
   const { data, error } = await request;
   if (error) throw error;
 
@@ -192,15 +199,9 @@ export function onSnapshot(
   onNext: (snapshot: StoreSnapshot) => void,
   onError?: (error: unknown) => void,
 ) {
-  let active = true;
-  const refresh = async () => {
-    try {
-      const snapshot = await getDocs(reference);
-      if (active) onNext(snapshot);
-    } catch (error) {
-      if (active) onError?.(error);
-    }
-  };
+  const refresher = createSnapshotRefresh(() => getDocs(reference), onNext, onError);
+  const refresh = refresher.refresh;
+  const refreshVisible = () => { if (typeof document === 'undefined' || document.visibilityState === 'visible') void refresh(); };
   void refresh();
   const channel = supabase
     .channel(`records:${reference.collectionName}:${crypto.randomUUID()}`)
@@ -210,9 +211,19 @@ export function onSnapshot(
       table: "app_records",
       filter: `collection_name=eq.${reference.collectionName}`,
     }, () => void refresh())
-    .subscribe();
+    .subscribe((status) => { if (status === 'SUBSCRIBED') void refresh(); });
+  // Realtime can miss events while offline/backgrounded. Reconcile on reconnect
+  // and periodically while visible; do not announce an empty successful snapshot on error.
+  const timer = setInterval(refreshVisible, 60_000);
+  window.addEventListener('online', refreshVisible);
+  window.addEventListener('focus', refreshVisible);
+  document.addEventListener('visibilitychange', refreshVisible);
   return () => {
-    active = false;
+    refresher.stop();
+    clearInterval(timer);
+    window.removeEventListener('online', refreshVisible);
+    window.removeEventListener('focus', refreshVisible);
+    document.removeEventListener('visibilitychange', refreshVisible);
     void supabase.removeChannel(channel);
   };
 }

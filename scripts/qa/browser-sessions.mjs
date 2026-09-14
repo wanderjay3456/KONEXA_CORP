@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createServer } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { createInterface } from 'node:readline';
+import { readFile } from 'node:fs/promises';
 if (!process.argv.includes('--approved-owned-qa')) throw new Error('Explicit owned QA approval is required');
 const target = process.env.KONEXA_QA_TARGET || 'http://localhost:3000/';
 const targetUrl = new URL(target);
@@ -43,12 +44,26 @@ for await (const line of createInterface({ input: process.stdin, crlfDelay: Infi
       const { data, error } = await account.client.auth.verifyOtp({ type: 'magiclink', token_hash: command.tokenHash });
       if (error) throw error;
       emit({ verified: Boolean(data.session), role: command.role });
+    } else if (command.action === 'fixture') {
+      const { data: { user } } = await account.client.auth.getUser();
+      if (user?.email !== account.email) throw new Error('Owned QA identity mismatch');
+      const buckets = command.role === 'student' ? ['identity-documents', 'resumes'] : ['business-documents'];
+      const paths = [];
+      for (const bucket of buckets) {
+        const path = `${user.id}/qa-help-20260914-${bucket}.pdf`;
+        const result = command.remove
+          ? await account.client.storage.from(bucket).remove([path])
+          : await account.client.storage.from(bucket).upload(path, await readFile(new URL('../../tests/fixtures/qa-document.pdf', import.meta.url)), { contentType: 'application/pdf', upsert: false });
+        if (result.error) throw result.error;
+        paths.push({ bucket, path });
+      }
+      emit({ fixture: true, removed: Boolean(command.remove), paths });
     } else if (command.action === 'api') {
-      if (!['/api/v2/operations', '/api/admin/directory', '/api/gemini/analyze-profile', '/api/auth/google-registration-complete'].includes(command.path)) throw new Error('QA endpoint not permitted');
+      if (!['/api/v2/operations', '/api/admin/directory', '/api/gemini/analyze-profile', '/api/auth/google-registration-complete', '/api/gemini/chat', '/api/gemini/chat-history?contextKey=career', '/api/ai/student-roadmap', '/api/ai/resume-review'].includes(command.path)) throw new Error('QA endpoint not permitted');
       const { data } = await account.client.auth.getSession();
       const response = await fetch(targetUrl.origin + command.path, { method: command.body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${data.session?.access_token}`, 'Content-Type': 'application/json' }, ...(command.body ? { body: JSON.stringify(command.body) } : {}), signal: AbortSignal.timeout(55000) });
       const body = await response.json();
-      emit({ path: command.path, status: response.status, code: body.error?.code || body.code, message: body.error?.message, keys: Object.keys(body), assessment: Boolean(body.assessmentId) });
+      emit({ path: command.path, status: response.status, code: body.error?.code || body.code, message: body.error?.message, keys: Object.keys(body), assessment: Boolean(body.assessmentId), generationId: body.generationId, historyTurns: body.turns?.length, replyLength: body.reply?.length, model: body.model });
     }
   } catch (error) { emit({ error: error.message, code: error.code }); }
 }

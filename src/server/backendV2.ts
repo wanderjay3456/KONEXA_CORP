@@ -132,11 +132,12 @@ export async function processNotificationOutboxBatch(limit = 20) {
   const workerId = `api-${process.pid}-${crypto.randomUUID()}`;
   const claimed = await rpc<NotificationOutboxRow[]>(
     "konexa_claim_notification_outbox_v2",
-    { p_worker_id: workerId, p_limit: Math.max(1, Math.min(limit, 100)) },
+    // Claim only what this serverless invocation can deliver before its deadline.
+    { p_worker_id: workerId, p_limit: Math.max(1, Math.min(limit, 2)) },
   );
   const summary = { claimed: claimed?.length || 0, sent: 0, failed: 0, suppressed: 0 };
 
-  for (const item of claimed || []) {
+  await Promise.all((claimed || []).map(async item => {
     try {
       if (!supportedOutboxTemplates.has(item.template as EmailTemplate)) {
         throw new Error(`Unsupported notification template: ${item.template}`);
@@ -157,7 +158,7 @@ export async function processNotificationOutboxBatch(limit = 20) {
           .eq('id', item.id).eq('locked_by', workerId);
         if (suppressionError) throw suppressionError;
         summary.suppressed += 1;
-        continue;
+        return;
       }
 
       const payload = item.payload && typeof item.payload === "object" ? item.payload : {};
@@ -192,7 +193,7 @@ export async function processNotificationOutboxBatch(limit = 20) {
       });
       summary.failed += 1;
     }
-  }
+  }));
   return summary;
 }
 

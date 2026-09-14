@@ -38,7 +38,7 @@ export async function generateWithModelFallback(
   models: string[],
   generate: (model: string) => Promise<{ text?: string } & Record<string, any>>,
   structured: boolean,
-) {
+): Promise<{ response: { text: string } & Record<string, any>; model: string }> {
   let lastError: unknown;
   for (const model of models) {
     try {
