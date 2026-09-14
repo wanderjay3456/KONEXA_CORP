@@ -13,8 +13,12 @@ const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 function detectLocale(): Locale {
   if (typeof window === "undefined") return "ko";
-  const saved = window.localStorage.getItem("konexa_locale") as Locale | null;
-  if (saved && SUPPORTED_LOCALES.includes(saved)) return saved;
+  try {
+    const saved = window.localStorage.getItem("konexa_locale") as Locale | null;
+    if (saved && SUPPORTED_LOCALES.includes(saved)) return saved;
+  } catch {
+    // Private browsers may block storage. Language selection must still work.
+  }
   const browserLocale = window.navigator.language.toLowerCase();
   if (browserLocale.startsWith("vi")) return "vi";
   if (browserLocale.startsWith("ko")) return "ko";
@@ -25,7 +29,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocale] = useState<Locale>(detectLocale);
 
   useEffect(() => {
-    window.localStorage.setItem("konexa_locale", locale);
+    try { window.localStorage.setItem("konexa_locale", locale); } catch { /* Session-only preference. */ }
     document.documentElement.lang = locale;
   }, [locale]);
 

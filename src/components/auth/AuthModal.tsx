@@ -1,15 +1,11 @@
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import React, { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
+import { ArrowRight, X } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { UserRole } from "../../types";
-import { 
-  Mail, 
-  Lock, 
-  ArrowRight, 
-  X
-} from "lucide-react";
-import { useToast } from "../ui/Toast";
 import { updatePassword } from "../../lib/supabaseAuth";
+import { authCopy, authErrorMessage } from "../../i18n/authCopy";
+import { localeNames, useLocale, type Locale } from "../../i18n/LocaleContext";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,384 +15,139 @@ interface AuthModalProps {
   onSwitchToRegister: (role: UserRole) => void;
 }
 
-export default function AuthModal({ 
-  isOpen, 
-  onClose, 
-  onSuccess, 
-  initialTab = "login",
-  onSwitchToRegister 
-}: AuthModalProps) {
+const inputClass = "h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base text-neutral-900 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 disabled:bg-neutral-100";
+const primaryClass = "flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#284e44] disabled:cursor-wait disabled:opacity-60";
+
+export default function AuthModal({ isOpen, onClose, onSuccess, initialTab = "login", onSwitchToRegister }: AuthModalProps) {
   const { loginUser, googleLogin, resetPassword } = useApp();
-  const { success, info, error } = useToast();
-  
-  const recoveryLink = typeof window !== "undefined" && (window.location.hash.includes("type=recovery") || window.location.search.includes("type=recovery"));
-  const [activeTab, setActiveTab] = useState<"login" | "forgot" | "recovery">(recoveryLink ? "recovery" : initialTab === "forgot" ? "forgot" : "login");
+  const { locale, setLocale } = useLocale();
+  const t = authCopy[locale];
+  const reduced = useReducedMotion();
+  const panel = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const [activeTab, setActiveTab] = useState<"login" | "forgot" | "recovery">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
   const [role, setRole] = useState<UserRole>(UserRole.STUDENT);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [failure, setFailure] = useState<unknown>(null);
+  const [passwordMismatch, setPasswordMismatch] = useState(false);
+  const [notice, setNotice] = useState<"resetSent" | "updatedBody" | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const recovery = /type=recovery/.test(window.location.hash + window.location.search);
+    setActiveTab(recovery || initialTab === "recovery" ? "recovery" : initialTab === "forgot" ? "forgot" : "login");
+    setFailure(null); setNotice(null); setPassword(""); setConfirmPassword(""); setPasswordMismatch(false);
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    panel.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); closeRef.current(); }
+      if (event.key !== "Tab" || !panel.current) return;
+      const elements = Array.from(panel.current.querySelectorAll('button:not(:disabled), input:not(:disabled), a[href], [tabindex="0"]')) as HTMLElement[];
+      const first = elements[0]; const last = elements[elements.length - 1];
+      if (!first) { event.preventDefault(); return; }
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel.current)) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
+      previousFocus?.focus();
+    };
+  }, [isOpen, initialTab]);
 
   if (!isOpen) return null;
-
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      error("Missing fields", "Please enter both your email and password.");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    try {
-      await loginUser(email, role, password);
-      setIsSubmitting(false);
-      onSuccess();
-      onClose();
-    } catch (err: any) {
-      setIsSubmitting(false);
-      error("Authentication Failed", err.message || "Unknown credentials error");
-    }
+  const changeTab = (tab: typeof activeTab) => {
+    setActiveTab(tab); setFailure(null); setPasswordMismatch(false); setNotice(null);
+    setPassword(""); setConfirmPassword("");
   };
-
-  const handleForgotSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) {
-      error("Email required", "Please enter your email to receive recovery instructions.");
-      return;
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (isSubmitting) return;
+    setFailure(null); setNotice(null); setPasswordMismatch(false);
+    if (activeTab === "recovery" && (password.length < 8 || password !== confirmPassword)) {
+      setPasswordMismatch(true); return;
     }
-    
     setIsSubmitting(true);
     try {
-      await resetPassword(email);
-      setIsSubmitting(false);
-      setActiveTab("login");
-    } catch (err) {
-      setIsSubmitting(false);
-    }
+      if (activeTab === "login") {
+        await loginUser(email.trim(), role, password);
+        onSuccess(); onClose();
+      } else if (activeTab === "forgot") {
+        await resetPassword(email.trim());
+        setNotice("resetSent");
+      } else {
+        await updatePassword(password);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        changeTab("login"); setNotice("updatedBody");
+      }
+    } catch (cause) { setFailure(cause); }
+    finally { setIsSubmitting(false); }
   };
-
-  const handleRecoverySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password.length < 8 || password !== confirmPassword) {
-      error("Invalid password", "Use at least 8 characters and make sure both passwords match.");
-      return;
-    }
-    setIsSubmitting(true);
+  const handleGoogle = async () => {
+    if (isSubmitting) return;
+    setFailure(null); setIsSubmitting(true);
     try {
-      await updatePassword(password);
-      success("Password updated", "Your new password is active. You can continue securely.");
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setActiveTab("login");
-    } catch (err: any) {
-      error("Password update failed", err.message || "The recovery link may have expired.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  const handleGoogleLogin = async () => {
-    info("Connecting Google Account...", "Initiating Google Secure Single-Sign-On handshake.");
-    setIsSubmitting(true);
-    try {
+      // OAuth owns navigation. Do not claim success before its callback.
       await googleLogin(role);
-      setIsSubmitting(false);
-      onSuccess();
-      onClose();
-    } catch (err) {
-      setIsSubmitting(false);
-      // error is already shown by googleLogin function
-    }
+    } catch (cause) { setFailure(cause); }
+    finally { setIsSubmitting(false); }
   };
 
-  return (
-    <div id="auth-modal-overlay" data-auto-translate className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Dark overlay with premium blur */}
-      <motion.div 
-        className="absolute inset-0 bg-neutral-950/45 backdrop-blur-md"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      />
-
-      <motion.div 
-        className="bg-white rounded-3xl border border-neutral-200/80 w-full max-w-md overflow-hidden shadow-2xl relative z-10 flex flex-col max-h-[90vh]"
-        initial={{ scale: 0.95, opacity: 0, y: 15 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.95, opacity: 0, y: 15 }}
-        transition={{ type: "spring", duration: 0.5, bounce: 0.15 }}
-      >
-        {/* Close Button */}
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-700 p-1.5 rounded-full hover:bg-neutral-50 transition-colors cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        {/* Content Wrapper */}
-        <div className="p-8 overflow-y-auto scrollbar">
-          {/* Top Logo */}
-          <div className="flex flex-col items-center text-center mb-6">
-            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center mb-3 shadow-md">
-              <span className="font-display font-black text-white text-base">K</span>
-            </div>
-            <h3 className="font-display font-extrabold text-xl text-neutral-900 tracking-tight">
-              {activeTab === "login" && "Welcome back to KONEXA"}
-              {activeTab === "forgot" && "Reset your password"}
-              {activeTab === "recovery" && "Choose a new password"}
-            </h3>
-            <p className="font-sans text-xs text-neutral-400 mt-1 max-w-[280px]">
-              {activeTab === "login" && "The secure standard for global technical talent and corporate matching."}
-              {activeTab === "forgot" && "We will email you a secure recovery link."}
-              {activeTab === "recovery" && "Set a new password for your verified KONEXA account."}
-            </p>
-          </div>
-
-          <AnimatePresence mode="wait">
-            {activeTab === "login" && (
-              <motion.div
-                key="login-view"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-4"
-              >
-                {role !== UserRole.ADMIN ? (
-                  <>
-                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">
-                      Google 계정 또는 이메일·비밀번호로 로그인할 수 있습니다.
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleGoogleLogin}
-                      disabled={isSubmitting}
-                      className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-neutral-200 bg-white text-xs font-bold text-neutral-800 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-200 font-black text-blue-600">G</span>
-                      <span>Google로 로그인</span>
-                    </button>
-                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-neutral-300">
-                      <span className="h-px flex-1 bg-neutral-200" />
-                      <span>또는 이메일</span>
-                      <span className="h-px flex-1 bg-neutral-200" />
-                    </div>
-                  </>
-                ) : (
-                  <div className="hidden">
-                    관리자 계정은 사전에 승인된 이메일과 비밀번호로만 로그인할 수 있습니다.
-                  </div>
-                )}
-
-                {role === UserRole.ADMIN && (
-                  <>
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-amber-900">
-                      Approved administrators can sign in with Google or with their email and password.
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleGoogleLogin}
-                      disabled={isSubmitting}
-                      className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-neutral-200 bg-white text-xs font-bold text-neutral-800 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full border border-neutral-200 font-black text-blue-600">G</span>
-                      <span>Sign in with Google as Admin</span>
-                    </button>
-                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-neutral-300">
-                      <span className="h-px flex-1 bg-neutral-200" />
-                      <span>or use email</span>
-                      <span className="h-px flex-1 bg-neutral-200" />
-                    </div>
-                  </>
-                )}
-
-                <form onSubmit={handleLoginSubmit} className="space-y-3">
-                  {/* Role selection */}
-                  <div className="grid grid-cols-3 gap-1 bg-neutral-100 p-1 rounded-xl border border-neutral-200/50">
-                    <button
-                      type="button"
-                      onClick={() => setRole(UserRole.STUDENT)}
-                      className={`py-1.5 rounded-lg text-[11px] font-sans font-bold transition-all cursor-pointer ${
-                        role === UserRole.STUDENT 
-                          ? "bg-white text-neutral-900 shadow-sm" 
-                          : "text-neutral-500 hover:text-neutral-900"
-                      }`}
-                    >
-                      Student Portal
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole(UserRole.COMPANY)}
-                      className={`py-1.5 rounded-lg text-[11px] font-sans font-bold transition-all cursor-pointer ${
-                        role === UserRole.COMPANY 
-                          ? "bg-white text-neutral-900 shadow-sm" 
-                          : "text-neutral-500 hover:text-neutral-900"
-                      }`}
-                    >
-                      Company Partner
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole(UserRole.ADMIN)}
-                      className={`py-1.5 rounded-lg text-[11px] font-sans font-bold transition-all cursor-pointer ${
-                        role === UserRole.ADMIN
-                          ? "bg-white text-neutral-900 shadow-sm"
-                          : "text-neutral-500 hover:text-neutral-900"
-                      }`}
-                    >
-                      Admin
-                    </button>
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">Corporate / University Email</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@university.edu or partner@company.com"
-                        className="w-full h-11 pl-10 pr-4 bg-neutral-50 hover:bg-neutral-100/50 border border-neutral-200/80 rounded-xl text-xs font-sans focus:outline-hidden focus:border-black transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center">
-                      <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Access Password</label>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("forgot")}
-                        className="text-[10px] font-sans font-semibold text-neutral-400 hover:text-black transition-colors cursor-pointer"
-                      >
-                        Forgot password?
-                      </button>
-                    </div>
-                    <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter secure account password"
-                        className="w-full h-11 pl-10 pr-4 bg-neutral-50 hover:bg-neutral-100/50 border border-neutral-200/80 rounded-xl text-xs font-sans focus:outline-hidden focus:border-black transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Remember Me */}
-                  <div className="flex items-center pt-1">
-                    <label className="flex items-center gap-2 text-xs font-sans text-neutral-500 select-none cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                      />
-                      <span>Keep me authenticated</span>
-                    </label>
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full h-11 rounded-xl bg-black hover:bg-neutral-800 disabled:bg-neutral-200 text-white font-sans text-xs font-semibold flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer mt-4"
-                  >
-                    <span>{isSubmitting ? "Signing in..." : "Sign in securely"}</span>
-                    {!isSubmitting && <ArrowRight className="w-4 h-4" />}
-                  </button>
-                </form>
-
-                {/* Switch to Register */}
-                {role !== UserRole.ADMIN && <div className="text-center pt-3 border-t border-neutral-100 mt-4">
-                  <span className="text-xs text-neutral-400">First time here? </span>
-                  <button
-                    onClick={() => {
-                      onClose();
-                      onSwitchToRegister(role);
-                    }}
-                    className="text-xs font-sans font-bold text-neutral-900 hover:underline transition-all cursor-pointer"
-                  >
-                    Join {role === UserRole.STUDENT ? "as Student" : "as Corporate Partner"}
-                  </button>
-                </div>}
-              </motion.div>
-            )}
-
-            {activeTab === "forgot" && (
-              <motion.form
-                key="forgot-view"
-                onSubmit={handleForgotSubmit}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.2 }}
-                className="space-y-4"
-              >
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">Registered Account Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@university.edu"
-                      className="w-full h-11 pl-10 pr-4 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-sans focus:outline-hidden focus:border-black"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("login")}
-                    className="flex-1 h-11 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-600 font-sans text-xs font-semibold cursor-pointer transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 h-11 rounded-xl bg-black hover:bg-neutral-800 disabled:bg-neutral-200 text-white font-sans text-xs font-semibold cursor-pointer transition-colors"
-                  >
-                    {isSubmitting ? "Dispatching..." : "Send Reset Token"}
-                  </button>
-                </div>
-              </motion.form>
-            )}
-
-            {activeTab === "recovery" && (
-              <motion.form
-                key="recovery-view"
-                onSubmit={handleRecoverySubmit}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                className="space-y-4"
-              >
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">New Password</label>
-                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} autoComplete="new-password" className="w-full h-11 px-4 bg-neutral-50 border border-neutral-200 rounded-xl text-xs focus:outline-hidden focus:border-black" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">Confirm New Password</label>
-                  <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} minLength={8} autoComplete="new-password" className="w-full h-11 px-4 bg-neutral-50 border border-neutral-200 rounded-xl text-xs focus:outline-hidden focus:border-black" />
-                </div>
-                <button type="submit" disabled={isSubmitting} className="w-full h-11 rounded-xl bg-black disabled:bg-neutral-200 text-white text-xs font-semibold">
-                  {isSubmitting ? "Updating..." : "Update Password"}
-                </button>
-              </motion.form>
-            )}
-          </AnimatePresence>
-
+  return <div id="auth-modal-overlay" data-no-translate className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-5">
+    <div className="absolute inset-0 bg-neutral-950/45 backdrop-blur-md" onClick={onClose} aria-hidden="true" />
+    <motion.div ref={panel} role="dialog" aria-modal="true" aria-labelledby="auth-title" aria-describedby="auth-description" tabIndex={-1}
+      initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+      className="relative max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-6 shadow-2xl outline-none sm:p-8">
+      <div className="mb-6 flex items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-1" aria-label="Language">
+          {(["ko", "en", "vi"] as Locale[]).map(value => <button type="button" key={value} onClick={() => setLocale(value)} aria-pressed={value === locale}
+            className={"rounded-lg px-2 py-2 text-xs font-semibold " + (value === locale ? "bg-emerald-50 text-emerald-900" : "text-neutral-600 hover:bg-neutral-100")}>{localeNames[value]}</button>)}
         </div>
-      </motion.div>
-    </div>
-  );
+        <button type="button" onClick={onClose} aria-label={t.close} className="rounded-full p-2 text-neutral-600 hover:bg-neutral-100"><X className="h-5 w-5" /></button>
+      </div>
+      <h2 id="auth-title" className="break-keep text-2xl font-bold leading-snug tracking-tight text-neutral-900">{activeTab === "login" ? t.loginTitle : activeTab === "forgot" ? t.forgotTitle : t.recoveryTitle}</h2>
+      <p id="auth-description" className="mt-3 text-sm leading-6 text-neutral-600">{activeTab === "login" ? t.loginLead : activeTab === "forgot" ? t.forgotLead : t.recoveryLead}</p>
+      {activeTab === "login" && <div className="mt-6 space-y-4">
+        <div className="grid grid-cols-3 gap-1 rounded-xl bg-neutral-100 p-1" role="group" aria-label={t.roleLabel}>
+          {([UserRole.STUDENT, UserRole.COMPANY, UserRole.ADMIN] as const).map(value => <button type="button" key={value} disabled={isSubmitting} aria-pressed={role === value} onClick={() => setRole(value)}
+            className={"rounded-lg px-1 py-2.5 text-sm font-semibold " + (role === value ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-600 hover:text-neutral-900")}>{value === UserRole.STUDENT ? t.student : value === UserRole.COMPANY ? t.company : t.admin}</button>)}
+        </div>
+        {role === UserRole.ADMIN && <p className="rounded-xl bg-amber-50 p-3 text-sm leading-6 text-amber-900">{t.adminNote}</p>}
+        <button type="button" onClick={handleGoogle} disabled={isSubmitting} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-neutral-300 px-3 py-3 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 disabled:opacity-60"><span aria-hidden="true" className="text-base font-bold text-blue-700">G</span>{t.google}</button>
+        <div className="flex items-center gap-3 text-xs text-neutral-500"><span className="h-px flex-1 bg-neutral-200" />{t.divider}<span className="h-px flex-1 bg-neutral-200" /></div>
+      </div>}
+      <form onSubmit={submit} className="mt-5 space-y-4" aria-busy={isSubmitting}>
+        {activeTab !== "recovery" && <div>
+          <label htmlFor="auth-email" className="mb-2 block text-sm font-semibold text-neutral-700">{t.email}</label>
+          <input id="auth-email" name="email" type="email" required autoComplete="username" autoCapitalize="none" spellCheck={false} disabled={isSubmitting} value={email} onChange={event => setEmail(event.target.value)} className={inputClass} />
+        </div>}
+        {activeTab !== "forgot" && <div>
+          <label htmlFor="auth-password" className="mb-2 block text-sm font-semibold text-neutral-700">{activeTab === "recovery" ? t.newPassword : t.password}</label>
+          <input id="auth-password" name="password" type="password" required minLength={activeTab === "recovery" ? 8 : undefined} autoComplete={activeTab === "recovery" ? "new-password" : "current-password"} disabled={isSubmitting} value={password} onChange={event => setPassword(event.target.value)} className={inputClass} />
+        </div>}
+        {activeTab === "recovery" && <div>
+          <label htmlFor="auth-confirm" className="mb-2 block text-sm font-semibold text-neutral-700">{t.confirmPassword}</label>
+          <input id="auth-confirm" name="confirmPassword" type="password" required minLength={8} autoComplete="new-password" disabled={isSubmitting} value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} className={inputClass} />
+        </div>}
+        {activeTab === "login" && <button type="button" disabled={isSubmitting} onClick={() => changeTab("forgot")} className="text-sm font-medium text-emerald-800 underline-offset-4 hover:underline">{t.forgot}</button>}
+        {(Boolean(failure) || passwordMismatch) && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm leading-6 text-red-800">{passwordMismatch ? t.invalidPassword : authErrorMessage(failure, locale)}</p>}
+        {notice && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm leading-6 text-emerald-900">{t[notice]}</p>}
+        <button type="submit" disabled={isSubmitting} className={primaryClass}>{isSubmitting ? t.busy : activeTab === "login" ? t.submit : activeTab === "forgot" ? t.send : t.update}{!isSubmitting && <ArrowRight className="h-4 w-4" />}</button>
+      </form>
+      {activeTab === "login" ? <>
+        <p className="mt-4 text-xs leading-5 text-neutral-600">{t.sessionNote}</p>
+        {role !== UserRole.ADMIN && <div className="mt-6 border-t border-neutral-200 pt-5 text-center text-sm leading-6"><p className="text-neutral-600">{t.firstTime}</p><button type="button" disabled={isSubmitting} onClick={() => { onClose(); onSwitchToRegister(role); }} className="mt-1 font-semibold text-emerald-800 hover:underline">{role === UserRole.STUDENT ? t.studentJoin : t.companyJoin}</button></div>}
+      </> : <button type="button" disabled={isSubmitting} onClick={() => changeTab("login")} className="mt-5 w-full text-center text-sm font-medium text-neutral-700 hover:underline">{t.back}</button>}
+    </motion.div>
+  </div>;
 }

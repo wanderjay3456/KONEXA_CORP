@@ -89,7 +89,14 @@ export const auth = {
   authStateReady: initializeAuth,
   onAuthStateChanged(callback: (user: any) => void) {
     let active = true;
-    void initializeAuth().then(() => active && callback(userAdapter(cachedUser)));
+    void initializeAuth()
+      .then(() => active && callback(userAdapter(cachedUser)))
+      .catch(() => {
+        // A failed session read must not leave the entire site loading forever.
+        readyPromise = null;
+        cachedUser = null;
+        if (active) callback(null);
+      });
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       cachedUser = session?.user || null;
       if (active) callback(userAdapter(cachedUser));

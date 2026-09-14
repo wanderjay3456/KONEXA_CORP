@@ -1,5 +1,7 @@
 import { Award, BriefcaseBusiness, CalendarClock, Check, FileCheck2, GraduationCap, Percent, PlayCircle, ReceiptText, SearchCheck, Star } from "lucide-react";
 import type { Locale } from "../../i18n/LocaleContext";
+import { isEarlyBirdOpen } from "../../config/earlyBird";
+import FoundingPartners from "./FoundingPartners";
 
 interface EarlyBirdCampaignProps {
   locale: Locale;
@@ -62,6 +64,7 @@ const campaignCopy = {
 } as const;
 
 export default function EarlyBirdCampaign({ locale, onStudent, onCompany }: EarlyBirdCampaignProps) {
+  if (!isEarlyBirdOpen()) return <FoundingPartners locale={locale} onStudent={onStudent} onCompany={onCompany} />;
   const t = campaignCopy[locale];
   return (
     <section id="early-bird" className="bg-[#f7f6f1] px-5 py-24 sm:px-8 lg:py-32">

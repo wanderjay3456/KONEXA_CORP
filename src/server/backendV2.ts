@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { deferNotificationWork } from "./deferredWork";
 import type { Express, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import { getSupabaseAdmin } from "./supabaseAdmin";
@@ -116,9 +117,9 @@ async function rpc<T = JsonRecord>(name: string, parameters: JsonRecord) {
 }
 
 function processOutboxSoon() {
-  void processNotificationOutboxBatch(8).catch((error) => {
-    console.warn("Deferred notification outbox processing failed:", asErrorMessage(error));
-  });
+  // Keep the invocation alive after the HTTP response. Durable outbox retries
+  // still handle provider failures and the function's maximum runtime.
+  deferNotificationWork(() => processNotificationOutboxBatch(8));
 }
 
 interface NotificationOutboxRow {

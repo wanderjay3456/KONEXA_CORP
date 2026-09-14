@@ -37,6 +37,9 @@ import {
 import { useToast } from "../components/ui/Toast";
 import { firstValidationMessage, getCompanyCompletionErrors, getStudentCompletionErrors } from "../lib/profileCompletion";
 import { isEarlyBirdOpen } from "../config/earlyBird";
+import { useLocale } from "../i18n/LocaleContext";
+import { authCopy, authErrorMessage } from "../i18n/authCopy";
+import { loadWorkspaceProfiles } from "../lib/workspaceProfile";
 
 // --- START FIRESTORE ERROR HANDLING PROTOCOL ---
 enum OperationType {
@@ -134,6 +137,7 @@ export function useApp() {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { success, error, info } = useToast();
+  const { locale } = useLocale();
   
   // App state
   const [activeRole, setActiveRole] = useState<UserRole>(UserRole.STUDENT);
@@ -241,45 +245,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setIsAuthReady(true);
                 return;
               }
-              setCurrentUser(uProfile);
+              const workspace = await loadWorkspaceProfiles(uProfile, async (collectionName, uid) => {
+                const snapshot = await getDoc(doc(db, collectionName, uid));
+                return snapshot.exists() ? snapshot.data() : null;
+              });
+              setStudentProfile(workspace.student);
+              setCompanyProfile(workspace.company);
               setActiveRole(uProfile.role);
-              
-              if (uProfile.role === UserRole.STUDENT) {
-                const sRef = doc(db, "student_profiles", user.uid);
-                const sSnap = await getDoc(sRef);
-                if (sSnap.exists()) {
-                  setStudentProfile(sSnap.data() as StudentProfile);
-                } else {
-                  setStudentProfile({
-                    uid: user.uid,
-                    name: uProfile.displayName,
-                    skills: [],
-                    github: "",
-                    bio: "",
-                    trustScore: 0,
-                    completedProjects: 0,
-                    createdAt: Date.now()
-                  });
-                }
-                setCompanyProfile(null);
-              } else if (uProfile.role === UserRole.COMPANY) {
-                const cRef = doc(db, "company_profiles", user.uid);
-                const cSnap = await getDoc(cRef);
-                if (cSnap.exists()) {
-                  setCompanyProfile(cSnap.data() as CompanyProfile);
-                } else {
-                  setCompanyProfile({
-                    uid: user.uid,
-                    companyName: uProfile.displayName,
-                    website: "",
-                    description: "",
-                    verified: false,
-                    verifiedStatus: "Pending",
-                    createdAt: Date.now()
-                  });
-                }
-                setStudentProfile(null);
-              }
+              setCurrentUser(uProfile);
             } else {
               setCurrentUser(null);
               setStudentProfile(null);
@@ -704,8 +677,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const credential = await signInWithEmailAndPassword(auth, email, password);
       const authUid = credential.user.uid;
 
-      const now = Date.now();
-
       // Check if user profile exists in Supabase
       const userDocRef = doc(db, "users", authUid);
       const userSnapshot = await getDoc(userDocRef);
@@ -714,18 +685,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (userSnapshot.exists()) {
         profile = userSnapshot.data() as UserProfile;
       } else {
-        if (role === UserRole.ADMIN) {
-          await signOut(auth);
-          throw new Error("승인된 관리자 계정이 아닙니다. 기존 관리자가 먼저 권한을 부여해야 합니다.");
-        }
-        profile = {
-          uid: authUid,
-          email,
-          displayName: email.split("@")[0].split(".").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" "),
-          role,
-          createdAt: now
-        };
-        await setDoc(userDocRef, profile);
+        await signOut(auth);
+        throw new Error("KONEXA account setup is incomplete. Please register or contact support.");
       }
 
       if (role === UserRole.ADMIN && profile.role !== UserRole.ADMIN) {
@@ -737,33 +698,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error("관리자 검토로 이용이 제한된 계정입니다. KONEXA 운영팀에 문의해 주세요.");
       }
 
-      setCurrentUser(profile);
       const effectiveRole = profile.role;
+      const workspace = await loadWorkspaceProfiles(profile, async (collectionName, uid) => {
+        const snapshot = await getDoc(doc(db, collectionName, uid));
+        return snapshot.exists() ? snapshot.data() : null;
+      });
+      setStudentProfile(workspace.student);
+      setCompanyProfile(workspace.company);
       setActiveRole(effectiveRole);
+      setCurrentUser(profile);
 
-      if (effectiveRole === UserRole.STUDENT) {
-        const studentDocRef = doc(db, "student_profiles", authUid);
-        const studentSnapshot = await getDoc(studentDocRef);
-        if (!studentSnapshot.exists()) throw new Error("학생 프로필을 찾을 수 없습니다. 관리자에게 문의해 주세요.");
-        const sProfile = studentSnapshot.data() as StudentProfile;
-        setStudentProfile(sProfile);
-        setCompanyProfile(null);
-      } else if (effectiveRole === UserRole.COMPANY) {
-        const companyDocRef = doc(db, "company_profiles", authUid);
-        const companySnapshot = await getDoc(companyDocRef);
-        if (!companySnapshot.exists()) throw new Error("기업 프로필을 찾을 수 없습니다. 관리자에게 문의해 주세요.");
-        const cProfile = companySnapshot.data() as CompanyProfile;
-        setCompanyProfile(cProfile);
-        setStudentProfile(null);
-      }
-
+      // Audit delivery must not turn a completed sign-in into a reported failure.
       await logSystemAction(
         "AUTH_LOGIN",
-        `Authenticated user (${effectiveRole}): ${profile.displayName} (${email})`
-      );
-      success("Welcome Back", `Successfully signed in to your dashboard.`);
+        `Authenticated user (${effectiveRole}): ${authUid}`
+      ).catch(() => console.warn("Sign-in audit could not be recorded"));
+      success(authCopy[locale].loginSuccess, authCopy[locale].loginSuccessBody);
     } catch (err: any) {
-      error("Login failed", err.message);
+      // AuthModal renders one localized, actionable error without provider details.
       throw err;
     }
   };
@@ -781,7 +733,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         profileData: options.profileData,
       });
     } catch (err: any) {
-      error("Google Login failed", err.message);
+      error(authCopy[locale].googleError, authErrorMessage(err, locale));
       throw err;
     }
   };
@@ -789,9 +741,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = async (email: string) => {
     try {
       await sendPasswordResetEmail(auth, email);
-      success("Password Reset Sent", "Check your email inbox for instructions to reset your password.");
+      // AuthModal confirms the request without revealing whether an account exists.
     } catch (err: any) {
-      error("Reset Failed", err.message);
       throw err;
     }
   };
