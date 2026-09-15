@@ -51,7 +51,8 @@ export default function SupportChatbot() {
     setInput(''); setBusy(true);
     setTurns(items => [...items.slice(-9), { id, question, articleIds: [] }]);
     const controller = new AbortController(); controllerRef.current = controller;
-    const timeout = setTimeout(() => controller.abort(), 18_000);
+    // Two bounded 12s provider attempts plus network/storage overhead.
+    const timeout = setTimeout(() => controller.abort(), 30_000);
     try {
       const response = await fetch('/api/public/support/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question, locale }), signal: controller.signal });
       if (!response.ok) throw new Error('SUPPORT_UNAVAILABLE');
