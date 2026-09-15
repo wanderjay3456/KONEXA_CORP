@@ -18,9 +18,14 @@ test('admin reviews real fixture evidence, filters roles, compares a job and res
   await expect(page.getByRole('link', { name: 'Open secure link (valid for 60s)' })).toBeVisible();
   await page.getByRole('button', { name: 'Generate AI review' }).click();
   await expect(page.getByText('Declared research skills support an initial project discussion.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Questions for the review conversation' })).toBeVisible();
+  await expect(page.getByText('How many hours can you commit each week?')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Work samples or scope documents to review' })).toBeVisible();
+  await expect(page.getByText('Practice structured research interviews.')).toHaveCount(0);
   await page.reload();
   await page.getByRole('button', { name: /Research candidate/ }).click();
   await expect(page.getByText('Declared research skills support an initial project discussion.')).toBeVisible();
+  await expect(page.getByText('How many hours can you commit each week?')).toBeVisible();
   expect(errors).toEqual([]);
 });
 

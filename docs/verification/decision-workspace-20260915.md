@@ -21,7 +21,7 @@ The source chain is: actual profile/project → shared multilingual taxonomy and
 ## Verification
 
 - `npm run lint`: TypeScript.
-- `npm test`: 77 tests, including multilingual role preservation, exact skill boundaries, irrelevant-candidate exclusion, known vs unknown conditions, no protected-trait/prior-score influence, admin/owner authorization, private-file ownership, pagination, dependency errors and persisted AI state.
+- `npm test`: 78 tests, including multilingual role preservation, exact skill boundaries, irrelevant-candidate exclusion, known vs unknown conditions, no protected-trait/prior-score influence, admin/owner authorization, private-file ownership, pagination, dependency errors, persisted AI state and required verification questions.
 - `npm run build`: production frontend/backend bundles.
 - `npm run test:browser`: 9 local browser scenarios, including company/student onboarding, existing AI workflows and the new admin compare/generate/reload workflow, failed-load retry, native locales and a 390px mobile layout.
 - Browser tests use actual built CSS and isolated fictional fixtures. They do not create production people or vacancies and do not validate real model quality.
@@ -46,3 +46,13 @@ Configuration reference: [Gemini 3 developer guide](https://ai.google.dev/gemini
 Subsequent real help and authenticated admin calls established provider HTTP 503/504 failures, including a failed persisted admin attempt. The primary default is therefore updated to the supported [Gemini 3.5 Flash-Lite](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite), with bounded fallback and brief jitter before retrying transient errors. This is a recovery attempt, not a guarantee that a third-party outage is resolved. Admin error messages distinguish a provider outage from profile storage problems and do not ask people to re-enter a saved profile when the provider is unavailable.
 
 Two confirmed, operator-owned legacy E2E identities had no test flag and incomplete evidence behind a completed-profile flag. They were classified as tests and made private/incomplete without deleting records or changing authentication credentials. Ordinary user names are never heuristically treated as test identities. Test accounts are excluded from the decision workspace, member directory and verification queue.
+
+## Production evidence and final review refinement
+
+On 15 September 2026, production commit `c8777660df93c14e0fe1e8bb3a51ccaaa76fbeec` completed a real, non-personal support question in approximately four seconds. Receipt `b34d824e-f0d3-43b5-b186-17503b1ebb26` was completed using `gemini-3.5-flash-lite`; the saved-answer endpoint restored the same reviewed help topics.
+
+The authenticated administrator also generated an actual existing member profile review. Receipt `d22ebc8a-9edf-4cc8-968d-661de41eb409` was completed with the same model and `profile-analysis-v3`. Refreshing the production browser preserved the admin session and restored the saved review. The output identified inconsistent declared career/skill information and missing availability; it did not establish actual professional competency.
+
+Reading that output revealed a usability gap: the admin panel still showed a legacy learning plan instead of concrete interview questions. Version `profile-analysis-v4` therefore requires 3–5 specific review questions and 1–4 work-sample/scope-document requests. The structured response is validated before success; old reviews stay available but are marked stale. The admin panel separates the summary, clarification points, questions and evidence requests. It does not present training recommendations as verification. Local API/browser tests cover generation, persistence and reload for these fields. Post-deployment real-provider verification is a separate gate from those isolated tests.
+
+The live workspace currently has four non-test-flagged member records and zero real projects. This is not a claim of four audited customers. No production vacancy or member was invented to make matching look populated. Real-company matching effectiveness remains unvalidated until genuine project requirements and reviewed outcomes exist.

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { classifyRoles } from '../lib/talentTaxonomy';
 
-export const PROFILE_ANALYSIS_VERSION = 'profile-analysis-v3';
+export const PROFILE_ANALYSIS_VERSION = 'profile-analysis-v4';
 type Data = Record<string, any>;
 export const words = (value: unknown): string[] => Array.isArray(value) ? value.filter(item => typeof item === 'string').map(item => item.trim().slice(0, 300)).filter(Boolean).slice(0, 40) : [];
 export const short = (value: unknown, max = 1000) => typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -73,7 +73,9 @@ export function summarizeMember(user: Data, profile: Data, assessments: Data[], 
     ai: { state: attempt?.status === 'failed' ? 'failed' : attempt?.status === 'pending' ? 'pending' : !latest ? 'not_analyzed' : stale ? 'stale' : 'current',
       assessmentId: latest?.id || null, model: latest?.model || null, analyzedAt: latest?.created_at || null,
       strength: short(latest?.result?.strengthSummary, 2000), gaps: short(latest?.result?.weaknessSummary, 2000),
-      actions: words(latest?.result?.recommendedLearningPath), skillGaps: words(latest?.result?.skillGap) },
+      verificationQuestions: words(latest?.result?.verificationQuestions).slice(0, 5),
+      evidenceRequests: words(latest?.result?.evidenceRequests).slice(0, 4),
+      skillGaps: words(latest?.result?.skillGap) },
     updatedAt: profile.updated_at || user.updated_at || null,
   };
 }
