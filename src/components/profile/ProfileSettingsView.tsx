@@ -22,8 +22,11 @@ import {
   FileCheck2
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
+import { useLocale } from '../../i18n/LocaleContext';
 
 export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteProfile?: () => void }) {
+  const { locale } = useLocale();
+  const t = (ko: string, en: string, vi: string) => locale === 'ko' ? ko : locale === 'vi' ? vi : en;
   const { studentProfile, updateStudentProfile, companyProfile, updateCompanyProfile, logoutUser } = useApp();
   const { success, error, info } = useToast();
   
@@ -51,12 +54,19 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
     resumeUrl: studentProfile?.resumeUrl || "",
     timezone: studentProfile?.timezone || "GMT+9 (Seoul)",
     bio: studentProfile?.bio || "",
+    availableHoursPerWeek: studentProfile?.availableHoursPerWeek ?? null,
+    preferredWeeklyPayKrw: studentProfile?.preferredWeeklyPayKrw,
+    workPreference: studentProfile?.workPreference,
+    availability: studentProfile?.availability || '',
     emergencyContact: studentProfile?.emergencyContact || "",
     notificationPreferences: studentProfile?.notificationPreferences || { email: true, push: true, marketing: false },
     privacySettings: studentProfile?.privacySettings || { publicProfile: true, showResume: true }
   });
 
   const handleSaveStudent = async () => {
+    if (studentForm.availableHoursPerWeek != null && (!Number.isFinite(studentForm.availableHoursPerWeek) || studentForm.availableHoursPerWeek < 1 || studentForm.availableHoursPerWeek > 80)) {
+      error(t('참여 시간 확인', 'Check weekly hours', 'Kiểm tra số giờ'), t('주당 1~80시간 범위에서 입력해 주세요.', 'Enter 1–80 hours per week.', 'Nhập từ 1 đến 80 giờ mỗi tuần.')); return;
+    }
     setIsSaving(true);
     try {
       await updateStudentProfile(studentForm);
@@ -218,6 +228,16 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
               </div>
             </div>
 
+            <section data-no-translate className="space-y-4 rounded-2xl border border-neutral-200 p-4">
+              <h3 className="text-sm font-bold">{t('매칭에 사용할 협업 조건', 'Work preferences for matching', 'Điều kiện dùng để ghép dự án')}</h3>
+              <p className="text-sm leading-6 text-neutral-600">{t('모르는 항목은 비워 두면 확인 필요로 표시합니다. 주급은 연봉이 아니며, 참여 시간과 함께 비교합니다.', 'Unknown details remain marked for review. Weekly pay is compared together with available hours, not as an annual salary.', 'Thông tin chưa biết được đánh dấu cần xác minh. Thu nhập theo tuần được so sánh cùng số giờ làm việc.')}</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm">{t('주당 참여 가능 시간', 'Available hours per week', 'Số giờ có thể làm mỗi tuần')}<input type="number" min={1} max={80} value={studentForm.availableHoursPerWeek ?? ''} onChange={event => setStudentForm(value => ({ ...value, availableHoursPerWeek: event.target.value === '' ? null : Number(event.target.value) }))} className="mt-2 w-full rounded-xl border border-neutral-300 p-3" /></label>
+                <label className="text-sm">{t('희망 주급 (원)', 'Preferred weekly pay (KRW)', 'Thu nhập mong muốn mỗi tuần (KRW)')}<input type="number" min={1} value={studentForm.preferredWeeklyPayKrw ?? ''} onChange={event => setStudentForm(value => ({ ...value, preferredWeeklyPayKrw: event.target.value === '' ? undefined : Number(event.target.value) }))} className="mt-2 w-full rounded-xl border border-neutral-300 p-3" /></label>
+                <label className="text-sm">{t('희망 근무 방식', 'Work arrangement', 'Hình thức làm việc')}<select value={studentForm.workPreference || ''} onChange={event => setStudentForm(value => ({ ...value, workPreference: event.target.value as StudentProfile['workPreference'] }))} className="mt-2 w-full rounded-xl border border-neutral-300 p-3"><option value="">{t('미정', 'Not specified', 'Chưa xác định')}</option>{['Remote', 'Hybrid', 'Onsite'].map(item => <option key={item}>{item}</option>)}</select></label>
+                <label className="text-sm">{t('시작 가능 시점', 'When can you start?', 'Khi nào có thể bắt đầu?')}<input value={studentForm.availability || ''} onChange={event => setStudentForm(value => ({ ...value, availability: event.target.value }))} className="mt-2 w-full rounded-xl border border-neutral-300 p-3" /></label>
+              </div>
+            </section>
             <div className="space-y-1">
               <label className="text-xs font-bold text-neutral-600">Emergency Contact</label>
               <input

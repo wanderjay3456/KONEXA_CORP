@@ -59,7 +59,7 @@ test('failed applications keep the proposal and AI uses current relational proje
 });
 
 test('AI profile results are merged by a server-only database operation', () => {
-  const server=readFileSync(new URL('../server.ts',import.meta.url),'utf8');
+  const server=readFileSync(new URL('../src/server/profileAnalysisRoutes.ts',import.meta.url),'utf8');
   assert.match(server,/rpc\('konexa_save_profile_analysis'/);
   const migration=readFileSync(new URL('../supabase/migrations/20260914125550_protect_profile_entitlements.sql',import.meta.url),'utf8');
   assert.match(migration,/from public, anon, authenticated/);
