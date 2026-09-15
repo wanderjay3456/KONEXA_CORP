@@ -50,6 +50,14 @@ test('legacy UI localization is deterministic, private text is untouched and Vie
   assert.equal(staticUiCopy('일정·변경·지원','en'),'Scheduling, changes & support');
   assert.equal(staticUiCopy('Submission history','ko'),'제출 이력');
   assert.equal(staticUiCopy('Our private user-authored research details','ko'),'Our private user-authored research details');
+  const missingLabels:string[]=[];
+  for(const file of ['layout/Navbar','layout/Sidebar','dashboard/AdminDashboard']) {
+    const source=readFileSync(new URL(`../src/components/${file}.tsx`,import.meta.url),'utf8');
+    for(const [,label] of source.matchAll(/(?:\blabel:\s*|aria-label=)"([^"]+)"/g)) {
+      if(/[가-힣]/.test(label)&&/[가-힣]/.test(staticUiCopy(label,'en')))missingLabels.push(`${file}: ${label}`);
+    }
+  }
+  assert.deepEqual(missingLabels,[],'Every company, talent and admin navigation label needs English copy');
   const adapter=readFileSync(new URL('../src/i18n/AutoTranslator.tsx',import.meta.url),'utf8');
   assert.ok(!adapter.includes('fetch('));assert.match(adapter,/data-no-translate/);
   const context=readFileSync(new URL('../src/i18n/LocaleContext.tsx',import.meta.url),'utf8');

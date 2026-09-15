@@ -12,6 +12,11 @@ test('automatic localization leaves native and private copy unchanged',async({pa
   await page.goto('/?translation=1&locale=en');
   await expect(page.getByRole('heading',{name:'Delivery review',exact:true})).toBeVisible();
   await expect(page.getByText('Submission history',{exact:true})).toBeVisible();
+  await expect(page.getByText('Administrator account',{exact:true})).toBeVisible();
+  await expect(page.getByText('Company account',{exact:true})).toBeVisible();
+  await expect(page.getByText('Talent account',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Talent & company review',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Delivery & completion review',exact:true})).toBeVisible();
   await expect(page.getByText('Do not translate private content',{exact:true})).toBeVisible();
   expect(bodies).toEqual([]);
 });
