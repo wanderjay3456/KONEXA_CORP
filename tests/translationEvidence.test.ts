@@ -19,6 +19,7 @@ test('native UI copy stays stable and localization server budget fits the client
   assert.equal(needsUiTranslation('Lịch sử bàn giao','vi'),false);
   assert.equal(needsUiTranslation('Submission history','vi'),true);
   assert.ok(LOCALIZATION_PROVIDER_TIMEOUT_MS*LOCALIZATION_MAX_MODELS+3000<LOCALIZATION_CLIENT_TIMEOUT_MS);
+  assert.ok(LOCALIZATION_PROVIDER_TIMEOUT_MS>=12_000, 'Keep the deadline accepted by the verified provider request');
   assert.ok(LOCALIZATION_BATCH_SIZE<=20);
 });
 test('localization rejects missing, fabricated numeric and non-text values before caching',()=>{
