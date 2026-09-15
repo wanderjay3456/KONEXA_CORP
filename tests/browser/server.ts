@@ -4,12 +4,14 @@ import { aiFixture } from '../helpers/aiFixture';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { registerDeliveryFixture } from './deliveryFixture';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const bundled = await build({ entryPoints: [path.join(root, 'tests/browser/ui.tsx')], absWorkingDir: root, bundle: true, write: false, format: 'esm', jsx: 'automatic', platform: 'browser', plugins: [{ name: 'local-test-context', setup(builder) {
   builder.onResolve({ filter: /context\/AppContext$/ }, () => ({ path: path.join(root, 'tests/browser/appFixture.tsx') }));
   builder.onResolve({ filter: /lib\/(supabaseAuth|privateStorage)$/ }, () => ({ path: path.join(root, 'tests/browser/signupFixture.tsx') }));
 } }] });
 const { app, state } = aiFixture();
+registerDeliveryFixture(app);
 // Explicitly local-only signup store. Never connected to Supabase or email.
 const signups = new Map<string, any>();
 const intents = new Map<string, any>();

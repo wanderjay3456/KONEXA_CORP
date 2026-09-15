@@ -19,6 +19,14 @@ test('introduction, review and dispute emails cannot be dropped as unsupported',
   const server = readFileSync(new URL('../src/server/backendV2.ts',import.meta.url),'utf8');
   assert.match(server,/new Set<EmailTemplate>\(EMAIL_TEMPLATES\)/);
 });
+test('delivery reminders and completion emails describe the actual next action',()=>{
+  for(const status of ['due_soon','overdue','review_due']){
+    const value=renderEmail('milestone_action',{status});
+    assert.ok(!value.subject.includes(status));assert.ok(value.html.includes('workspace')||value.html.includes('evidence')||value.html.includes('other party'));
+  }
+  assert.match(renderEmail('contract_action',{status:'completed'}).html,/Completion is separate from payout/);
+  assert.match(renderEmail('dispute_action',{status:'resolved'}).html,/does not itself execute a refund or payout/);
+});
 test('email preference and suspension are respected before delivery', () => {
   assert.equal(shouldDeliverAccountEmail({}, {}),true);
   assert.equal(shouldDeliverAccountEmail({ notificationPreferences: { email: false } }, {}),false);
@@ -42,7 +50,7 @@ test('critical navigation reaches live screens instead of prototype workspaces',
   const student = read('components/dashboard/StudentDashboard.tsx');
   const company = read('components/dashboard/CompanyDashboard.tsx');
   assert.doesNotMatch(student,/import ProjectWorkspace/);
-  assert.match(read('App.tsx'),/activeRole === UserRole.STUDENT && activeTab === "workspace"/);
+  assert.match(read('App.tsx'),/\["workspace", "company-workspace"\]\.includes\(activeTab\)/);
   assert.match(student,/activeTab === "applications"/);
   assert.match(student,/activeTab === "onboarding"/);
   assert.match(company,/activeTab === "identity"/);

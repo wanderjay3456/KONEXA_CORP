@@ -157,7 +157,22 @@ export function renderEmail(template: EmailTemplate, data: SendEmailInput["data"
     },
   };
 
-  const selected = copy[template];
+  let selected = copy[template];
+  // Describe the action, rather than exposing internal enum names in email.
+  if (template === 'milestone_action') {
+    const messages: Record<string,{heading:string;body:string}> = {
+      due_soon: { heading:'A deliverable is due soon', body:'Your agreed delivery deadline is within 24 hours. Open the project workspace to submit your result or discuss a schedule change.' },
+      overdue: { heading:'A deliverable needs your attention', body:'The recorded delivery deadline has passed. Submit the result or contact the other party to agree the next step; this reminder does not apply an automatic penalty.' },
+      review_due: { heading:'A submitted deliverable is waiting for review', body:'The agreed review period has passed. Check the submitted evidence and approve it or explain the changes you need.' },
+      approved: { heading:'Your deliverable was approved', body:'The company approved the submitted result. View the saved feedback in your workspace. Approval is not confirmation that a payout has been made.' },
+      rejected: { heading:'Changes were requested on your deliverable', body:'Review the company feedback, update your result and submit a new version. Earlier submissions remain on record.' },
+    };
+    const message=messages[String(data.status)];
+    if(message)selected={...selected,subject:`KONEXA: ${message.heading}`,...message};
+  }
+  if(template==='contract_action'&&data.status==='awaiting_other_party')selected={...selected,subject:'KONEXA project completion needs confirmation',heading:'One party has confirmed project completion',body:'Open the project workspace to check the deliverables and completion confirmations. Work Passport evidence is created only after both parties confirm.'};
+  if(template==='contract_action'&&data.status==='completed')selected={...selected,subject:'Your KONEXA project is complete',heading:'Both parties confirmed project completion',body:'The completed project and deliverable evidence are recorded in Work Passport. You can now submit a final review. Completion is separate from payout or refund status.'};
+  if(template==='dispute_action'&&data.status==='resolved')selected={...selected,subject:'Your KONEXA dispute has a recorded decision',heading:'A case resolution was recorded',body:'The operations team recorded the evidence and resolution. Review the explanation in your secure workspace. This decision does not itself execute a refund or payout.'};
   const html = `<!doctype html><html><body style="margin:0;background:#f5f5f5;font-family:Arial,sans-serif;color:#171717"><div style="display:none;max-height:0;overflow:hidden">${escapeHtml(selected.subject)}</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:40px 16px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fff;border:1px solid #e5e5e5;border-radius:16px"><tr><td style="padding:36px"><p style="margin:0 0 24px;font-size:12px;font-weight:700;letter-spacing:.16em">KONEXA</p><h1 style="margin:0 0 16px;font-size:28px;line-height:1.2">${selected.heading}</h1><p style="margin:0 0 28px;color:#525252;font-size:15px;line-height:1.7">${selected.body}</p><a href="${escapeHtml(appUrl)}" style="display:inline-block;padding:12px 18px;border-radius:10px;background:#171717;color:#fff;text-decoration:none;font-size:14px;font-weight:700">${selected.action}</a><p style="margin:28px 0 0;color:#a3a3a3;font-size:12px;line-height:1.6">This transactional email was sent because of activity on your KONEXA account.</p></td></tr></table></td></tr></table></body></html>`;
 
   return { subject: selected.subject, html };
