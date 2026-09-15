@@ -22,3 +22,9 @@ test('student and company business APIs require a completed profile', () => {
   assert.equal(accountAccessDecision({ role: 'company', onboardingStatus: 'complete', profileCompleted: true }), 'allowed');
   assert.equal(accountAccessDecision({ role: 'admin', profileCompleted: false }), 'allowed');
 });
+
+test('admin verification is separate from student/company account access', () => {
+  for (const role of ['student', 'company']) {
+    assert.equal(accountAccessDecision({ role, onboardingStatus: 'complete', profileCompleted: true, verified: false, verifiedStatus: 'Pending' }), 'allowed');
+  }
+});
