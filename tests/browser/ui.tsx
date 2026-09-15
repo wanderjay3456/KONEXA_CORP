@@ -12,6 +12,8 @@ import AdminDecisionWorkspace from '../../src/components/dashboard/AdminDecision
 import DeliveryWorkspace from '../../src/components/trust/DeliveryWorkspace';
 import AdminCaseActions from '../../src/components/trust/AdminCaseActions';
 import AutoTranslator from '../../src/i18n/AutoTranslator';
+import CoordinationWorkspace from '../../src/components/trust/CoordinationWorkspace';
+import { coordinationSnapshot } from './coordinationFixture';
 const parameters = new URLSearchParams(location.search);
 const role = parameters.get('role') || 'student';
 localStorage.setItem('konexa_locale', parameters.get('locale') || 'en');
@@ -25,4 +27,4 @@ function SignupScreen() {
 }
 function DeliveryScreen(){const [snapshot,setSnapshot]=React.useState<any>(null);const refresh=async()=>{const response=await fetch('/__qa/delivery');setSnapshot(await response.json());};React.useEffect(()=>{void refresh();},[]);return snapshot?(role==='admin'?<AdminCaseActions snapshot={snapshot} refresh={refresh}/>:<DeliveryWorkspace snapshot={snapshot} refresh={refresh}/>):<p>Loading</p>;}
 function TranslationScreen(){return <><div data-auto-translate><h1>결과물 및 종료 검토</h1><p>Submission history</p><p data-no-translate>Do not translate private content</p></div><AutoTranslator/></>;}
-createRoot(document.getElementById('root')!).render(<LocaleProvider><ToastProvider><FixtureProvider>{parameters.has('translation') ? <TranslationScreen/> : parameters.has('delivery') ? <DeliveryScreen/> : parameters.has('signup') ? <SignupScreen /> : role === 'admin' ? <AdminDecisionWorkspace /> : role === 'company' ? <AiRecruitmentCenter onNavigate={() => {}} /> : <CareerRoadmap />}</FixtureProvider></ToastProvider></LocaleProvider>);
+createRoot(document.getElementById('root')!).render(<LocaleProvider><ToastProvider><FixtureProvider>{parameters.has('coordination') ? <CoordinationWorkspace snapshot={coordinationSnapshot}/> : parameters.has('translation') ? <TranslationScreen/> : parameters.has('delivery') ? <DeliveryScreen/> : parameters.has('signup') ? <SignupScreen /> : role === 'admin' ? <AdminDecisionWorkspace /> : role === 'company' ? <AiRecruitmentCenter onNavigate={() => {}} /> : <CareerRoadmap />}</FixtureProvider></ToastProvider></LocaleProvider>);

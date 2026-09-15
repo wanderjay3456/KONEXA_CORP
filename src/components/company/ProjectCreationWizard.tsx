@@ -3,6 +3,7 @@ import { BriefcaseBusiness, CheckCircle2, ChevronRight, ShieldCheck } from "luci
 import { useApp } from "../../context/AppContext";
 import { ProjectDifficulty } from "../../types";
 import { useToast } from "../ui/Toast";
+import { useLocale } from '../../i18n/LocaleContext';
 
 interface ProjectCreationWizardProps {
   onNavigate: (tabId: string) => void;
@@ -13,6 +14,7 @@ const textareaClass = "mt-2 w-full resize-y rounded-xl border border-neutral-200
 
 export default function ProjectCreationWizard({ onNavigate }: ProjectCreationWizardProps) {
   const { createProject, companyProfile } = useApp();
+  const { locale } = useLocale();
   const { error, success } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState("");
@@ -95,7 +97,7 @@ export default function ProjectCreationWizard({ onNavigate }: ProjectCreationWiz
       <section className="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm md:p-8">
         <div className="border-b border-neutral-100 pb-5">
           <h2 className="text-lg font-black text-neutral-950">1. 프로젝트 기본정보</h2>
-          <p className="mt-1 text-xs leading-5 text-neutral-500">기업명은 인증 프로필의 {companyProfile?.companyName || "기업명"}으로 자동 표시됩니다.</p>
+          <p data-no-translate className="mt-1 text-xs leading-5 text-neutral-500">{locale === 'ko' ? '인증 프로필의 기업명을 사용합니다: ' : 'Uses the company name from your verified profile: '}{companyProfile?.companyName || (locale === 'ko' ? '기업명' : 'Company name')}</p>
         </div>
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <label className="text-xs font-bold text-neutral-700 md:col-span-2">프로젝트 제목 *

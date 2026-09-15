@@ -2,83 +2,64 @@ import React, { useState } from "react";
 import { motion } from "motion/react";
 import { useApp } from "../../context/AppContext";
 import { StudentProfile, UserRole } from "../../types";
-import { 
-  User, 
-  Shield, 
-  Eye, 
-  Bell, 
-  GraduationCap, 
-  Settings, 
-  LogOut, 
-  Trash2, 
-  Lock, 
-  Key, 
-  Database, 
-  CheckCircle,
-  Globe,
-  Clock,
-  AlertTriangle,
-  RefreshCw,
-  FileCheck2
-} from "lucide-react";
+import { User, Shield, Eye, Bell, GraduationCap, Settings, LogOut, Trash2, Lock, Key, Database, CheckCircle, Globe, Clock, AlertTriangle, RefreshCw, FileCheck2 } from "lucide-react";
 import { useToast } from "../ui/Toast";
 import { useLocale } from '../../i18n/LocaleContext';
-
-export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteProfile?: () => void }) {
-  const { locale } = useLocale();
-  const t = (ko: string, en: string, vi: string) => locale === 'ko' ? ko : locale === 'vi' ? vi : en;
-  const { studentProfile, updateStudentProfile, companyProfile, updateCompanyProfile, logoutUser } = useApp();
-  const { success, error, info } = useToast();
-  
-  const [activeSubTab, setActiveSubTab] = useState<"profile" | "security" | "privacy" | "notifications" | "languages" | "account">("profile");
-  const [isSaving, setIsSaving] = useState(false);
-  
-  // Student Profile Data State
-  const [studentForm, setStudentForm] = useState<Partial<StudentProfile>>({
-    name: studentProfile?.name || "",
-    preferredName: studentProfile?.preferredName || "",
-    nationality: studentProfile?.nationality || "South Korea",
-    currentCountry: studentProfile?.currentCountry || "South Korea",
-    university: studentProfile?.university || "",
-    degree: studentProfile?.degree || "",
-    major: studentProfile?.major || "",
-    graduationYear: studentProfile?.graduationYear || "",
-    studentId: studentProfile?.studentId || "",
-    languages: studentProfile?.languages || [],
-    englishLevel: studentProfile?.englishLevel || "",
-    koreanLevel: studentProfile?.koreanLevel || "",
-    skills: studentProfile?.skills || [],
-    github: studentProfile?.github || "",
-    portfolio: studentProfile?.portfolio || "",
-    linkedin: studentProfile?.linkedin || "",
-    resumeUrl: studentProfile?.resumeUrl || "",
-    timezone: studentProfile?.timezone || "GMT+9 (Seoul)",
-    bio: studentProfile?.bio || "",
-    availableHoursPerWeek: studentProfile?.availableHoursPerWeek ?? null,
-    preferredWeeklyPayKrw: studentProfile?.preferredWeeklyPayKrw,
-    workPreference: studentProfile?.workPreference,
-    availability: studentProfile?.availability || '',
-    emergencyContact: studentProfile?.emergencyContact || "",
-    notificationPreferences: studentProfile?.notificationPreferences || { email: true, push: true, marketing: false },
-    privacySettings: studentProfile?.privacySettings || { publicProfile: true, showResume: true }
-  });
-
-  const handleSaveStudent = async () => {
-    if (studentForm.availableHoursPerWeek != null && (!Number.isFinite(studentForm.availableHoursPerWeek) || studentForm.availableHoursPerWeek < 1 || studentForm.availableHoursPerWeek > 80)) {
-      error(t('참여 시간 확인', 'Check weekly hours', 'Kiểm tra số giờ'), t('주당 1~80시간 범위에서 입력해 주세요.', 'Enter 1–80 hours per week.', 'Nhập từ 1 đến 80 giờ mỗi tuần.')); return;
-    }
-    setIsSaving(true);
-    try {
-      await updateStudentProfile(studentForm);
-    } catch (err: any) {
-      error("Synchronization Failed", err.message || "Failed to sync updates.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-6xl mx-auto font-sans p-6 text-black">
+export default function ProfileSettingsView({ onCompleteProfile }: {
+    onCompleteProfile?: () => void;
+}) {
+    const { locale } = useLocale();
+    const t = (ko: string, en: string) => locale === 'ko' ? ko : en;
+    const { studentProfile, updateStudentProfile, companyProfile, updateCompanyProfile, logoutUser } = useApp();
+    const { success, error, info } = useToast();
+    const [activeSubTab, setActiveSubTab] = useState<"profile" | "security" | "privacy" | "notifications" | "languages" | "account">("profile");
+    const [isSaving, setIsSaving] = useState(false);
+    // Student Profile Data State
+    const [studentForm, setStudentForm] = useState<Partial<StudentProfile>>({
+        name: studentProfile?.name || "",
+        preferredName: studentProfile?.preferredName || "",
+        nationality: studentProfile?.nationality || "South Korea",
+        currentCountry: studentProfile?.currentCountry || "South Korea",
+        university: studentProfile?.university || "",
+        degree: studentProfile?.degree || "",
+        major: studentProfile?.major || "",
+        graduationYear: studentProfile?.graduationYear || "",
+        studentId: studentProfile?.studentId || "",
+        languages: studentProfile?.languages || [],
+        englishLevel: studentProfile?.englishLevel || "",
+        koreanLevel: studentProfile?.koreanLevel || "",
+        skills: studentProfile?.skills || [],
+        github: studentProfile?.github || "",
+        portfolio: studentProfile?.portfolio || "",
+        linkedin: studentProfile?.linkedin || "",
+        resumeUrl: studentProfile?.resumeUrl || "",
+        timezone: studentProfile?.timezone || "GMT+9 (Seoul)",
+        bio: studentProfile?.bio || "",
+        availableHoursPerWeek: studentProfile?.availableHoursPerWeek ?? null,
+        preferredWeeklyPayKrw: studentProfile?.preferredWeeklyPayKrw,
+        workPreference: studentProfile?.workPreference,
+        availability: studentProfile?.availability || '',
+        emergencyContact: studentProfile?.emergencyContact || "",
+        notificationPreferences: studentProfile?.notificationPreferences || { email: true, push: true, marketing: false },
+        privacySettings: studentProfile?.privacySettings || { publicProfile: true, showResume: true }
+    });
+    const handleSaveStudent = async () => {
+        if (studentForm.availableHoursPerWeek != null && (!Number.isFinite(studentForm.availableHoursPerWeek) || studentForm.availableHoursPerWeek < 1 || studentForm.availableHoursPerWeek > 80)) {
+            error(t('참여 시간 확인', 'Check weekly hours'), t('주당 1~80시간 범위에서 입력해 주세요.', 'Enter 1–80 hours per week.'));
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await updateStudentProfile(studentForm);
+        }
+        catch (err: any) {
+            error("Synchronization Failed", err.message || "Failed to sync updates.");
+        }
+        finally {
+            setIsSaving(false);
+        }
+    };
+    return (<div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-6xl mx-auto font-sans p-6 text-black">
       
       {/* Sidebar Selector (3/12 Columns) */}
       <div className="lg:col-span-3 space-y-2">
@@ -88,75 +69,45 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
         </div>
 
         <div className="space-y-1">
-          <button
-            onClick={() => setActiveSubTab("profile")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all ${
-              activeSubTab === "profile" 
-                ? "bg-black text-white shadow-xs" 
-                : "text-neutral-500 hover:text-black hover:bg-neutral-100"
-            }`}
-          >
-            <User className="w-4 h-4" />
+          <button onClick={() => setActiveSubTab("profile")} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all ${activeSubTab === "profile"
+            ? "bg-black text-white shadow-xs"
+            : "text-neutral-500 hover:text-black hover:bg-neutral-100"}`}>
+            <User className="w-4 h-4"/>
             <span>Profile Identity</span>
           </button>
 
-          <button
-            onClick={() => setActiveSubTab("security")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all ${
-              activeSubTab === "security" 
-                ? "bg-black text-white shadow-xs" 
-                : "text-neutral-500 hover:text-black hover:bg-neutral-100"
-            }`}
-          >
-            <Shield className="w-4 h-4" />
+          <button onClick={() => setActiveSubTab("security")} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all ${activeSubTab === "security"
+            ? "bg-black text-white shadow-xs"
+            : "text-neutral-500 hover:text-black hover:bg-neutral-100"}`}>
+            <Shield className="w-4 h-4"/>
             <span>Security & API Keys</span>
           </button>
 
-          <button
-            onClick={() => setActiveSubTab("privacy")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all ${
-              activeSubTab === "privacy" 
-                ? "bg-black text-white shadow-xs" 
-                : "text-neutral-500 hover:text-black hover:bg-neutral-100"
-            }`}
-          >
-            <Eye className="w-4 h-4" />
+          <button onClick={() => setActiveSubTab("privacy")} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all ${activeSubTab === "privacy"
+            ? "bg-black text-white shadow-xs"
+            : "text-neutral-500 hover:text-black hover:bg-neutral-100"}`}>
+            <Eye className="w-4 h-4"/>
             <span>Privacy Controls</span>
           </button>
 
-          <button
-            onClick={() => setActiveSubTab("notifications")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all ${
-              activeSubTab === "notifications" 
-                ? "bg-black text-white shadow-xs" 
-                : "text-neutral-500 hover:text-black hover:bg-neutral-100"
-            }`}
-          >
-            <Bell className="w-4 h-4" />
+          <button onClick={() => setActiveSubTab("notifications")} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all ${activeSubTab === "notifications"
+            ? "bg-black text-white shadow-xs"
+            : "text-neutral-500 hover:text-black hover:bg-neutral-100"}`}>
+            <Bell className="w-4 h-4"/>
             <span>Notifications</span>
           </button>
 
-          <button
-            onClick={() => setActiveSubTab("languages")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all ${
-              activeSubTab === "languages" 
-                ? "bg-black text-white shadow-xs" 
-                : "text-neutral-500 hover:text-black hover:bg-neutral-100"
-            }`}
-          >
-            <GraduationCap className="w-4 h-4" />
+          <button onClick={() => setActiveSubTab("languages")} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all ${activeSubTab === "languages"
+            ? "bg-black text-white shadow-xs"
+            : "text-neutral-500 hover:text-black hover:bg-neutral-100"}`}>
+            <GraduationCap className="w-4 h-4"/>
             <span>Languages & Academics</span>
           </button>
 
-          <button
-            onClick={() => setActiveSubTab("account")}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all ${
-              activeSubTab === "account" 
-                ? "bg-black text-white shadow-xs" 
-                : "text-neutral-500 hover:text-black hover:bg-neutral-100"
-            }`}
-          >
-            <Settings className="w-4 h-4" />
+          <button onClick={() => setActiveSubTab("account")} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all ${activeSubTab === "account"
+            ? "bg-black text-white shadow-xs"
+            : "text-neutral-500 hover:text-black hover:bg-neutral-100"}`}>
+            <Settings className="w-4 h-4"/>
             <span>Account Actions</span>
           </button>
         </div>
@@ -166,8 +117,7 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
       <div className="lg:col-span-9 bg-white border border-neutral-200 rounded-3xl p-8 shadow-sm space-y-6">
         
         {/* TAB 1: BASIC PROFILE */}
-        {activeSubTab === "profile" && (
-          <div className="space-y-6">
+        {activeSubTab === "profile" && (<div className="space-y-6">
             <div className="border-b border-neutral-100 pb-4">
               <h4 className="font-display font-bold text-lg text-neutral-900">Your profile</h4>
               <p className="text-neutral-500 text-sm leading-6 mt-1">Keep your details up to date. Complete your required information and documents before applying for projects.</p>
@@ -177,118 +127,74 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-600">Full Legal Name</label>
-                <input
-                  type="text"
-                  value={studentForm.name || ""}
-                  onChange={(e) => setStudentForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden focus:border-black"
-                />
+                <input type="text" value={studentForm.name || ""} onChange={(e) => setStudentForm(prev => ({ ...prev, name: e.target.value }))} className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden focus:border-black"/>
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-600">Preferred Name / Alias</label>
-                <input
-                  type="text"
-                  value={studentForm.preferredName || ""}
-                  onChange={(e) => setStudentForm(prev => ({ ...prev, preferredName: e.target.value }))}
-                  className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden focus:border-black"
-                />
+                <input type="text" value={studentForm.preferredName || ""} onChange={(e) => setStudentForm(prev => ({ ...prev, preferredName: e.target.value }))} className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs font-sans focus:outline-hidden focus:border-black"/>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-600">Nationality</label>
-                <input
-                  type="text"
-                  value={studentForm.nationality || ""}
-                  onChange={(e) => setStudentForm(prev => ({ ...prev, nationality: e.target.value }))}
-                  className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"
-                />
+                <input type="text" value={studentForm.nationality || ""} onChange={(e) => setStudentForm(prev => ({ ...prev, nationality: e.target.value }))} className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"/>
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-600">Current Country</label>
-                <input
-                  type="text"
-                  value={studentForm.currentCountry || ""}
-                  onChange={(e) => setStudentForm(prev => ({ ...prev, currentCountry: e.target.value }))}
-                  className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"
-                />
+                <input type="text" value={studentForm.currentCountry || ""} onChange={(e) => setStudentForm(prev => ({ ...prev, currentCountry: e.target.value }))} className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"/>
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-600">Time Zone Standard</label>
-                <input
-                  type="text"
-                  value={studentForm.timezone || ""}
-                  onChange={(e) => setStudentForm(prev => ({ ...prev, timezone: e.target.value }))}
-                  className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"
-                />
+                <input type="text" value={studentForm.timezone || ""} onChange={(e) => setStudentForm(prev => ({ ...prev, timezone: e.target.value }))} className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"/>
               </div>
             </div>
 
             <section data-no-translate className="space-y-4 rounded-2xl border border-neutral-200 p-4">
-              <h3 className="text-sm font-bold">{t('매칭에 사용할 협업 조건', 'Work preferences for matching', 'Điều kiện dùng để ghép dự án')}</h3>
-              <p className="text-sm leading-6 text-neutral-600">{t('모르는 항목은 비워 두면 확인 필요로 표시합니다. 주급은 연봉이 아니며, 참여 시간과 함께 비교합니다.', 'Unknown details remain marked for review. Weekly pay is compared together with available hours, not as an annual salary.', 'Thông tin chưa biết được đánh dấu cần xác minh. Thu nhập theo tuần được so sánh cùng số giờ làm việc.')}</p>
+              <h3 className="text-sm font-bold">{t('매칭에 사용할 협업 조건', 'Work preferences for matching')}</h3>
+              <p className="text-sm leading-6 text-neutral-600">{t('모르는 항목은 비워 두면 확인 필요로 표시합니다. 주급은 연봉이 아니며, 참여 시간과 함께 비교합니다.', 'Unknown details remain marked for review. Weekly pay is compared together with available hours, not as an annual salary.')}</p>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="text-sm">{t('주당 참여 가능 시간', 'Available hours per week', 'Số giờ có thể làm mỗi tuần')}<input type="number" min={1} max={80} value={studentForm.availableHoursPerWeek ?? ''} onChange={event => setStudentForm(value => ({ ...value, availableHoursPerWeek: event.target.value === '' ? null : Number(event.target.value) }))} className="mt-2 w-full rounded-xl border border-neutral-300 p-3" /></label>
-                <label className="text-sm">{t('희망 주급 (원)', 'Preferred weekly pay (KRW)', 'Thu nhập mong muốn mỗi tuần (KRW)')}<input type="number" min={1} value={studentForm.preferredWeeklyPayKrw ?? ''} onChange={event => setStudentForm(value => ({ ...value, preferredWeeklyPayKrw: event.target.value === '' ? undefined : Number(event.target.value) }))} className="mt-2 w-full rounded-xl border border-neutral-300 p-3" /></label>
-                <label className="text-sm">{t('희망 근무 방식', 'Work arrangement', 'Hình thức làm việc')}<select value={studentForm.workPreference || ''} onChange={event => setStudentForm(value => ({ ...value, workPreference: event.target.value as StudentProfile['workPreference'] }))} className="mt-2 w-full rounded-xl border border-neutral-300 p-3"><option value="">{t('미정', 'Not specified', 'Chưa xác định')}</option>{['Remote', 'Hybrid', 'Onsite'].map(item => <option key={item}>{item}</option>)}</select></label>
-                <label className="text-sm">{t('시작 가능 시점', 'When can you start?', 'Khi nào có thể bắt đầu?')}<input value={studentForm.availability || ''} onChange={event => setStudentForm(value => ({ ...value, availability: event.target.value }))} className="mt-2 w-full rounded-xl border border-neutral-300 p-3" /></label>
+                <label className="text-sm">{t('주당 참여 가능 시간', 'Available hours per week')}<input type="number" min={1} max={80} value={studentForm.availableHoursPerWeek ?? ''} onChange={event => setStudentForm(value => ({ ...value, availableHoursPerWeek: event.target.value === '' ? null : Number(event.target.value) }))} className="mt-2 w-full rounded-xl border border-neutral-300 p-3"/></label>
+                <label className="text-sm">{t('희망 주급 (원)', 'Preferred weekly pay (KRW)')}<input type="number" min={1} value={studentForm.preferredWeeklyPayKrw ?? ''} onChange={event => setStudentForm(value => ({ ...value, preferredWeeklyPayKrw: event.target.value === '' ? undefined : Number(event.target.value) }))} className="mt-2 w-full rounded-xl border border-neutral-300 p-3"/></label>
+                <label className="text-sm">{t('희망 근무 방식', 'Work arrangement')}<select value={studentForm.workPreference || ''} onChange={event => setStudentForm(value => ({ ...value, workPreference: event.target.value as StudentProfile['workPreference'] }))} className="mt-2 w-full rounded-xl border border-neutral-300 p-3"><option value="">{t('미정', 'Not specified')}</option>{['Remote', 'Hybrid', 'Onsite'].map(item => <option key={item}>{item}</option>)}</select></label>
+                <label className="text-sm">{t('시작 가능 시점', 'When can you start?')}<input value={studentForm.availability || ''} onChange={event => setStudentForm(value => ({ ...value, availability: event.target.value }))} className="mt-2 w-full rounded-xl border border-neutral-300 p-3"/></label>
               </div>
             </section>
             <div className="space-y-1">
               <label className="text-xs font-bold text-neutral-600">Emergency Contact</label>
-              <input
-                type="text"
-                value={studentForm.emergencyContact || ""}
-                onChange={(e) => setStudentForm(prev => ({ ...prev, emergencyContact: e.target.value }))}
-                placeholder="Name (Relationship) / Phone"
-                className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"
-              />
+              <input type="text" value={studentForm.emergencyContact || ""} onChange={(e) => setStudentForm(prev => ({ ...prev, emergencyContact: e.target.value }))} placeholder="Name (Relationship) / Phone" className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"/>
             </div>
 
             <div className="space-y-1">
               <label className="text-xs font-bold text-neutral-600">Self Pitch biography</label>
-              <textarea
-                value={studentForm.bio || ""}
-                onChange={(e) => setStudentForm(prev => ({ ...prev, bio: e.target.value }))}
-                rows={4}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl p-4 text-xs font-sans focus:outline-hidden focus:border-black"
-              />
+              <textarea value={studentForm.bio || ""} onChange={(e) => setStudentForm(prev => ({ ...prev, bio: e.target.value }))} rows={4} className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl p-4 text-xs font-sans focus:outline-hidden focus:border-black"/>
             </div>
 
             <div className="pt-4 border-t border-neutral-100 flex justify-end">
-              <button
-                onClick={handleSaveStudent}
-                disabled={isSaving}
-                className="px-6 h-11 rounded-xl bg-black hover:bg-neutral-800 text-white font-sans text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
-              >
+              <button onClick={handleSaveStudent} disabled={isSaving} className="px-6 h-11 rounded-xl bg-black hover:bg-neutral-800 text-white font-sans text-xs font-bold transition-all flex items-center gap-2 cursor-pointer">
                 {isSaving ? "Synchronizing Engines..." : "Save Identity Settings"}
               </button>
             </div>
-          </div>
-        )}
+          </div>)}
 
         {/* TAB 2: SECURITY */}
-        {activeSubTab === "security" && (
-          <div className="space-y-6">
+        {activeSubTab === "security" && (<div className="space-y-6">
             <div className="border-b border-neutral-100 pb-4">
               <h4 className="font-display font-bold text-lg text-neutral-900">Account Security</h4>
               <p className="text-neutral-400 text-xs mt-0.5">KONEXA never exposes service API keys or fabricated activity records in your browser.</p>
             </div>
 
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5 text-xs leading-6 text-emerald-900">
-              <div className="flex items-center gap-2 font-bold"><Shield className="h-4 w-4" />Supabase authenticated session</div>
+              <div className="flex items-center gap-2 font-bold"><Shield className="h-4 w-4"/>Supabase authenticated session</div>
               <p className="mt-2 text-emerald-800">Password changes use a verified recovery email. Sign out below if this is a shared device.</p>
             </div>
-          </div>
-        )}
+          </div>)}
 
         {/* TAB 3: PRIVACY */}
-        {activeSubTab === "privacy" && (
-          <div className="space-y-6">
+        {activeSubTab === "privacy" && (<div className="space-y-6">
             <div className="border-b border-neutral-100 pb-4">
               <h4 className="font-display font-bold text-lg text-neutral-900">Privacy & Document Lock Controls</h4>
               <p className="text-neutral-400 text-xs mt-0.5">Govern how your verification files and resume profiles are cataloged by recruiter searches.</p>
@@ -296,15 +202,10 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
 
             <div className="space-y-4">
               <label className="flex items-start gap-4 p-4 rounded-xl border border-neutral-200 hover:border-neutral-300 transition-colors cursor-pointer bg-neutral-50/50">
-                <input
-                  type="checkbox"
-                  checked={studentForm.privacySettings?.publicProfile}
-                  onChange={(e) => setStudentForm(prev => ({ 
-                    ...prev, 
-                    privacySettings: { ...prev.privacySettings!, publicProfile: e.target.checked } 
-                  }))}
-                  className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-1"
-                />
+                <input type="checkbox" checked={studentForm.privacySettings?.publicProfile} onChange={(e) => setStudentForm(prev => ({
+                ...prev,
+                privacySettings: { ...prev.privacySettings!, publicProfile: e.target.checked }
+            }))} className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-1"/>
                 <div className="text-xs">
                   <span className="font-bold text-neutral-800 block">Public Sourcing Search Indexing</span>
                   <p className="text-neutral-400 mt-0.5">Let company hiring managers locate your profile based on academic major match percentages.</p>
@@ -312,15 +213,10 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
               </label>
 
               <label className="flex items-start gap-4 p-4 rounded-xl border border-neutral-200 hover:border-neutral-300 transition-colors cursor-pointer bg-neutral-50/50">
-                <input
-                  type="checkbox"
-                  checked={studentForm.privacySettings?.showResume}
-                  onChange={(e) => setStudentForm(prev => ({ 
-                    ...prev, 
-                    privacySettings: { ...prev.privacySettings!, showResume: e.target.checked } 
-                  }))}
-                  className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-1"
-                />
+                <input type="checkbox" checked={studentForm.privacySettings?.showResume} onChange={(e) => setStudentForm(prev => ({
+                ...prev,
+                privacySettings: { ...prev.privacySettings!, showResume: e.target.checked }
+            }))} className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer mt-1"/>
                 <div className="text-xs">
                   <span className="font-bold text-neutral-800 block">Open Sponsor Resume Lock</span>
                   <p className="text-neutral-400 mt-0.5">Allow corporate challenge hosts to instantly download your attached verification files.</p>
@@ -328,7 +224,7 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
               </label>
 
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex gap-3 text-xs text-amber-800">
-                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5"/>
                 <div className="space-y-1">
                   <span className="font-bold block text-amber-950">Anonymous Safety Guarantee</span>
                   <p className="leading-relaxed font-light text-amber-900">KONEXA will never leak, trade, or distribute your sandbox code repositories to unapproved corporate brokers.</p>
@@ -337,19 +233,14 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
             </div>
 
             <div className="pt-4 border-t border-neutral-100 flex justify-end">
-              <button
-                onClick={handleSaveStudent}
-                className="px-6 h-11 rounded-xl bg-black hover:bg-neutral-800 text-white font-sans text-xs font-bold transition-all cursor-pointer"
-              >
+              <button onClick={handleSaveStudent} className="px-6 h-11 rounded-xl bg-black hover:bg-neutral-800 text-white font-sans text-xs font-bold transition-all cursor-pointer">
                 Save Privacy Settings
               </button>
             </div>
-          </div>
-        )}
+          </div>)}
 
         {/* TAB 4: NOTIFICATIONS */}
-        {activeSubTab === "notifications" && (
-          <div className="space-y-6">
+        {activeSubTab === "notifications" && (<div className="space-y-6">
             <div className="border-b border-neutral-100 pb-4">
               <h4 className="font-display font-bold text-lg text-neutral-900">Notification Channels & Prefs</h4>
               <p className="text-neutral-400 text-xs mt-0.5">Select preferred alert intervals for new matching challenges, vector updates, and system pings.</p>
@@ -361,15 +252,10 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
                   <span className="font-bold text-neutral-800 block">Email Digest Summary Notifications</span>
                   <p className="text-neutral-400 mt-0.5">Weekly summaries of matched corporate sponsors and escrow deposits.</p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={studentForm.notificationPreferences?.email}
-                  onChange={(e) => setStudentForm(prev => ({
-                    ...prev,
-                    notificationPreferences: { ...prev.notificationPreferences!, email: e.target.checked }
-                  }))}
-                  className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                />
+                <input type="checkbox" checked={studentForm.notificationPreferences?.email} onChange={(e) => setStudentForm(prev => ({
+                ...prev,
+                notificationPreferences: { ...prev.notificationPreferences!, email: e.target.checked }
+            }))} className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer"/>
               </label>
 
               <label className="flex items-center justify-between p-4 rounded-xl border border-neutral-200 bg-neutral-50/50 cursor-pointer">
@@ -377,15 +263,10 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
                   <span className="font-bold text-neutral-800 block">Real-time Push Alerts & Pings</span>
                   <p className="text-neutral-400 mt-0.5">Receive browser notifications immediately when a sandbox review is processed by Gemini.</p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={studentForm.notificationPreferences?.push}
-                  onChange={(e) => setStudentForm(prev => ({
-                    ...prev,
-                    notificationPreferences: { ...prev.notificationPreferences!, push: e.target.checked }
-                  }))}
-                  className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                />
+                <input type="checkbox" checked={studentForm.notificationPreferences?.push} onChange={(e) => setStudentForm(prev => ({
+                ...prev,
+                notificationPreferences: { ...prev.notificationPreferences!, push: e.target.checked }
+            }))} className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer"/>
               </label>
 
               <label className="flex items-center justify-between p-4 rounded-xl border border-neutral-200 bg-neutral-50/50 cursor-pointer">
@@ -393,32 +274,22 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
                   <span className="font-bold text-neutral-800 block">Marketing & Platform updates</span>
                   <p className="text-neutral-400 mt-0.5">Occasional system announcements and hiring challenge highlights.</p>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={studentForm.notificationPreferences?.marketing}
-                  onChange={(e) => setStudentForm(prev => ({
-                    ...prev,
-                    notificationPreferences: { ...prev.notificationPreferences!, marketing: e.target.checked }
-                  }))}
-                  className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                />
+                <input type="checkbox" checked={studentForm.notificationPreferences?.marketing} onChange={(e) => setStudentForm(prev => ({
+                ...prev,
+                notificationPreferences: { ...prev.notificationPreferences!, marketing: e.target.checked }
+            }))} className="rounded border-neutral-300 text-black focus:ring-black cursor-pointer"/>
               </label>
             </div>
 
             <div className="pt-4 border-t border-neutral-100 flex justify-end">
-              <button
-                onClick={handleSaveStudent}
-                className="px-6 h-11 rounded-xl bg-black hover:bg-neutral-800 text-white font-sans text-xs font-bold transition-all cursor-pointer"
-              >
+              <button onClick={handleSaveStudent} className="px-6 h-11 rounded-xl bg-black hover:bg-neutral-800 text-white font-sans text-xs font-bold transition-all cursor-pointer">
                 Save Notification Prefs
               </button>
             </div>
-          </div>
-        )}
+          </div>)}
 
         {/* TAB 5: LANGUAGES & ACADEMICS */}
-        {activeSubTab === "languages" && (
-          <div className="space-y-6">
+        {activeSubTab === "languages" && (<div className="space-y-6">
             <div className="border-b border-neutral-100 pb-4">
               <h4 className="font-display font-bold text-lg text-neutral-900">Language & Academic Credentials</h4>
               <p className="text-neutral-400 text-xs mt-0.5">Verify language fluency levels, current academic degree status, and university anchors.</p>
@@ -427,11 +298,7 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-600">English Fluency Level</label>
-                <select
-                  value={studentForm.englishLevel || "Fluent"}
-                  onChange={(e) => setStudentForm(prev => ({ ...prev, englishLevel: e.target.value }))}
-                  className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-3 text-xs text-neutral-700"
-                >
+                <select value={studentForm.englishLevel || "Fluent"} onChange={(e) => setStudentForm(prev => ({ ...prev, englishLevel: e.target.value }))} className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-3 text-xs text-neutral-700">
                   <option value="Beginner">Beginner</option>
                   <option value="Intermediate">Intermediate</option>
                   <option value="Fluent">Fluent</option>
@@ -441,11 +308,7 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-600">Korean Fluency Level</label>
-                <select
-                  value={studentForm.koreanLevel || "Fluent"}
-                  onChange={(e) => setStudentForm(prev => ({ ...prev, koreanLevel: e.target.value }))}
-                  className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-3 text-xs text-neutral-700"
-                >
+                <select value={studentForm.koreanLevel || "Fluent"} onChange={(e) => setStudentForm(prev => ({ ...prev, koreanLevel: e.target.value }))} className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-3 text-xs text-neutral-700">
                   <option value="Beginner">Beginner</option>
                   <option value="Intermediate">Intermediate</option>
                   <option value="Fluent">Fluent</option>
@@ -457,49 +320,29 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-neutral-100 pt-4">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-600">University Institution</label>
-                <input
-                  type="text"
-                  value={studentForm.university || ""}
-                  onChange={(e) => setStudentForm(prev => ({ ...prev, university: e.target.value }))}
-                  className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"
-                />
+                <input type="text" value={studentForm.university || ""} onChange={(e) => setStudentForm(prev => ({ ...prev, university: e.target.value }))} className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"/>
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-600">Specialization Major</label>
-                <input
-                  type="text"
-                  value={studentForm.major || ""}
-                  onChange={(e) => setStudentForm(prev => ({ ...prev, major: e.target.value }))}
-                  className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"
-                />
+                <input type="text" value={studentForm.major || ""} onChange={(e) => setStudentForm(prev => ({ ...prev, major: e.target.value }))} className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"/>
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-600">Target Graduation Year</label>
-                <input
-                  type="text"
-                  value={studentForm.graduationYear || ""}
-                  onChange={(e) => setStudentForm(prev => ({ ...prev, graduationYear: e.target.value }))}
-                  className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"
-                />
+                <input type="text" value={studentForm.graduationYear || ""} onChange={(e) => setStudentForm(prev => ({ ...prev, graduationYear: e.target.value }))} className="w-full h-11 bg-neutral-50 border border-neutral-200 rounded-xl px-4 text-xs"/>
               </div>
             </div>
 
             <div className="pt-4 border-t border-neutral-100 flex justify-end">
-              <button
-                onClick={handleSaveStudent}
-                className="px-6 h-11 rounded-xl bg-black hover:bg-neutral-800 text-white font-sans text-xs font-bold transition-all cursor-pointer"
-              >
+              <button onClick={handleSaveStudent} className="px-6 h-11 rounded-xl bg-black hover:bg-neutral-800 text-white font-sans text-xs font-bold transition-all cursor-pointer">
                 Save Language & Academic Settings
               </button>
             </div>
-          </div>
-        )}
+          </div>)}
 
         {/* TAB 6: ACCOUNT ACTIONS */}
-        {activeSubTab === "account" && (
-          <div className="space-y-6">
+        {activeSubTab === "account" && (<div className="space-y-6">
             <div className="border-b border-neutral-100 pb-4">
               <h4 className="font-display font-bold text-lg text-neutral-900">Account Actions</h4>
               <p className="text-neutral-400 text-xs mt-0.5">Manage this authenticated session and account requests.</p>
@@ -512,14 +355,11 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
                   <span className="font-bold text-neutral-800 block">Terminate Active Session</span>
                   <p className="text-neutral-400 mt-0.5">Securely end the current browser session.</p>
                 </div>
-                <button
-                  onClick={() => {
-                    logoutUser();
-                    success("Logged Out", "Active terminal session ended securely.");
-                  }}
-                  className="px-4 h-10 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
+                <button onClick={() => {
+                logoutUser();
+                success("Logged Out", "Active terminal session ended securely.");
+            }} className="px-4 h-10 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors">
+                  <LogOut className="w-3.5 h-3.5"/>
                   <span>Secure Sign-Out</span>
                 </button>
               </div>
@@ -530,19 +370,14 @@ export default function ProfileSettingsView({ onCompleteProfile }: { onCompleteP
                   <span className="font-bold block text-rose-950">Request account deletion</span>
                   <p className="leading-relaxed font-light text-rose-900 mt-0.5">Automated deletion is not enabled yet. Contact KONEXA support so identity and settlement records can be handled safely.</p>
                 </div>
-                <button
-                  onClick={() => info("Deletion request", "Please contact KONEXA support from your registered email. No account data was deleted.")}
-                  className="px-4 h-10 bg-white border border-rose-200 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shrink-0"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
+                <button onClick={() => info("Deletion request", "Please contact KONEXA support from your registered email. No account data was deleted.")} className="px-4 h-10 bg-white border border-rose-200 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shrink-0">
+                  <Trash2 className="w-3.5 h-3.5"/>
                   <span>View instructions</span>
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          </div>)}
 
       </div>
-    </div>
-  );
+    </div>);
 }

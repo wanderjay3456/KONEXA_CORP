@@ -16,6 +16,7 @@ import { useToast } from "../ui/Toast";
 import { payProjectContract } from "../../lib/portonePayments";
 import DeliveryWorkspace from './DeliveryWorkspace';
 import AdminCaseActions from './AdminCaseActions';
+import CoordinationWorkspace from './CoordinationWorkspace';
 
 const emptySnapshot: TrustSnapshot = {
   consents: [], introductions: [], contracts: [], signatures: [], milestones: [], payments: [],
@@ -42,13 +43,13 @@ function StatusPill({ children, good = false }: { children: React.ReactNode; goo
   return <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${good ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>{children}</span>;
 }
 
-export default function TrustOperationsCenter() {
+export default function TrustOperationsCenter({ initialSection = 'contracts' }: { initialSection?: 'contracts' | 'coordination' }) {
   const { activeRole, currentUser, companyProfile, studentProfile, projects } = useApp();
   const { success, error, info } = useToast();
   const [snapshot, setSnapshot] = useState<TrustSnapshot>(emptySnapshot);
   const [loading, setLoading] = useState(false);
   const [loadFailure, setLoadFailure] = useState(false);
-  const [activeSection, setActiveSection] = useState<"workflow" | "contracts" | "reviews" | "policy" | "privacy">("contracts");
+  const [activeSection, setActiveSection] = useState<"workflow" | "contracts" | "coordination" | "reviews" | "policy" | "privacy">(initialSection);
 
   const [talentId, setTalentId] = useState("");
   const [purpose, setPurpose] = useState<"interview" | "project" | "hire">("project");
@@ -308,12 +309,13 @@ export default function TrustOperationsCenter() {
 
         <div className="flex gap-2 overflow-x-auto rounded-2xl border border-neutral-200 bg-white p-2">
           {([
-            ["workflow", "소개·채용"], ["contracts", "계약·마일스톤"], ["reviews", "상호 리뷰"], ["policy", "요금·보증·문서"], ["privacy", "개인정보·탐지"],
+            ["workflow", "소개·채용"], ["contracts", "계약·마일스톤"], ["coordination", "일정·변경·지원"], ["reviews", "상호 리뷰"], ["policy", "요금·보증·문서"], ["privacy", "개인정보·탐지"],
           ] as const).map(([id, label]) => (
             <button key={id} onClick={() => setActiveSection(id)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-bold ${activeSection === id ? "bg-neutral-950 text-white" : "text-neutral-500 hover:bg-neutral-50"}`}>{label}</button>
           ))}
         </div>
 
+        {activeSection === "coordination" && <CoordinationWorkspace snapshot={snapshot} />}
         {activeSection === "workflow" && (
           <div className="space-y-6">
             <section className="rounded-3xl border border-neutral-200 bg-white p-6">

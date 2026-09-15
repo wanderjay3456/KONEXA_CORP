@@ -38,7 +38,7 @@ test('admin load failure is not shown as zero members; retry and native locales 
   await page.unroute('**/api/admin/decision-workspace');
   await page.getByRole('button', { name: 'Refresh', exact: true }).click();
   await expect(page.getByLabel('Member type')).toBeVisible();
-  for (const [locale, title] of [['ko', '인재·기업 검토실'], ['vi', 'Đánh giá nhân tài & doanh nghiệp']]) {
+  for (const [locale, title] of [['ko', '인재·기업 검토실'], ['en', 'Talent & company review']]) {
     await page.goto(`/?role=admin&locale=${locale}`);
     await expect(page.getByRole('heading', { name: title })).toBeVisible();
   }

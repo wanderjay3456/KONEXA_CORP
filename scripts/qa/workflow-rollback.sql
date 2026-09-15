@@ -4,6 +4,7 @@ begin;
 set local statement_timeout = '30s';
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 create temporary table qa_results (name text primary key, passed boolean not null) on commit drop;
+grant all on qa_results to service_role,authenticated;
 create function pg_temp.qa_assert(name text, value boolean) returns void language plpgsql as $$
 begin
   if value is distinct from true then raise exception 'QA failed: %',name; end if;
@@ -46,6 +47,7 @@ begin
   update public.app_records set data=data||'{"trustScore":99,"aiEmployabilityScore":99,"earlyPioneerEligible":true,"uid":"forged","bio":"Allowed bio edit"}',is_public=true where collection_name='student_profiles' and record_id=student::text;
   reset role;
   perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+  set local role service_role;
   perform pg_temp.qa_assert('browser_cannot_forge_facts_but_can_edit_bio',exists(select 1 from public.app_records where collection_name='student_profiles' and record_id=student::text and data->>'trustScore'='0' and data->>'aiEmployabilityScore'='12' and not (data ? 'earlyPioneerEligible') and data->>'uid'=student::text and data->>'bio'='Allowed bio edit' and not is_public));
   perform pg_temp.qa_denied('unverified_company_cannot_publish',format('select public.konexa_create_project_v2(%L,%L::jsonb,%L)',company,payload,'qa-denied'),'verified_company_required');
   update public.app_records set data=data||'{"verified":true,"verifiedStatus":"Verified"}' where collection_name='company_profiles' and record_id in (company::text,other_company::text);
@@ -55,7 +57,9 @@ begin
   perform pg_temp.qa_denied('different_payload_same_key_rejected',format('select public.konexa_create_project_v2(%L,%L::jsonb,%L)',company,payload||'{"title":"[QA] changed title"}','qa-project'),'idempotency_key_reused');
   perform pg_temp.qa_denied('incomplete_student_cannot_apply',format('select public.konexa_apply_to_project_v2(%L,%L,%L::jsonb,%L)',student,project_id,'{}','qa-incomplete'),'completed_student_profile_required');
   -- Storage metadata fixtures only; no real uploaded documents. Rolled back.
+  reset role;
   insert into storage.objects(bucket_id,name,owner,owner_id) values ('identity-documents',student||'/qa-not-real-document',student,student::text),('resumes',student||'/qa-not-real-resume',student,student::text);
+  set local role service_role;
   update public.app_records set data=data||jsonb_build_object('onboardingCompleted',true,'name','[QA] Student','nationality','Vietnam','currentCountry','Vietnam','timezone','Asia/Ho_Chi_Minh','university','[QA] Not a real university','degree','Test','major','Research','graduationYear','2027','englishLevel','B2','skills',jsonb_build_array('Research'),'portfolio','https://example.invalid/qa','preferredJob','Market research','availability','10 hours per week','preferredWeeklyPayKrw',100000,'bio','[QA] Synthetic fixture, not a real applicant','identityDocumentPath',student||'/qa-not-real-document','resumeUrl',student||'/qa-not-real-resume') where collection_name='student_profiles' and record_id=student::text;
   result := public.konexa_apply_to_project_v2(student,project_id,'{"submission":"[QA] Research outline"}','qa-apply'); application_id := (result->>'id')::uuid;
   perform pg_temp.qa_assert('student_application_saved',exists(select 1 from public.konexa_applications where id=application_id and student_id=student));
@@ -135,6 +139,7 @@ begin
   perform pg_temp.qa_assert('wrong_worker_cannot_complete',exists(select 1 from public.konexa_notification_outbox where id=row_id and status='processing'));
   perform public.konexa_complete_notification_outbox_v2(row_id,'qa-worker',false,null,'QA temporary failure');
   perform pg_temp.qa_assert('failed_delivery_gets_backoff',exists(select 1 from public.konexa_notification_outbox where id=row_id and status='failed' and next_attempt_at>clock_timestamp()));
+  reset role;
 end $$;
 do $$
 declare student uuid := gen_random_uuid(); assessment uuid := gen_random_uuid();

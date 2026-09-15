@@ -29,7 +29,7 @@ interface VerificationRequest {
   updatedAt?: string | number;
 }
 
-type AdminTab = "decision" | "overview" | "members" | "projects" | "verifications" | "activity" | "automation" | "delivery";
+type AdminTab = "decision" | "overview" | "members" | "projects" | "verifications" | "activity" | "automation" | "delivery" | "coordination";
 
 const tabs: Array<{ id: AdminTab; label: string }> = [
   { id: "decision", label: "인재·기업 검토" },
@@ -37,6 +37,7 @@ const tabs: Array<{ id: AdminTab; label: string }> = [
   { id: "members", label: "회원 관리" },
   { id: "projects", label: "프로젝트" },
   { id: "delivery", label: "결과물·종료 검토" },
+  { id: "coordination", label: "일정·변경·지원" },
   { id: "verifications", label: "인증 심사" },
   { id: "activity", label: "활동 기록" },
   { id: "automation", label: "자동 운영 점검" },
@@ -161,6 +162,7 @@ export default function AdminDashboard() {
         {activeTab === 'decision' && <AdminDecisionWorkspace />}
         {activeTab === 'automation' && <AutomationHealth />}
         {activeTab === 'delivery' && <TrustOperationsCenter />}
+        {activeTab === 'coordination' && <TrustOperationsCenter initialSection="coordination" />}
         {activeTab === "overview" && (
           <div className="space-y-6">
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
