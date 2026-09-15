@@ -10,6 +10,14 @@ test('localization diagnostics include only allowlisted configuration field name
   assert.deepEqual(localizationFailureFields(null),[]);
 });
 
+test('product names and qualification labels are preserved without an AI rewrite',()=>{
+  for(const locale of ['ko','en','vi'] as const) {
+    for(const label of ['KONEXA','Work Passport','Early Pioneer','E-7','RMIT','PG','SaaS']) {
+      assert.equal(needsUiTranslation(label,locale),false);
+    }
+  }
+});
+
 test('native UI copy stays stable and localization server budget fits the client deadline',()=>{
   assert.equal(needsUiTranslation('결과물 및 종료 검토','ko'),false);
   assert.equal(needsUiTranslation('KONEXA 프로젝트 확인','ko'),false);

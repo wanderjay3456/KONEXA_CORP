@@ -24,7 +24,7 @@ import { registerSupportRoutes } from './src/server/support';
 import { registerCoachChatRoutes } from './src/server/coachChat';
 import { requireAssessmentScore, requireAssessmentText } from './src/server/assessmentValidation';
 import { normalizePdfEvidence } from './src/server/pdfEvidence';
-import { LOCALIZATION_MAX_MODELS, LOCALIZATION_PROVIDER_TIMEOUT_MS, validateUiTranslations, localizationFailureFields } from './src/i18n/localizationPolicy';
+import { LOCALIZATION_MAX_MODELS, LOCALIZATION_PROVIDER_TIMEOUT_MS, validateUiTranslations, localizationFailureFields, needsUiTranslation } from './src/i18n/localizationPolicy';
 import { providerFailure } from './src/server/providerResponse';
 import {
   getBackendV2Readiness,
@@ -135,6 +135,10 @@ export function createApp() {
       const translations = new Array<string>(texts.length);
       const missingIndexes: number[] = [];
       texts.forEach((text: string, index: number) => {
+        if (!needsUiTranslation(text, locale as 'ko'|'en'|'vi')) {
+          translations[index] = text;
+          return;
+        }
         const cached = uiTranslationCache.get(`${locale}\u0000${contexts[index]}\u0000${text}`);
         if (cached) translations[index] = cached;
         else missingIndexes.push(index);

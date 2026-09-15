@@ -8,10 +8,12 @@ export const LOCALIZATION_RETRY_DELAY_MS = 30_000;
 
 const hangul = /[가-힣]/;
 const vietnamese = /[ăâđêôơưĂÂĐÊÔƠƯạảấầẩẫậắằẳẵặẹẻẽếềểễệỉĩịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/;
+const invariantLabel = /^(?:KONEXA|Work Passport|Early Pioneer|E-7|RMIT|PG|SaaS|KO|EN|VI)$/i;
 
 // Native source copy is reviewed during development, not rewritten by AI on
 // every navigation. Mixed Korean sentences keep product names/acronyms intact.
 export function needsUiTranslation(value:string, locale:'ko'|'en'|'vi') {
+  if(invariantLabel.test(value.trim()))return false;
   if(locale==='ko')return !hangul.test(value);
   if(locale==='en')return hangul.test(value)||vietnamese.test(value);
   return hangul.test(value)||!vietnamese.test(value);
