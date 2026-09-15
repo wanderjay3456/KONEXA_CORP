@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLocale, type Locale } from "./LocaleContext";
 import { canApplyUiTranslation, preservesTranslationNumbers } from './translationSafety';
+import { LOCALIZATION_BATCH_SIZE, LOCALIZATION_CLIENT_TIMEOUT_MS, LOCALIZATION_RETRY_DELAY_MS, needsUiTranslation } from './localizationPolicy';
 
 type TranslationCache = Record<string, string>;
 type TextState = { original: string; lastApplied: string };
@@ -10,7 +11,7 @@ type TranslationTarget =
   | { kind: "text"; node: Text; source: string; context: TranslationContext }
   | { kind: "attribute"; node: HTMLElement; attribute: string; source: string; context: TranslationContext };
 
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const TRANSLATABLE_ATTRIBUTES = ["placeholder", "title", "aria-label"];
 const textStates = new WeakMap<Text, TextState>();
 const attributeStates = new WeakMap<HTMLElement, Map<string, AttrState>>();
@@ -141,6 +142,8 @@ export default function AutoTranslator() {
     let cancelled = false;
     let running = false;
     let rerun = false;
+    let retryAfter = 0;
+    const controller = new AbortController();
 
     const translatePage = async () => {
       if (running) {
@@ -154,6 +157,10 @@ export default function AutoTranslator() {
         const cache = readCache(activeLocale);
         const byKey = new Map<string, TranslationTarget[]>();
         for (const target of targets) {
+          if (!needsUiTranslation(target.source, activeLocale)) {
+            applyTranslation(target, target.source);
+            continue;
+          }
           const key = targetKey(target);
           byKey.set(key, [...(byKey.get(key) || []), target]);
         }
@@ -163,8 +170,8 @@ export default function AutoTranslator() {
         }
 
         const missing = Array.from(byKey.keys()).filter((key) => !cache[key]);
-        for (let offset = 0; offset < missing.length && !cancelled; offset += 55) {
-          const batchKeys = missing.slice(offset, offset + 55);
+        for (let offset = 0; offset < missing.length && !cancelled; offset += LOCALIZATION_BATCH_SIZE) {
+          const batchKeys = missing.slice(offset, offset + LOCALIZATION_BATCH_SIZE);
           const batchTargets = batchKeys.map((key) => byKey.get(key)![0]);
           const batch = batchTargets.map((target) => target.source.replace(/\s+/g, " ").trim());
           const contexts = batchTargets.map((target) => target.context);
@@ -172,9 +179,9 @@ export default function AutoTranslator() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ locale: activeLocale, texts: batch, contexts }),
-            signal: AbortSignal.timeout(15_000),
+            signal: AbortSignal.any([controller.signal, AbortSignal.timeout(LOCALIZATION_CLIENT_TIMEOUT_MS)]),
           });
-          if (!response.ok) break;
+          if (!response.ok) { retryAfter=Date.now()+LOCALIZATION_RETRY_DELAY_MS; break; }
           const payload = await response.json() as { translations?: string[] };
           if (cancelled || localeRef.current !== activeLocale) break;
           batchKeys.forEach((key, index) => {
@@ -186,19 +193,22 @@ export default function AutoTranslator() {
           writeCache(activeLocale, cache);
         }
       } catch (error) {
-        console.warn("[KONEXA] UI localization fallback unavailable:", error);
+        if (!cancelled) {
+          retryAfter=Date.now()+LOCALIZATION_RETRY_DELAY_MS;
+          console.warn("[KONEXA] UI localization fallback unavailable:", error);
+        }
       } finally {
         running = false;
         if (rerun && !cancelled) {
           rerun = false;
-          window.setTimeout(translatePage, 80);
+          timer=window.setTimeout(translatePage, Math.max(80,retryAfter-Date.now()));
         }
       }
     };
 
     const schedule = () => {
       window.clearTimeout(timer);
-      timer = window.setTimeout(translatePage, 220);
+      timer = window.setTimeout(translatePage, Math.max(220,retryAfter-Date.now()));
     };
 
     const observer = new MutationObserver(schedule);
@@ -206,6 +216,7 @@ export default function AutoTranslator() {
     schedule();
     return () => {
       cancelled = true;
+      controller.abort();
       observer.disconnect();
       window.clearTimeout(timer);
     };
