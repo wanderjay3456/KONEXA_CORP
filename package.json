@@ -10,7 +10,8 @@
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "test:browser": "playwright test"
   },
   "engines": {
     "node": ">=22 <25"
@@ -43,6 +44,7 @@
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/d3": "^7.4.3",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",

@@ -54,6 +54,8 @@ begin
   perform pg_temp.qa_assert('project_retry_idempotent',public.konexa_create_project_v2(company,payload,'qa-project')=result);
   perform pg_temp.qa_denied('different_payload_same_key_rejected',format('select public.konexa_create_project_v2(%L,%L::jsonb,%L)',company,payload||'{"title":"[QA] changed title"}','qa-project'),'idempotency_key_reused');
   perform pg_temp.qa_denied('incomplete_student_cannot_apply',format('select public.konexa_apply_to_project_v2(%L,%L,%L::jsonb,%L)',student,project_id,'{}','qa-incomplete'),'completed_student_profile_required');
+  -- Storage metadata fixtures only; no real uploaded documents. Rolled back.
+  insert into storage.objects(bucket_id,name,owner,owner_id) values ('identity-documents',student||'/qa-not-real-document',student,student::text),('resumes',student||'/qa-not-real-resume',student,student::text);
   update public.app_records set data=data||jsonb_build_object('onboardingCompleted',true,'name','[QA] Student','nationality','Vietnam','currentCountry','Vietnam','timezone','Asia/Ho_Chi_Minh','university','[QA] Not a real university','degree','Test','major','Research','graduationYear','2027','englishLevel','B2','skills',jsonb_build_array('Research'),'portfolio','https://example.invalid/qa','preferredJob','Market research','availability','10 hours per week','preferredWeeklyPayKrw',100000,'bio','[QA] Synthetic fixture, not a real applicant','identityDocumentPath',student||'/qa-not-real-document','resumeUrl',student||'/qa-not-real-resume') where collection_name='student_profiles' and record_id=student::text;
   result := public.konexa_apply_to_project_v2(student,project_id,'{"submission":"[QA] Research outline"}','qa-apply'); application_id := (result->>'id')::uuid;
   perform pg_temp.qa_assert('student_application_saved',exists(select 1 from public.konexa_applications where id=application_id and student_id=student));
@@ -107,6 +109,33 @@ begin
   perform pg_temp.qa_assert('wrong_worker_cannot_complete',exists(select 1 from public.konexa_notification_outbox where id=row_id and status='processing'));
   perform public.konexa_complete_notification_outbox_v2(row_id,'qa-worker',false,null,'QA temporary failure');
   perform pg_temp.qa_assert('failed_delivery_gets_backoff',exists(select 1 from public.konexa_notification_outbox where id=row_id and status='failed' and next_attempt_at>clock_timestamp()));
+end $$;
+do $$
+declare student uuid := gen_random_uuid(); assessment uuid := gen_random_uuid();
+begin
+  insert into auth.users(id,email,raw_user_meta_data,raw_app_meta_data) values
+    (student,student||'@example.invalid','{"role":"student","display_name":"[QA] Matching rollback"}','{"provider":"email"}');
+  insert into storage.objects(bucket_id,name,owner,owner_id) values ('identity-documents',student||'/qa-document',student,student::text),('resumes',student||'/qa-resume',student,student::text);
+  update public.app_records set data=data||jsonb_build_object('onboardingCompleted',true,'privacySettings','{"publicProfile":true}'::jsonb,'name','[QA] Matching rollback','nationality','Vietnam','currentCountry','Vietnam','timezone','Asia/Ho_Chi_Minh','university','[QA] Fixture','degree','Test','major','Research','graduationYear','2027','englishLevel','B2','preferredJob','Market research','availability','Immediately','bio','[QA] Rollback only','identityDocumentPath',student||'/qa-document','resumeUrl',student||'/qa-resume','skills','["Research"]'::jsonb,'preferredWeeklyPayKrw',100000,'availableHoursPerWeek',12) where collection_name='student_profiles' and record_id=student::text;
+  perform pg_temp.qa_assert('matching_uses_private_directory_cards',exists(select 1 from public.app_records where collection_name='talent_cards' and record_id=student::text and not is_public)
+    and exists(select 1 from public.konexa_matching_candidate_page('',250) where record_id=student::text and data->>'availableHoursPerWeek'='12'));
+  perform pg_temp.qa_assert('matching_lookup_is_service_only',not has_function_privilege('anon','public.konexa_matching_candidate_page(text,integer)','execute') and not has_function_privilege('authenticated','public.konexa_matching_candidate_page(text,integer)','execute'));
+  update public.app_records set data=data||'{"accountStatus":"Suspended"}' where collection_name='users' and record_id=student::text;
+  perform pg_temp.qa_assert('suspended_candidate_excluded',not exists(select 1 from public.konexa_matching_candidate_page('',250) where record_id=student::text));
+  update public.app_records set data=data||'{"accountStatus":"Active"}' where collection_name='users' and record_id=student::text;
+  update public.app_records set data=data||'{"privacySettings":{"publicProfile":false}}' where collection_name='student_profiles' and record_id=student::text;
+  perform pg_temp.qa_assert('withdrawn_candidate_excluded',not exists(select 1 from public.konexa_matching_candidate_page('',250) where record_id=student::text));
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',student,'role','authenticated')::text,true);
+  set local role authenticated;
+  update public.app_records set data=data||'{"careerVision":"Saved research goal","availableHoursPerWeek":14}' where collection_name='student_profiles' and record_id=student::text;
+  reset role;
+  perform set_config('request.jwt.claims','{"role":"service_role"}',true);
+  perform pg_temp.qa_assert('career_goal_real_owner_write',exists(select 1 from public.app_records where collection_name='student_profiles' and record_id=student::text and data->>'careerVision'='Saved research goal' and data->>'availableHoursPerWeek'='14'));
+  insert into public.konexa_ai_assessments(id,requested_by,entity_type,entity_id,assessment_type,model,prompt_version,input_hash,result,status)
+    values(assessment,student,'roadmap',student::text,'student_career_roadmap','pending','qa','qa','{}','pending');
+  update public.konexa_ai_assessments set status='completed',model='qa-not-a-real-provider',result='{"summary":"Rollback fixture"}' where id=assessment;
+  perform pg_temp.qa_assert('assessment_attempt_complete_persistence',exists(select 1 from public.konexa_ai_assessments where id=assessment and status='completed' and result->>'summary'='Rollback fixture'));
+  perform pg_temp.qa_assert('automation_health_service_only',not has_function_privilege('authenticated','public.konexa_automation_health()','execute') and public.konexa_automation_health() ? 'delayedNotifications');
 end $$;
 select name,passed from qa_results order by name;
 rollback;

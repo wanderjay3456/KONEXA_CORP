@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { 
   FileText, Sparkles, CheckCircle, Award, Target, HelpCircle, 
@@ -6,6 +6,9 @@ import {
   Globe, Languages, Briefcase, FileCode2, Clock, Plus
 } from "lucide-react";
 import { useToast } from "../ui/Toast";
+import { useAssessmentHistory } from '../../lib/useAssessmentHistory';
+import AssessmentHistoryStatus from '../ai/AssessmentHistoryStatus';
+import { useLocale } from '../../i18n/LocaleContext';
 
 interface ResumeVersion {
   id: string;
@@ -15,7 +18,10 @@ interface ResumeVersion {
 }
 
 export default function ResumeBuilder() {
-  const { studentProfile, applications, updateStudentProfile } = useApp();
+  const { currentUser, studentProfile, applications, updateStudentProfile } = useApp();
+  const { locale } = useLocale();
+  const history = useAssessmentHistory('resume_evidence_review', currentUser?.uid || '');
+  const pdfHistory = useAssessmentHistory('pdf_evidence_extraction', currentUser?.uid || '');
   const { success, info, error } = useToast();
 
   // State
@@ -28,6 +34,7 @@ export default function ResumeBuilder() {
   
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
   const [pdfAnalysis, setPdfAnalysis] = useState<any>(null);
+  useEffect(() => { setFeedbackList([]); setPdfAnalysis(null); setResumeScore(0); setVersions([]); }, [currentUser?.uid]);
 
   const handlePDFUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,6 +67,7 @@ export default function ResumeBuilder() {
         if (!res.ok) throw new Error(analysis.error || 'The PDF could not be analyzed. Your profile has not changed.');
         
         setPdfAnalysis(analysis);
+        pdfHistory.reload();
         
         if (analysis.extractedSkills?.length) {
           const saved = await updateStudentProfile({ skills: Array.from(new Set([...(studentProfile?.skills || []), ...analysis.extractedSkills])) });
@@ -78,6 +86,19 @@ export default function ResumeBuilder() {
   };
 
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
+  useEffect(() => {
+    const latest = history.rows[0];
+    if (latest) {
+      setResumeScore(latest.result.score);
+      setFeedbackList([
+        ...(latest.result.strengths || []).map((text: string) => ({ type: 'strength', text })),
+        ...(latest.result.issues || []).map((text: string) => ({ type: 'warning', text })),
+        ...(latest.result.recommendedEdits || []).map((text: string) => ({ type: 'recommendation', text })),
+      ]);
+    }
+    setVersions(history.rows.map(row => ({ id: row.id, templateName: 'Saved evidence review', score: row.result.score, updatedAt: new Date(row.created_at).toLocaleString(locale) })));
+  }, [history.rows, locale]);
+  useEffect(() => { if (pdfHistory.rows[0]) setPdfAnalysis(pdfHistory.rows[0].result); }, [pdfHistory.rows]);
 
   // Handle PDF export trigger
   const handleExportPDF = () => {
@@ -90,7 +111,8 @@ export default function ResumeBuilder() {
       const response = await fetch("/api/ai/resume-review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetRole: studentProfile?.preferredJob || "" }),
+        body: JSON.stringify({ targetRole: studentProfile?.preferredJob || "", locale }),
+        signal: AbortSignal.timeout(55_000),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "AI 이력서 검토를 완료하지 못했습니다.");
@@ -104,6 +126,7 @@ export default function ResumeBuilder() {
         { id: `v_${Date.now()}`, templateName: `${selectedTemplate.toUpperCase()} 근거 검토`, score: payload.score || 0, updatedAt: "방금" },
         ...prev
       ]);
+      history.reload();
       success("AI 이력서 검토 완료", "등록된 프로필 근거만 기준으로 검토했습니다.");
     } catch (cause) {
       error("AI 이력서 검토 오류", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
@@ -114,6 +137,7 @@ export default function ResumeBuilder() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-neutral-50 p-6 space-y-6 scrollbar">
+      <AssessmentHistoryStatus loading={history.loading || pdfHistory.loading} error={history.error || pdfHistory.error} createdAt={history.rows[0]?.created_at || pdfHistory.rows[0]?.created_at} onReload={() => { history.reload(); pdfHistory.reload(); }} />
       
       {/* HEADER */}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

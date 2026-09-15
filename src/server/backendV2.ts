@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { drainOutbox } from './outboxDrain';
 import { deferNotificationWork } from "./deferredWork";
 import { isTransientDependencyError } from './dependencyResilience';
 import type { Express, Request, Response } from "express";
@@ -129,6 +130,12 @@ interface NotificationOutboxRow {
 }
 
 export async function processNotificationOutboxBatch(limit = 20, recipientId?: string) {
+  const summary = await drainOutbox(size => processNotificationPair(size, recipientId), { limit: recipientId ? Math.min(2, limit) : limit });
+  console.info('[KONEXA] notification_batch', summary);
+  return summary;
+}
+
+async function processNotificationPair(limit: number, recipientId?: string) {
   const workerId = `api-${process.pid}-${crypto.randomUUID()}`;
   const claimed = await rpc<NotificationOutboxRow[]>(
     recipientId ? 'konexa_claim_recipient_notifications' : "konexa_claim_notification_outbox_v2",
@@ -681,5 +688,12 @@ export function registerBackendV2Routes(app: Express) {
     } catch (error) {
       routeError(res, error, "The notification worker could not complete its batch.");
     }
+  });
+
+  app.get('/api/v2/admin/automation-health', async (req: AuthenticatedRequest, res: Response) => {
+    res.setHeader('Cache-Control', 'no-store');
+    if (req.user?.role !== 'admin') return res.status(403).json({ error: 'Administrator access is required' });
+    try { res.json({ data: await rpc('konexa_automation_health', {}) }); }
+    catch (error) { routeError(res, error, 'Operational health could not be loaded.'); }
   });
 }
