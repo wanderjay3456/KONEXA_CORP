@@ -30,13 +30,15 @@ export async function uploadPrivateFile(
     "student-intro-videos": { max: 100 * 1024 * 1024, types: ["video/mp4", "video/webm", "video/quicktime"] },
   };
   const rule = rules[bucket];
+  const contentType = bucket === 'project-deliverables' && /\.zip$/i.test(file.name)
+    && ['application/zip', 'application/x-zip-compressed'].includes(file.type) ? 'application/zip' : file.type;
   if (file.size > rule.max) throw new Error(`파일 크기는 ${Math.round(rule.max / 1024 / 1024)}MB 이하여야 합니다.`);
-  if (!rule.types.includes(file.type)) throw new Error("지원하지 않는 파일 형식입니다.");
+  if (!rule.types.includes(contentType)) throw new Error("지원하지 않는 파일 형식입니다.");
 
   const objectPath = `${userId}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
   const { error } = await supabase.storage.from(bucket).upload(objectPath, file, {
     cacheControl: "3600",
-    contentType: file.type || "application/octet-stream",
+    contentType,
     upsert: false,
   });
   if (error) throw error;

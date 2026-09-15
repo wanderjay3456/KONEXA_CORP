@@ -95,7 +95,7 @@ function AppContent() {
         {/* Dynamic central workspace */}
         <main className="flex min-w-0 flex-1 flex-col pb-24 md:pb-0">
           <Suspense fallback={<WorkspaceLoading />}>
-          {activeTab === "trust-operations" || (activeRole === UserRole.STUDENT && activeTab === "workspace") ? (
+          {activeTab === "trust-operations" || ((activeRole === UserRole.STUDENT || activeRole === UserRole.COMPANY) && ["workspace", "company-workspace"].includes(activeTab)) ? (
             <TrustOperationsCenter />
           ) : (
             <>

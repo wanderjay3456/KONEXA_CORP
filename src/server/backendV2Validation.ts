@@ -319,12 +319,16 @@ export function parseMilestonePayload(input: unknown) {
 
 export function parseMilestoneSubmission(input: unknown) {
   const value = plainObject(input, "submission");
-  return {
+  const result = {
     notes: typeof value.notes === "string" ? text(value.notes, "notes", 0, 10_000) : "",
     storagePaths: Array.isArray(value.storagePaths)
       ? stringList(value.storagePaths, "storagePaths", 0, 20, 500)
       : [],
   };
+  if (result.notes.trim().length < 10 && result.storagePaths.length === 0) {
+    throw new ApiInputError('Add a deliverable file or describe the result in at least 10 characters.', 'EVIDENCE_REQUIRED', 400);
+  }
+  return result;
 }
 
 export function parseDisputePayload(input: unknown) {

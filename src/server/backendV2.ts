@@ -14,6 +14,7 @@ import {
   EMAIL_TEMPLATES,
 } from "./email";
 import { reviewVisibilityFilter, shouldDeliverAccountEmail } from './workflowVisibility';
+import { registerDeliveryReadRoutes } from './deliveryRoutes';
 import {
   ApiInputError,
   enumValue,
@@ -130,6 +131,10 @@ interface NotificationOutboxRow {
 }
 
 export async function processNotificationOutboxBatch(limit = 20, recipientId?: string) {
+  if (!recipientId) {
+    try { await rpc('konexa_queue_delivery_reminders_v3', {}); }
+    catch (cause) { console.warn('Delivery reminder queue unavailable', { code: (cause as any)?.code || 'DATABASE_ERROR' }); }
+  }
   const summary = await drainOutbox(size => processNotificationPair(size, recipientId), { limit: recipientId ? Math.min(2, limit) : limit });
   console.info('[KONEXA] notification_batch', summary);
   return summary;
@@ -371,6 +376,7 @@ export function registerBackendV2PublicRoutes(app: Express) {
 }
 
 export function registerBackendV2Routes(app: Express) {
+  registerDeliveryReadRoutes(app);
   const notificationDispatchLimit = rateLimit({ windowMs: 60_000, limit: 2, standardHeaders: 'draft-8', legacyHeaders: false,
     keyGenerator: (req: AuthenticatedRequest) => req.user!.uid });
   app.post('/api/v2/notifications/dispatch', notificationDispatchLimit, (req: AuthenticatedRequest, res) => {
@@ -533,10 +539,11 @@ export function registerBackendV2Routes(app: Express) {
       try {
         if (!req.user?.uid) throw new ApiInputError("Authentication is required.", "AUTH_REQUIRED", 401);
         const decision = enumValue(req.body?.decision, "decision", ["approved", "rejected"] as const);
-        const data = await rpc("konexa_review_milestone_v2", {
+        const data = await rpc("konexa_review_delivery_v3", {
           p_actor: req.user.uid,
           p_milestone_id: uuid(req.params.milestoneId, "milestoneId"),
           p_decision: decision,
+          p_feedback: text(req.body?.feedback, 'feedback', 10, 5000),
           p_idempotency_key: keyFromRequest(req),
         });
         processOutboxSoon();
@@ -688,6 +695,30 @@ export function registerBackendV2Routes(app: Express) {
     } catch (error) {
       routeError(res, error, "The notification worker could not complete its batch.");
     }
+  });
+
+  app.post('/api/v2/contracts/:contractId/completion', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user?.uid) throw new ApiInputError('Authentication is required.', 'AUTH_REQUIRED', 401);
+      const data = await rpc('konexa_confirm_completion_v3', {
+        p_actor: req.user.uid, p_contract_id: uuid(req.params.contractId, 'contractId'),
+        p_idempotency_key: keyFromRequest(req),
+      });
+      processOutboxSoon();
+      res.json({ data, requestId: requestId(req) });
+    } catch (cause) { routeError(res, cause, 'Project completion could not be saved.'); }
+  });
+
+  app.post('/api/v2/admin/disputes/:disputeId/resolve', async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.user?.uid || req.user.role!=='admin') throw new ApiInputError('Administrator access is required.', 'FORBIDDEN', 403);
+      const data=await rpc('konexa_resolve_dispute_v3',{
+        p_actor:req.user.uid,p_dispute_id:uuid(req.params.disputeId,'disputeId'),
+        p_summary:text(req.body?.summary,'summary',20,5000),p_resume:req.body?.resume===true,
+        p_idempotency_key:keyFromRequest(req),
+      });
+      processOutboxSoon();res.json({data,requestId:requestId(req)});
+    } catch(cause){routeError(res,cause,'The dispute resolution could not be saved.');}
   });
 
   app.get('/api/v2/admin/automation-health', async (req: AuthenticatedRequest, res: Response) => {
