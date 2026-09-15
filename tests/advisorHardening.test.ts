@@ -9,7 +9,7 @@ import FoundingPartners from "../src/components/landing/FoundingPartners";
 import { deferNotificationWork } from "../src/server/deferredWork";
 import { loadWorkspaceProfiles } from "../src/lib/workspaceProfile";
 import { UserRole } from "../src/types";
-test("all three auth languages have complete non-empty copy", () => {
+test("Korean and English auth languages have complete non-empty copy", () => {
     const keys = Object.keys(authCopy.en).sort();
     for (const locale of ["ko", "en"] as const) {
         assert.deepEqual(Object.keys(authCopy[locale]).sort(), keys);

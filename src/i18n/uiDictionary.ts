@@ -565,7 +565,7 @@ export const sourceUiDictionary: Record<string,string> = {
   "학위 과정": "Degree",
   "한국 기업과 글로벌 인재가 실제 프로젝트로 함께 일하며 서로의 역량과 협업 방식을 확인하는 플랫폼입니다. 기업은 업무 범위와 주차별 결과물을 정하고, 인재는 프로필을 완성한 뒤 공고에 지원합니다. 채용이나 특정 성과가 자동으로 보장되는 서비스는 아닙니다. 현재 모집·진행 가능 여부는 실제 공고와 운영팀 안내를 기준으로 확인해 주세요.": "KONEXA connects Korean companies and global talent through real projects, so both sides can assess skills and how they work together. Companies define the scope and weekly deliverables; talent complete a profile and apply to published opportunities. Hiring and specific outcomes are not guaranteed. Check live listings and the operations team for current availability.",
   "한국어": "English",
-  "한국어·영어·베트남어로 이용할 수 있나요?": "Which languages can I use?",
+  "한국어와 영어 중에서 선택할 수 있나요?": "Which languages can I use?",
   "함께 일해 보면, 이력서만으로 알 수 없던 실력이 보입니다. KONEXA는 기업의 업무 범위와 주차별 결과물을 먼저 정한 뒤, 프로젝트에 참여할 수 있는 글로벌 인재를 연결합니다.": "A real project tells you more than a resume. Define the work and weekly deliverables with KONEXA, then connect with global talent who can take part.",
   "합의할 결과물": "Expected deliverable",
   "해당 프로젝트의 약정과 실제 진행 기록을 기준으로 운영팀에 요청합니다. 프로젝트명, 발생한 문제, 합의 내용과 결과물 기록을 정리해 주세요. 민감한 자료는 챗봇에 입력하지 마세요. 환불액·처리 기한·대체인재 제공 여부는 검토가 필요합니다. 챗봇이 환불이나 보상을 승인하거나 일률적인 보증을 약속하지 않습니다.": "Contact operations using the project agreement and actual work records. Identify the project, issue, agreed terms and deliverable evidence. Do not put sensitive materials in this chatbot. Refund amounts, timelines and replacement availability require review. This chatbot cannot approve compensation or promise a blanket guarantee.",

@@ -20,7 +20,8 @@ export function parseSupportRequest(body: unknown) {
         throw new Error('INVALID_ARTICLE');
     return { question: value.question.trim(), locale: value.locale as SupportLocale, articleId };
 }
-function responseBody(ids: string[], locale: SupportLocale, source: string, generationId?: string) {
+function responseBody(ids: string[], savedLocale: unknown, source: string, generationId?: string) {
+    const locale: SupportLocale = savedLocale === 'ko' ? 'ko' : 'en';
     return {
         articles: ids.map(id => supportArticleView(id, locale)).filter(Boolean),
         fallback: ids.length ? null : SUPPORT_FALLBACK[locale],
@@ -28,7 +29,7 @@ function responseBody(ids: string[], locale: SupportLocale, source: string, gene
         ...(generationId ? { generationId, url: `/api/public/support/answers/${generationId}` } : {}),
     };
 }
-export function registerSupportRoutes(app: Express) {
+export function registerSupportRoutes(app: Express, getDatabase = getSupabaseAdmin) {
     const limiter = rateLimit({ windowMs: 5 * 60000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false,
         message: { error: 'Too many questions. Please use the help topics or try again shortly.', code: 'RATE_LIMITED' } });
     app.get('/api/public/support', (_req, res) => {
@@ -64,7 +65,7 @@ export function registerSupportRoutes(app: Express) {
         const id = crypto.randomUUID();
         let recordCreated = false;
         try {
-            const db = getSupabaseAdmin();
+            const db = getDatabase();
             // Cap public LLM use; knowledge buttons do not consume provider calls.
             const { count, error: budgetError } = await db.from('konexa_ai_generations').select('id', { count: 'exact', head: true })
                 .eq('kind', 'help_route').gte('created_at', new Date(Date.now() - 3600000).toISOString());
@@ -92,7 +93,7 @@ export function registerSupportRoutes(app: Express) {
         catch (error) {
             const diagnostic = providerFailure(error);
             if (recordCreated)
-                await getSupabaseAdmin().from('konexa_ai_generations').update({ status: 'failed', result: { failureCode: diagnostic.code, providerStatus: diagnostic.httpStatus }, completed_at: new Date().toISOString() }).eq('id', id);
+                await getDatabase().from('konexa_ai_generations').update({ status: 'failed', result: { failureCode: diagnostic.code, providerStatus: diagnostic.httpStatus }, completed_at: new Date().toISOString() }).eq('id', id);
             console.warn('[KONEXA] Help AI unavailable; reviewed help remains available.', JSON.stringify(diagnostic));
             res.json(responseBody(fallbackIds, locale, 'reviewed_help_fallback'));
         }
@@ -104,7 +105,7 @@ export function registerSupportRoutes(app: Express) {
             return;
         }
         try {
-            const { data, error } = await getSupabaseAdmin().from('konexa_ai_generations')
+            const { data, error } = await getDatabase().from('konexa_ai_generations')
                 .select('locale,result').eq('id', req.params.id).eq('kind', 'help_route').eq('status', 'completed').maybeSingle();
             if (error)
                 throw error;
@@ -112,7 +113,7 @@ export function registerSupportRoutes(app: Express) {
                 res.status(404).json({ error: 'Not found' });
                 return;
             }
-            res.json(responseBody(safeSupportIds(data.result?.articleIds), data.locale as SupportLocale, 'saved_reviewed_help', req.params.id));
+            res.json(responseBody(safeSupportIds(data.result?.articleIds), data.locale, 'saved_reviewed_help', req.params.id));
         }
         catch {
             res.status(503).json({ error: 'Saved help is temporarily unavailable. Use the help topics.' });

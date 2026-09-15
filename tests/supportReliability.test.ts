@@ -7,7 +7,7 @@ import { registerSupportRoutes, parseSupportRequest } from '../src/server/suppor
 import { parseCoachInput } from '../src/server/coachChat';
 import { requireAssessmentScore, requireAssessmentText } from '../src/server/assessmentValidation';
 import { createSnapshotRefresh } from '../src/lib/snapshotRefresh';
-test('every help article has unique IDs and complete native copy in all three languages', () => {
+test('every help article has unique IDs and complete native copy in Korean and English', () => {
     assert.ok(SUPPORT_ARTICLES.length >= 34);
     assert.equal(new Set(SUPPORT_ARTICLES.map(item => item.id)).size, SUPPORT_ARTICLES.length);
     for (const entry of SUPPORT_ARTICLES)
@@ -64,6 +64,35 @@ test('public help API answers without auth or a provider and does not echo malic
         await new Promise<void>(resolve => server.close(() => resolve()));
     }
 });
+test('saved Vietnamese help links render current English copy after the locale migration', async () => {
+    const app = express();
+    app.set('trust proxy', 1);
+    let savedIds: string[] = ['language'];
+    const query = {
+        select() { return query; }, eq() { return query; },
+        async maybeSingle() { return { data: { locale: 'vi', result: { articleIds: savedIds } }, error: null }; },
+    };
+    registerSupportRoutes(app, () => ({ from: () => query }) as any);
+    const server = app.listen(0, '127.0.0.1');
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const base = `http://127.0.0.1:${(server.address() as any).port}`;
+    try {
+        const response = await fetch(`${base}/api/public/support/answers/00000000-0000-4000-8000-000000000001`);
+        assert.equal(response.status, 200);
+        const body = await response.json();
+        assert.equal(body.source, 'saved_reviewed_help');
+        assert.equal(body.articles[0].answer, supportArticleView('language', 'en')?.answer);
+        assert.match(body.articles[0].answer, /한국어 or English/);
+        assert.doesNotMatch(body.articles[0].answer, /English or Tiếng Việt/);
+        savedIds = [];
+        const empty = await fetch(`${base}/api/public/support/answers/00000000-0000-4000-8000-000000000001`).then(r => r.json());
+        assert.match(empty.fallback, /could not find/);
+    } finally {
+        server.closeAllConnections();
+        await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+});
+
 test('coach validates roles, conversation limits and request IDs instead of truncating silently', () => {
     const parsed = parseCoachInput({ messages: [{ role: 'user', content: ' Help with a portfolio ' }], contextKey: 'portfolio', locale: 'vi' });
     assert.equal(parsed.messages[0].content, 'Help with a portfolio');
