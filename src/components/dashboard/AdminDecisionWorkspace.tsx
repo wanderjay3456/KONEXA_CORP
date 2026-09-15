@@ -59,10 +59,14 @@ export default function AdminDecisionWorkspace() {
     setAnalyzing(target.id); setAnalysisMessage('');
     try {
       const response = await fetch('/api/gemini/analyze-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: target.role, profileOwnerId: target.id, locale }), signal: AbortSignal.timeout(55_000) });
-      if (!response.ok) throw new Error('ANALYSIS_INCOMPLETE');
+      if (!response.ok) { const body = await response.json().catch(() => null); throw new Error(body?.code || 'ANALYSIS_INCOMPLETE'); }
       setAnalysisMessage(t('분석을 저장했습니다.', 'Analysis saved.', 'Đã lưu phân tích.'));
-    } catch {
-      setAnalysisMessage(t('분석을 완료하지 못했습니다. 기존 프로필은 그대로 보존됩니다. 정보를 확인한 뒤 재시도해 주세요.', 'Analysis did not complete. The profile is unchanged. Check the evidence and retry.', 'Chưa hoàn tất phân tích. Hồ sơ được giữ nguyên. Kiểm tra thông tin rồi thử lại.'));
+    } catch (error) {
+      const code = error instanceof Error ? error.message : '';
+      setAnalysisMessage(['AI_PROVIDER_UNAVAILABLE', 'AI_TIMEOUT', 'AI_RATE_LIMITED'].includes(code)
+        ? t('AI 제공업체가 일시적으로 응답하지 않습니다. 프로필은 저장되어 있으며 수정할 필요가 없습니다. 잠시 후 분석만 다시 실행해 주세요.', 'The AI provider is temporarily unavailable. The saved profile does not need editing. Retry analysis later.', 'Dịch vụ AI tạm thời không phản hồi. Không cần sửa hồ sơ đã lưu. Hãy thử phân tích lại sau.')
+        : code === 'AI_STORAGE_ERROR' ? t('분석 기록 저장을 확인하지 못했습니다. 프로필을 다시 작성하지 말고 운영 저장소 상태를 확인해 주세요.', 'Analysis storage could not be confirmed. Do not re-enter the profile; check the operations storage status.', 'Chưa xác nhận được lưu phân tích. Không cần nhập lại hồ sơ; hãy kiểm tra hệ thống lưu trữ.')
+        : t('분석을 완료하지 못했습니다. 기존 프로필은 그대로 보존됩니다. 정보를 확인한 뒤 재시도해 주세요.', 'Analysis did not complete. The profile is unchanged. Check the evidence and retry.', 'Chưa hoàn tất phân tích. Hồ sơ được giữ nguyên. Kiểm tra thông tin rồi thử lại.'));
     } finally { setAnalyzing(''); setRevision(value => value + 1); }
   }
   async function openEvidence(target: Member, kind: string) {

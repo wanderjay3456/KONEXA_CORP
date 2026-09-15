@@ -3,7 +3,7 @@ import { generateWithModelFallback } from './providerResponse';
 
 let client: GoogleGenAI | null = null;
 
-const defaultModels = (process.env.GEMINI_MODELS || "gemini-3.1-flash-lite,gemini-3.5-flash")
+const defaultModels = (process.env.GEMINI_MODELS || "gemini-3.5-flash-lite,gemini-3.5-flash")
   .split(",")
   .map((model) => model.trim())
   .filter(Boolean);

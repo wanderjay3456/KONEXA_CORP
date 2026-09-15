@@ -60,7 +60,7 @@ export async function generateWithModelFallback(
   validate?: (value: any) => void,
 ): Promise<{ response: { text: string } & Record<string, any>; model: string }> {
   let lastError: unknown;
-  for (const model of models) {
+  for (const [index, model] of models.entries()) {
     const started = Date.now();
     try {
       const response = await generate(model);
@@ -73,7 +73,9 @@ export async function generateWithModelFallback(
     } catch (error) {
       lastError = error;
       // Do not log provider payloads, prompts, credentials or profile content.
-      console.warn('[KONEXA] AI generation failed', JSON.stringify({ model: /^[a-z0-9._:-]{1,100}$/i.test(model) ? model : 'configured-model', ...providerFailure(error), elapsedMs: Date.now() - started }));
+      const diagnostic = providerFailure(error);
+      console.warn('[KONEXA] AI generation failed', JSON.stringify({ model: /^[a-z0-9._:-]{1,100}$/i.test(model) ? model : 'configured-model', ...diagnostic, elapsedMs: Date.now() - started }));
+      if (index < models.length - 1 && ['AI_PROVIDER_UNAVAILABLE', 'AI_RATE_LIMITED', 'AI_TIMEOUT'].includes(diagnostic.code)) await new Promise(resolve => setTimeout(resolve, 400 + Math.floor(Math.random() * 200)));
     }
   }
   throw lastError || new Error('No Gemini model is configured');
