@@ -2,7 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { canApplyUiTranslation, preservesTranslationNumbers } from '../src/i18n/translationSafety';
 import { normalizePdfEvidence } from '../src/server/pdfEvidence';
-import { needsUiTranslation, validateUiTranslations, LOCALIZATION_BATCH_SIZE, LOCALIZATION_CLIENT_TIMEOUT_MS, LOCALIZATION_PROVIDER_TIMEOUT_MS, LOCALIZATION_MAX_MODELS } from '../src/i18n/localizationPolicy';
+import { needsUiTranslation, validateUiTranslations, localizationFailureFields, LOCALIZATION_BATCH_SIZE, LOCALIZATION_CLIENT_TIMEOUT_MS, LOCALIZATION_PROVIDER_TIMEOUT_MS, LOCALIZATION_MAX_MODELS } from '../src/i18n/localizationPolicy';
+
+test('localization diagnostics include only allowlisted configuration field names',()=>{
+  assert.deepEqual(localizationFailureFields({message:'Invalid temperature. Private account user@example.invalid api-key=secret'}),['temperature']);
+  assert.deepEqual(localizationFailureFields({message:'Private contents and credential values'}),[]);
+  assert.deepEqual(localizationFailureFields(null),[]);
+});
+
+test('product names and qualification labels are preserved without an AI rewrite',()=>{
+  for(const locale of ['ko','en','vi'] as const) {
+    for(const label of ['KONEXA','Work Passport','Early Pioneer','E-7','RMIT','PG','SaaS']) {
+      assert.equal(needsUiTranslation(label,locale),false);
+    }
+  }
+});
 
 test('native UI copy stays stable and localization server budget fits the client deadline',()=>{
   assert.equal(needsUiTranslation('결과물 및 종료 검토','ko'),false);
@@ -13,6 +27,7 @@ test('native UI copy stays stable and localization server budget fits the client
   assert.equal(needsUiTranslation('Lịch sử bàn giao','vi'),false);
   assert.equal(needsUiTranslation('Submission history','vi'),true);
   assert.ok(LOCALIZATION_PROVIDER_TIMEOUT_MS*LOCALIZATION_MAX_MODELS+3000<LOCALIZATION_CLIENT_TIMEOUT_MS);
+  assert.ok(LOCALIZATION_PROVIDER_TIMEOUT_MS>=12_000, 'Keep the deadline accepted by the verified provider request');
   assert.ok(LOCALIZATION_BATCH_SIZE<=20);
 });
 test('localization rejects missing, fabricated numeric and non-text values before caching',()=>{
