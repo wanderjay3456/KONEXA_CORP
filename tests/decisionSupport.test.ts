@@ -4,6 +4,7 @@ import { classifyRoles, ROLE_GROUPS, optionLabel, skillIsDeclared } from '../src
 import { shortlistCandidates } from '../src/server/matching';
 import { evidenceHash, profileEvidence, PROFILE_ANALYSIS_VERSION, summarizeMember } from '../src/server/decisionSupport';
 import { aiFixture, admin, company, student, projectId } from './helpers/aiFixture';
+import { isProductionMember } from '../src/lib/adminBackend';
 
 test('multilingual taxonomy preserves all existing skilled-work options and exact technical skills', () => {
   for (const group of ROLE_GROUPS) for (const option of group.roles) {
@@ -37,6 +38,9 @@ test('matching ranks multilingual evidence, keeps missing conditions visible, an
 });
 
 test('profile analysis source is minimized; changed evidence invalidates old analysis but identity updates do not', () => {
+  assert.equal(isProductionMember({ isTest: true }), false);
+  assert.equal(isProductionMember({}, { isTest: 'true' }), false);
+  assert.equal(isProductionMember({ displayName: 'A real user whose name contains test' }), true);
   const data = { skills: ['Research'], careerInterests: ['Market Research'], availableHoursPerWeek: 12, name: 'Private name', email: 'private@example.invalid', university: 'Private University', nationality: 'Private Country', identityDocumentPath: 'private-document', introVideoPath: 'private-video' };
   const source = profileEvidence('student', data);
   assert.ok(!JSON.stringify(source).includes('Private')); assert.ok(!JSON.stringify(source).includes('private-'));
@@ -74,7 +78,7 @@ test('admin workflow is protected, live-source backed, paginated, reloadable and
     state.tables.app_records.find(row => row.record_id === student && row.collection_name === 'student_profiles')!.data.skills.push('New skill');
     const changed = await get(admin).then(r => r.json()); assert.equal(changed.members.find((m: any) => m.id === student).ai.state, 'stale');
     const match = await get(admin, `?projectId=${projectId}`).then(r => r.json()); assert.equal(match.matching.scanned, 301); assert.equal(match.matching.candidates.length, 1);
-    state.failProvider = true; assert.equal((await post(admin, { role: 'student', profileOwnerId: student })).status, 502);
+    state.failProvider = true; const outage = await post(admin, { role: 'student', profileOwnerId: student }); assert.equal(outage.status, 502); assert.equal((await outage.json()).code, 'AI_GENERATION_FAILED');
     const failed = await get(admin).then(r => r.json()); assert.equal(failed.members.find((m: any) => m.id === student).ai.state, 'failed');
     assert.ok(failed.members.find((m: any) => m.id === student).ai.strength);
     assert.equal(state.tables.konexa_ai_assessments.filter(row => row.status === 'pending').length, 0);

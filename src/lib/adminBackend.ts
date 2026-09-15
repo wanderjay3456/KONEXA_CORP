@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { getSupabaseAdmin } from "../server/supabaseAdmin";
 
+export function isProductionMember(user: any, profile?: any) {
+  return String(user?.isTest).toLowerCase() !== 'true' && String(profile?.isTest).toLowerCase() !== 'true';
+}
+
 function toRecord(row: any) {
   return {
     id: row.record_id,
@@ -45,9 +49,9 @@ export function registerAdminRoutes(app: any, _getAIClient: unknown) {
       const profiles = new Map<string, Record<string, unknown>>();
       [...(students || []), ...(companies || [])].forEach((row: any) => profiles.set(row.record_id, row.data || {}));
       res.json({
-        users: (users || []).map((row: any) => ({
-          id: row.record_id,
+        users: (users || []).filter((row: any) => isProductionMember(row.data, profiles.get(row.record_id))).map((row: any) => ({
           ...(row.data || {}),
+          id: row.record_id,
           profile: profiles.get(row.record_id) || null,
           createdAt: row.created_at,
           updatedAt: row.updated_at,
@@ -60,13 +64,17 @@ export function registerAdminRoutes(app: any, _getAIClient: unknown) {
 
   app.get("/api/admin/verifications", async (_req: any, res: any) => {
     try {
-      const { data, error } = await getSupabaseAdmin()
+      const db = getSupabaseAdmin();
+      const { data, error } = await db
         .from("app_records")
         .select("record_id,data,created_at,updated_at")
         .eq("collection_name", "verification_requests")
         .order("updated_at", { ascending: false });
       if (error) throw error;
-      res.json({ requests: (data || []).map(toRecord) });
+      const tests = await db.from('app_records').select('record_id').in('collection_name', ['users', 'student_profiles', 'company_profiles']).eq('data->>isTest', 'true');
+      if (tests.error) throw tests.error;
+      const testIds = new Set((tests.data || []).map(row => row.record_id));
+      res.json({ requests: (data || []).filter(row => !testIds.has(row.data?.userId)).map(toRecord) });
     } catch (cause) {
       res.status(500).json({ error: "Failed to load verification requests", details: cause instanceof Error ? cause.message : "Unknown error" });
     }
