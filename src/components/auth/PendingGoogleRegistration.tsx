@@ -127,7 +127,7 @@ export default function PendingGoogleRegistration() {
         <div className="bg-[#17342d] px-6 py-8 text-white sm:px-10">
           <p className="text-xs font-black uppercase tracking-[.14em] text-[#b9f4d0]">{t.eyebrow}</p>
           <h1 className="mt-4 max-w-2xl break-keep font-display text-3xl font-bold leading-tight tracking-[-.035em] sm:text-4xl">{t.title}</h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/75">{t.lead}</p>
+          <p className="mt-4 max-w-2xl break-keep text-sm leading-7 text-white/75">{t.lead}</p>
           {currentUser?.email && <p className="mt-5 inline-flex rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80">{currentUser.email}</p>}
         </div>
 

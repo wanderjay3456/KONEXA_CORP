@@ -156,7 +156,7 @@ export default function RequiredProfileSetup({ onComplete, onCancel }: { onCompl
         <div role="group" aria-label="Language" className="flex gap-1 rounded-full border border-[#17342d]/15 bg-white p-1">{(["ko", "en", "vi"] as const).map((language) => <button type="button" key={language} aria-pressed={locale === language} onClick={() => setLocale(language)} className={`rounded-full px-3 py-1.5 text-xs font-bold uppercase ${locale === language ? "bg-[#17342d] text-white" : ""}`}>{language}</button>)}</div>
       </div>
       <h1 className="mt-8 break-keep font-display text-3xl font-bold leading-tight tracking-[-.035em] sm:text-4xl">{t(isStudent ? "titleStudent" : "titleCompany")}</h1>
-      <p className="mt-4 max-w-2xl text-sm leading-7 text-[#5a7068]">{t("lead")}</p>
+      <p className="mt-4 max-w-2xl break-keep text-sm leading-7 text-[#5a7068]">{t("lead")}</p>
       <ol aria-label="Profile progress" className="my-7 grid grid-cols-3 gap-2">{[0, 1, 2].map((index) => <li key={index} aria-current={index === step ? "step" : undefined} className={`rounded-xl px-3 py-3 text-center text-xs font-bold leading-5 ${index <= step ? "bg-[#17342d] text-white" : "bg-[#e7ebe4] text-[#61746c]"}`}>{index + 1}. {locale === "ko" ? copy[isStudent ? "studentSteps" : "companySteps"][index] : locale === "vi" ? ["Thông tin cơ bản", "Công việc", "Giấy tờ"][index] : ["About you", "Work preferences", "Documents"][index]}</li>)}</ol>
       <form onSubmit={(event) => { event.preventDefault(); void save(step === 2); }} className="rounded-[1.75rem] border border-[#17342d]/10 bg-white p-5 shadow-sm sm:p-8">
         <fieldset disabled={busy} className="space-y-6">
