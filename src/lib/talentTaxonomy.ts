@@ -229,3 +229,76 @@ export const COMPANY_VISA_SUPPORT_OPTIONS: LocalizedOption[] = [
   { value: "Korea-based status holders only", ko: "현재 국내 취업 가능자만", vi: "Chỉ ứng viên hiện được phép làm việc tại Hàn Quốc" },
   { value: "Discuss case by case", ko: "지원 방식 개별 협의", vi: "Trao đổi theo từng trường hợp" },
 ];
+
+// Stable professional categories. These classify declared work, not a person's
+// ability, nationality, school prestige or visa eligibility.
+export const ROLE_FAMILIES = [
+  ['software', 'Software Engineering', '소프트웨어 개발', 'Phát triển phần mềm', 'software|소프트웨어|개발자|프론트엔드|백엔드|frontend|backend|web development|lập trình|phần mềm'],
+  ['data', 'Data & AI', '데이터·AI', 'Dữ liệu & AI', 'data analysis|data science|machine learning|데이터|인공지능|머신러닝|dữ liệu|trí tuệ nhân tạo'],
+  ['design', 'Design & UX', '디자인·UX', 'Thiết kế & UX', 'design|디자인|디자이너|thiết kế|ux|ui'],
+  ['marketing', 'Marketing & Content', '마케팅·콘텐츠', 'Marketing & Nội dung', 'marketing|마케팅|콘텐츠|content|tiếp thị|nội dung'],
+  ['sales', 'Sales & Business Development', '영업·사업개발', 'Kinh doanh & Phát triển', 'sales|business development|영업|사업개발|bán hàng|phát triển kinh doanh'],
+  ['research', 'Market Research', '시장조사', 'Nghiên cứu thị trường', 'market research|market analysis|시장조사|시장 조사|시장분석|시장 분석|nghiên cứu thị trường'],
+  ['translation', 'Translation & Localization', '번역·현지화', 'Biên dịch & Bản địa hóa', 'translation|localization|번역|통역|현지화|biên dịch|phiên dịch|bản địa hóa'],
+  ['finance', 'Finance & Accounting', '재무·회계', 'Tài chính & Kế toán', 'finance|accounting|재무|회계|경리|tài chính|kế toán'],
+  ['operations', 'Operations & Administration', '운영·행정', 'Vận hành & Hành chính', 'operations|administration|행정|사무|운영관리|vận hành|hành chính'],
+  ['support', 'Customer Support', '고객지원', 'Hỗ trợ khách hàng', 'customer support|customer service|고객지원|고객 지원|고객상담|chăm sóc khách hàng|hỗ trợ khách hàng'],
+  ['engineering', 'Engineering & Manufacturing', '공학·제조', 'Kỹ thuật & Sản xuất', 'manufacturing|mechanical|electrical engineering|제조|기계|전기공학|생산관리|sản xuất|cơ khí'],
+  ['logistics', 'Logistics & Supply Chain', '물류·공급망', 'Logistics & Chuỗi cung ứng', 'logistics|supply chain|물류|공급망|무역|chuỗi cung ứng|xuất nhập khẩu'],
+  ['hospitality', 'Hospitality & Tourism', '숙박·관광', 'Khách sạn & Du lịch', 'hospitality|tourism|hotel|숙박|관광|호텔|khách sạn|du lịch'],
+  ['education', 'Education & Research', '교육·학술연구', 'Giáo dục & Nghiên cứu', 'education|teaching|academic research|교육|강의|학술연구|giáo dục|giảng dạy'],
+  ['architecture', 'Architecture & Construction', '건축·건설', 'Kiến trúc & Xây dựng', 'architecture|construction|건축|건설|kiến trúc|xây dựng'],
+  ['media', 'Media & Video Production', '미디어·영상', 'Truyền thông & Video', 'video production|video editing|film|영상|미디어|촬영|편집|sản xuất video|biên tập video'],
+] as const;
+
+const aliases: Array<[string, string]> = [
+  ['research', 'research|조사|리서치|nghiên cứu'], ['market-research', 'market research|시장조사|시장 조사|nghiên cứu thị trường'],
+  ['interviews', 'interviews|interview research|인터뷰|phỏng vấn'], ['survey', 'survey|설문|khảo sát'],
+  ['translation', 'translation|번역|biên dịch'], ['localization', 'localization|현지화|bản địa hóa'],
+  ['writing', 'writing|copywriting|글쓰기|카피라이팅|작성|viết'], ['social-media', 'social media|sns|소셜미디어|소셜 미디어|mạng xã hội'],
+  ['video-editing', 'video editing|영상편집|영상 편집|biên tập video'], ['graphic-design', 'graphic design|그래픽 디자인|그래픽디자인|thiết kế đồ họa'],
+  ['data-analysis', 'data analysis|데이터 분석|데이터분석|phân tích dữ liệu'], ['project-management', 'project management|프로젝트 관리|프로젝트관리|quản lý dự án'],
+  ['customer-service', 'customer service|customer support|고객지원|고객 지원|고객 응대|chăm sóc khách hàng'],
+  ['sales', 'sales|영업|bán hàng'], ['accounting', 'accounting|회계|kế toán'], ['finance', 'finance|재무|tài chính'],
+  ['logistics', 'logistics|물류'], ['supply-chain', 'supply chain|공급망|chuỗi cung ứng'],
+  ['seo', 'seo|검색 최적화|검색엔진최적화'], ['marketing', 'marketing|마케팅|tiếp thị'],
+  ['cad', 'cad|autocad|캐드'], ['excel', 'excel|엑셀'], ['figma', 'figma|피그마'],
+  ['python', 'python|파이썬'], ['javascript', 'javascript|자바스크립트'], ['typescript', 'typescript|타입스크립트'],
+  ['react', 'react|reactjs|리액트'], ['sql', 'sql'], ['java', 'java|자바'], ['c++', 'c++'], ['c#', 'c#'],
+  ['photoshop', 'photoshop|포토샵'], ['illustrator', 'illustrator|일러스트레이터'],
+  ['python-ml', 'machine learning|머신러닝|học máy'], ['quality-control', 'quality control|품질관리|품질 관리|kiểm soát chất lượng'],
+];
+export const normalizedText = (value: string) => value.normalize('NFKC').toLocaleLowerCase().replace(/[\s_-]+/g, ' ').trim();
+function hasPhrase(value: string, alias: string) {
+  const needle = normalizedText(alias);
+  // Latin aliases need word boundaries (Java must not match JavaScript).
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return /[가-힣]/.test(needle) ? value.includes(needle) : new RegExp(`(?:^|[^\\p{L}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{N}])`, 'u').test(value);
+}
+export function classifyRoles(values: string[]): string[] {
+  const text = normalizedText(values.join(' '));
+  const families: string[] = ROLE_FAMILIES.filter(row => hasPhrase(text, row[1]) || row[4].split('|').some(alias => hasPhrase(text, alias))).map(row => row[0]);
+  const exact = ROLE_GROUPS.flatMap(group => group.roles).filter(option => [option.value, option.ko, option.vi].some(alias => hasPhrase(text, alias)));
+  // Preserve fine-grained skilled-work and research roles from the existing
+  // signup taxonomy rather than forcing every profession into digital work.
+  return [...new Set([...families, ...exact.map(option => `role:${option.value}`)])];
+}
+export function skillConcepts(value: string): string[] {
+  const option = CAPABILITY_OPTIONS.find(option => [option.value, option.ko, option.vi].some(alias => normalizedText(alias) === normalizedText(value)));
+  const text = normalizedText(option?.value || value);
+  const found = aliases.filter(([, options]) => options.split('|').some(alias => hasPhrase(text, alias))).map(([key]) => key);
+  return found.length ? found : text ? [text] : [];
+}
+export function skillIsDeclared(required: string, declared: string[]) {
+  const expected = skillConcepts(required);
+  const actual = new Set(declared.flatMap(skillConcepts));
+  return expected.length > 0 && expected.every(key => actual.has(key));
+}
+export function roleLabel(id: string, locale = 'ko') {
+  if (id.startsWith('role:')) {
+    const option = ROLE_GROUPS.flatMap(group => group.roles).find(option => option.value === id.slice(5));
+    if (option) return optionLabel(option, locale as Locale);
+  }
+  const row = ROLE_FAMILIES.find(row => row[0] === id);
+  return row ? row[locale === 'ko' ? 2 : locale === 'vi' ? 3 : 1] : id;
+}

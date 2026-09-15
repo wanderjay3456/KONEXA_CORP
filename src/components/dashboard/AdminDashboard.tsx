@@ -3,6 +3,7 @@ import { Activity, BriefcaseBusiness, Building2, CheckCircle2, Clock3, Database,
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../ui/Toast";
 import AutomationHealth from './AutomationHealth';
+import AdminDecisionWorkspace from './AdminDecisionWorkspace';
 
 interface DirectoryUser {
   id: string;
@@ -27,9 +28,10 @@ interface VerificationRequest {
   updatedAt?: string | number;
 }
 
-type AdminTab = "overview" | "members" | "projects" | "verifications" | "activity" | "automation";
+type AdminTab = "decision" | "overview" | "members" | "projects" | "verifications" | "activity" | "automation";
 
 const tabs: Array<{ id: AdminTab; label: string }> = [
+  { id: "decision", label: "인재·기업 검토" },
   { id: "overview", label: "운영 현황" },
   { id: "members", label: "회원 관리" },
   { id: "projects", label: "프로젝트" },
@@ -47,7 +49,7 @@ function formatDate(value?: string | number) {
 export default function AdminDashboard() {
   const { projects, applications, logs } = useApp();
   const { success, error } = useToast();
-  const [activeTab, setActiveTab] = useState<AdminTab>("overview");
+  const [activeTab, setActiveTab] = useState<AdminTab>("decision");
   const [users, setUsers] = useState<DirectoryUser[]>([]);
   const [verifications, setVerifications] = useState<VerificationRequest[]>([]);
   const [query, setQuery] = useState("");
@@ -154,6 +156,7 @@ export default function AdminDashboard() {
           {tabs.map((tab) => <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-bold ${activeTab === tab.id ? "bg-neutral-950 text-white" : "text-neutral-600 hover:bg-neutral-50"}`}>{tab.label}</button>)}
         </nav>
 
+        {activeTab === 'decision' && <AdminDecisionWorkspace />}
         {activeTab === 'automation' && <AutomationHealth />}
         {activeTab === "overview" && (
           <div className="space-y-6">

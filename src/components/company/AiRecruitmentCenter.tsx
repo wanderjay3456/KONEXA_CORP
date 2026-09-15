@@ -7,12 +7,17 @@ import AiCoachPanel from '../ai/AiCoachPanel';
 import AssessmentHistoryStatus from '../ai/AssessmentHistoryStatus';
 import { useAssessmentHistory } from '../../lib/useAssessmentHistory';
 import { useLocale } from '../../i18n/LocaleContext';
+import MatchCriteria from '../ai/MatchCriteria';
+import type { Criterion } from '../../server/matching';
 
 interface AiRecruitmentCenterProps {
   onNavigate: (tabId: string) => void;
 }
 
 interface TalentMatch {
+  criteria?: Criterion[];
+  matchedSkills?: string[];
+  missingEvidence?: string[];
   id: string;
   major: string;
   skills: string[];
@@ -53,6 +58,7 @@ export default function AiRecruitmentCenter({ onNavigate }: AiRecruitmentCenterP
   const [loadError, setLoadError] = useState("");
   const [ran, setRan] = useState(false);
   const [coverage, setCoverage] = useState<any>(null);
+  const [stale, setStale] = useState(false);
   const requestRef = useRef<AbortController | null>(null);
   const history = useAssessmentHistory('talent_project_matching', companyProfile?.verified && companyProfile?.verifiedStatus === 'Verified' ? projectId : '');
 
@@ -65,7 +71,7 @@ export default function AiRecruitmentCenter({ onNavigate }: AiRecruitmentCenterP
     setMatches([]);
     setActiveId("");
     setModel(null);
-    setLoadError(""); setRan(false); setCoverage(null);
+    setLoadError(""); setRan(false); setCoverage(null); setStale(false);
   }, [projectId]);
   useEffect(() => () => { requestRef.current?.abort(); requestRef.current = null; }, []);
 
@@ -73,7 +79,7 @@ export default function AiRecruitmentCenter({ onNavigate }: AiRecruitmentCenterP
     const latest = history.rows[0];
     if (!latest) return;
     setMatches(latest.result.matches || []); setActiveId(latest.result.matches?.[0]?.id || "");
-    setModel(latest.model); setCoverage(latest.result.coverage || null); setRan(true);
+    setModel(latest.model); setCoverage(latest.result.coverage || null); setRan(true); setStale(latest.result.stale === true);
   }, [history.rows]);
 
   const activeProject = ownedProjects.find((project) => project.id === projectId);
@@ -96,7 +102,7 @@ export default function AiRecruitmentCenter({ onNavigate }: AiRecruitmentCenterP
       setMatches(nextMatches);
       setActiveId(nextMatches[0]?.id || "");
       setModel(typeof payload.model === "string" ? payload.model : null);
-      setRan(true); setCoverage(payload.coverage || null);
+      setRan(true); setCoverage(payload.coverage || null); setStale(false);
       if (nextMatches.length) success("AI", t(`${nextMatches.length}명의 후보 분석을 저장했습니다. 점수는 참고 평가입니다.`, `Saved analysis of ${nextMatches.length} candidates. Scores are advisory.`, `Đã lưu phân tích ${nextMatches.length} ứng viên. Điểm chỉ để tham khảo.`));
     } catch (cause) {
       if (requestRef.current !== request) return;
@@ -142,6 +148,7 @@ export default function AiRecruitmentCenter({ onNavigate }: AiRecruitmentCenterP
 
     <AiCoachPanel contextKey={projectId ? `company:${projectId}` : "company:planning"} />
     <AssessmentHistoryStatus {...history} createdAt={history.rows[0]?.created_at} onReload={history.reload} />
+    {stale && <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">{t('공고·인재 정보 또는 분석 기준이 변경되었습니다. 아래는 이전 분석이며, 현재 후보를 확인하려면 다시 분석해 주세요.', 'Project, candidate information or matching rules have changed. These are earlier results; run matching again before making a decision.', 'Thông tin dự án, ứng viên hoặc quy tắc đã thay đổi. Đây là kết quả cũ; hãy phân tích lại trước khi quyết định.')}</p>}
     {coverage && <p className="text-sm leading-6 text-neutral-600">{t(`검토 대상 ${coverage.scanned}명 · 조건 검토 후 ${coverage.eligible}명 · 이번 AI 분석 ${matches.length}명. 누락된 정보와 실제 역량은 면접·프로젝트로 확인해 주세요.`, `${coverage.scanned} profiles reviewed · ${coverage.eligible} meet known conditions · ${matches.length} analyzed by AI. Confirm missing information and skills through interviews or projects.`, `Đã xem ${coverage.scanned} hồ sơ · ${coverage.eligible} hồ sơ đáp ứng điều kiện đã biết · AI phân tích ${matches.length} hồ sơ. Xác nhận thông tin còn thiếu và kỹ năng qua phỏng vấn hoặc dự án.`)}</p>}
     {loadError && <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0" /><div><b>{t("분석을 완료하지 못했습니다.", "Analysis could not be completed.", "Không thể hoàn tất phân tích.")}</b><p className="mt-1">{loadError}</p></div></div>}
     {!loading && !loadError && matches.length === 0 && <div className="rounded-3xl border border-dashed border-neutral-300 bg-white p-10 text-center"><Target className="mx-auto h-8 w-8 text-neutral-300" /><h2 className="mt-4 text-lg font-black">{ran ? t("현재 조건에 맞는 분석 후보가 없습니다", "No candidates currently meet these conditions", "Chưa có ứng viên phù hợp với điều kiện này") : t("공고를 선택하고 실제 인재 분석을 실행해 주세요", "Select a project and analyze talent", "Chọn dự án và phân tích nhân tài")}</h2><p className="mt-2 text-sm text-neutral-500">{t("정보 열람 동의·프로필 완성·계정 상태와 업무 조건을 확인합니다. 후보가 없으면 가상 인재나 점수를 생성하지 않습니다.", "Matching checks visibility consent, profile completion, account status and work requirements. It never invents candidates or scores when none are available.", "Hệ thống kiểm tra sự đồng ý hiển thị, mức hoàn thiện hồ sơ, trạng thái tài khoản và điều kiện công việc. Không tạo ứng viên hoặc điểm giả khi chưa có ứng viên.")}</p></div>}
@@ -150,14 +157,15 @@ export default function AiRecruitmentCenter({ onNavigate }: AiRecruitmentCenterP
       <aside className="space-y-2 rounded-3xl border border-neutral-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between px-2 pb-2 text-xs font-bold uppercase tracking-wider text-neutral-400"><span>{t("후보 목록", "Candidates", "Ứng viên")}</span><span>{matches.length}</span></div>
         {matches.map((match) => <button key={match.id} onClick={() => { setActiveId(match.id); }} className={`w-full rounded-2xl border p-4 text-left ${match.id === activeMatch.id ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 hover:border-neutral-400"}`}>
-          <div className="flex items-center justify-between gap-3"><b>{maskedTalentName(match.id)}</b><span className="text-sm font-black">{match.suitabilityScore}/100</span></div>
+          <div className="flex items-center justify-between gap-3"><b>{maskedTalentName(match.id)}</b><span className="text-xs font-semibold">{t('역량 일치', 'Skill matches', 'Kỹ năng khớp')} {match.matchedSkills?.length ?? '—'}</span></div>
           <p className={`mt-1 text-xs ${match.id === activeMatch.id ? "text-neutral-300" : "text-neutral-500"}`}>{match.preferredJob || match.major || t("직무 정보 확인 중", "Role information pending", "Đang xác nhận nghề nghiệp")}</p>
           <div className="mt-3 flex flex-wrap gap-1">{match.skills.slice(0, 3).map((skill) => <span key={skill} className={`rounded-lg px-2 py-1 text-xs ${match.id === activeMatch.id ? "bg-white/10" : "bg-neutral-100"}`}>{skill}</span>)}</div>
         </button>)}
       </aside>
 
       <main className="space-y-6 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm md:p-8">
-        <section className="flex flex-col justify-between gap-4 border-b border-neutral-100 pb-6 sm:flex-row"><div><span className="text-xs font-bold uppercase tracking-wider text-neutral-400">AI match for {activeProject?.title}</span><h2 className="mt-2 text-2xl font-black">{maskedTalentName(activeMatch.id)}</h2><p className="mt-2 text-sm leading-6 text-neutral-600">{activeMatch.explanation || t("설명 가능한 분석 결과가 없습니다.", "No explanation is available.", "Chưa có giải thích.")}</p></div><div className="grid min-w-40 grid-cols-2 gap-2"><div className="rounded-2xl bg-neutral-950 p-4 text-white"><span className="text-xs uppercase text-neutral-400">{t("적합도", "Suitability", "Mức phù hợp")}</span><b className="mt-1 block text-xl">{activeMatch.suitabilityScore}/100</b></div><div className="rounded-2xl bg-neutral-100 p-4"><span className="text-xs uppercase text-neutral-400">{t("근거 신뢰도", "Evidence confidence", "Độ tin cậy")}</span><b className="mt-1 block text-xl">{activeMatch.confidence}/100</b></div></div></section>
+        <section className="flex flex-col justify-between gap-4 border-b border-neutral-100 pb-6 sm:flex-row"><div><span className="text-xs font-bold uppercase tracking-wider text-neutral-400">AI match for {activeProject?.title}</span><h2 className="mt-2 text-2xl font-black">{maskedTalentName(activeMatch.id)}</h2><p className="mt-2 text-sm leading-6 text-neutral-600">{activeMatch.explanation || t("설명 가능한 분석 결과가 없습니다.", "No explanation is available.", "Chưa có giải thích.")}</p></div><div className="rounded-2xl bg-neutral-100 p-4"><span className="text-xs text-neutral-600">{t("확인할 정보", "Items to verify", "Thông tin cần xác minh")}</span><b className="mt-1 block text-xl">{activeMatch.missingEvidence?.length ?? '—'}</b></div></section>
+        {activeMatch.criteria && <MatchCriteria criteria={activeMatch.criteria} />}
         <section className="grid gap-5 md:grid-cols-2"><div><h3 className="flex items-center gap-2 text-sm font-black"><Check className="h-4 w-4 text-emerald-600" />{t("근거에 나타난 강점", "Evidence-based strengths", "Thế mạnh có minh chứng")}</h3><ul className="mt-3 space-y-2 text-sm leading-6 text-neutral-600">{activeMatch.strengths.length ? activeMatch.strengths.map((item) => <li key={item}>• {item}</li>) : <li>{t("충분한 근거가 없습니다.", "Not enough evidence is available.", "Chưa có đủ minh chứng.")}</li>}</ul></div><div><h3 className="flex items-center gap-2 text-sm font-black"><AlertCircle className="h-4 w-4 text-amber-600" />{t("확인할 점", "Points to verify", "Điểm cần xác minh")}</h3><ul className="mt-3 space-y-2 text-sm leading-6 text-neutral-600">{activeMatch.weaknesses.length ? activeMatch.weaknesses.map((item) => <li key={item}>• {item}</li>) : <li>{t("추가로 제시된 항목이 없습니다. 최종 확인은 필요합니다.", "No additional items were suggested. Final verification is still required.", "Chưa có đề xuất thêm. Vẫn cần xác minh cuối cùng.")}</li>}</ul></div></section>
         <section><h3 className="text-sm font-black">{t("매칭 근거", "Matching evidence", "Minh chứng ghép")}</h3><div className="mt-3 flex flex-wrap gap-2">{activeMatch.matchingFactors.map((factor) => <span key={factor} className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-700">{factor}</span>)}</div></section>
         <section><h3 className="text-sm font-black">{t("면접에서 확인할 질문", "Interview questions", "Câu hỏi phỏng vấn")}</h3><div className="mt-3 space-y-2">{activeMatch.interviewQuestions.map((question, index) => <div key={question} className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-sm leading-6"><b className="mr-2 text-teal-700">Q{index + 1}</b>{question}</div>)}</div></section>

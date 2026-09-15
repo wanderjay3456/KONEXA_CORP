@@ -5,12 +5,13 @@ import { useLocale, type Locale } from "../../i18n/LocaleContext";
 import { getCompanyCompletionErrors, getStudentCompletionErrors } from "../../lib/profileCompletion";
 import { uploadPrivateFile, type PrivateStorageBucket } from "../../lib/privateStorage";
 import { UserRole } from "../../types";
+import { ROLE_FAMILIES } from '../../lib/talentTaxonomy';
 
 type Text = readonly [string, string, string];
-type Field = { key: string; label: Text; type?: "email" | "url" | "number" | "textarea" | "tags"; choices?: readonly string[]; required?: boolean };
+type Field = { key: string; label: Text; type?: "email" | "url" | "number" | "textarea" | "tags"; choices?: readonly string[]; required?: boolean; max?: number };
 const tr = (text: readonly string[], locale: Locale) => text[locale === "ko" ? 0 : locale === "vi" ? 2 : 1];
 const countries = ["South Korea", "Vietnam", "Singapore", "United Kingdom", "United States", "Japan", "Indonesia", "Philippines", "Thailand", "Malaysia", "India", "Other"];
-const roles = ["Software Engineering", "Data & AI", "Design & UX", "Marketing & Content", "Sales & Business Development", "Market Research", "Translation & Localization", "Finance & Accounting", "Operations & Administration", "Customer Support", "Engineering & Manufacturing", "Logistics & Supply Chain", "Hospitality & Tourism", "Education & Research", "Architecture & Construction", "Media & Video Production"];
+const roles = ROLE_FAMILIES.map(row => row[1]);
 const skills = ["Research", "English", "Korean", "Vietnamese", "Writing", "Translation", "Social Media", "Video Editing", "Graphic Design", "Figma", "Excel", "Data Analysis", "Project Management", "Customer Service", "Sales", "Accounting", "CAD", "Python", "JavaScript", "React"];
 const studentFields: Field[][] = [
   [
@@ -30,6 +31,7 @@ const studentFields: Field[][] = [
     { key: "availability", label: ["업무 시작 가능 시점", "When can you start?", "Khi nào bạn có thể bắt đầu?"], choices: ["Immediately", "Within 2 weeks", "Within 1 month", "Within 3 months"] },
     { key: "workPreference", label: ["희망 근무 방식", "Work preference", "Hình thức làm việc"], choices: ["Remote", "Hybrid", "Onsite"] },
     { key: "preferredWeeklyPayKrw", label: ["희망 주급 (원)", "Preferred weekly pay (KRW)", "Thu nhập mong muốn mỗi tuần (KRW)"], type: "number" },
+    { key: "availableHoursPerWeek", label: ["주당 참여 가능 시간 (선택)", "Available hours per week (optional)", "Số giờ có thể làm mỗi tuần (không bắt buộc)"], type: "number", required: false, max: 80 },
   ],
   [{ key: "bio", label: ["짧은 자기소개와 할 수 있는 업무", "A short introduction and the work you can do", "Giới thiệu ngắn và công việc bạn có thể làm"], type: "textarea" }],
 ];
@@ -135,7 +137,7 @@ export default function RequiredProfileSetup({ onComplete, onCancel }: { onCompl
       // task and must never hold the user on this screen or undo saved data.
       void fetch("/api/gemini/analyze-profile", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: isStudent ? "student" : "company" }), signal: AbortSignal.timeout(45000),
+        body: JSON.stringify({ role: isStudent ? "student" : "company", locale }), signal: AbortSignal.timeout(55000),
       }).then(async (response) => { if (response.ok) await refreshWorkspaceProfile(); }).catch(() => undefined);
       onComplete?.();
     } catch { setFailure(t("fail")); } finally { saving.current = false; setBusy(false); }
@@ -170,7 +172,7 @@ export default function RequiredProfileSetup({ onComplete, onCancel }: { onCompl
                 <div role="group" aria-label={label} className="mt-2 flex flex-wrap gap-2">{Array.from(new Set([...(field.choices || []), ...(draft[field.key] || [])])).map((option) => <button type="button" key={option} aria-pressed={(draft[field.key] || []).includes(option)} onClick={() => update(field.key, (draft[field.key] || []).includes(option) ? draft[field.key].filter((item: string) => item !== option) : [...(draft[field.key] || []), option])} className={`rounded-lg border px-3 py-2 text-xs leading-5 ${(draft[field.key] || []).includes(option) ? "border-[#17342d] bg-[#17342d] text-white" : "border-[#17342d]/15 text-[#536c62] hover:bg-[#f3f5f0]"}`}>{option}</button>)}</div>
                 <input id={id} className={inputClass} placeholder={t("add")} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); const input = event.currentTarget; const value = input.value.trim(); if (value) update(field.key, Array.from(new Set([...(draft[field.key] || []), value]))); input.value = ""; } }} />
               </div> : field.type === "textarea" ? <textarea id={id} required rows={4} value={draft[field.key] || ""} onChange={(event) => update(field.key, event.target.value)} className={inputClass} /> : <>
-                <input id={id} required={field.required !== false} type={field.type || "text"} min={field.type === "number" ? 1 : undefined} list={field.choices ? `${id}-choices` : undefined} value={draft[field.key] ?? ""} onChange={(event) => update(field.key, field.type === "number" ? (event.target.value === "" ? "" : Number(event.target.value)) : event.target.value)} aria-invalid={invalid.includes(field.key)} className={inputClass} />
+                <input id={id} required={field.required !== false} type={field.type || "text"} min={field.type === "number" ? 1 : undefined} max={field.max} list={field.choices ? `${id}-choices` : undefined} value={draft[field.key] ?? ""} onChange={(event) => update(field.key, field.type === "number" ? (event.target.value === "" ? "" : Number(event.target.value)) : event.target.value)} aria-invalid={invalid.includes(field.key)} className={inputClass} />
                 {field.choices && <datalist id={`${id}-choices`}>{field.choices.map((option) => <option key={option} value={option} />)}</datalist>}
               </>}
             </div>;

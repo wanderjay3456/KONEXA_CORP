@@ -36,7 +36,8 @@ test('API: matching scans more than 20 candidates, gates companies and honors wi
     const profile = state.tables.app_records.find(row => row.record_id === company)!;
     profile.data.verified = false; assert.equal((await match(company)).status, 403); profile.data.verified = true;
     const response = await match(company); assert.equal(response.status, 200); const body = await response.json();
-    assert.equal(body.coverage.scanned, 301); assert.equal(body.matches.length, 20);
+    assert.equal(body.coverage.scanned, 301); assert.equal(body.matches.length, 1);
+    assert.equal(body.coverage.insufficientEvidence, 300);
     assert.ok(body.matches.some((row: any) => row.id.endsWith('000000000300')));
     assert.ok(state.pendingObserved);
     const withdrawn = body.matches[0].id; state.candidates = state.candidates.filter(row => row.record_id !== withdrawn);

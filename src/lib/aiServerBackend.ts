@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { getSupabaseAdmin } from "../server/supabaseAdmin";
 import { requireAssessmentScore, requireAssessmentText, validateRoadmap, validateResumeReview, validateMatchResponse } from '../server/assessmentValidation';
-import { loadCandidatePages, shortlistCandidates, MATCHING_VERSION } from '../server/matching';
+import { loadCandidatePages, shortlistCandidates, matchingEvidence, MATCHING_VERSION } from '../server/matching';
 
 type GenerateGeminiContent = (request: Record<string, any>, models?: string[]) => Promise<{ response: any; model: string }>;
 
@@ -69,24 +69,30 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
     if (!['student_career_roadmap', 'resume_evidence_review', 'pdf_evidence_extraction', 'talent_project_matching'].includes(type) || !/^[0-9a-f-]{36}$/i.test(entityId)) return res.status(400).json({ error: 'Invalid assessment query' });
     try {
       const db = getDatabase();
+      let matchingProject: any = null;
       if (type === 'talent_project_matching') {
         const { data: company, error } = await db.from('app_records').select('data').eq('collection_name', 'company_profiles').eq('record_id', req.user.uid).maybeSingle();
         if (error) throw error;
         if (req.user.role !== 'admin' && (company?.data?.verified !== true || company?.data?.verifiedStatus !== 'Verified')) return res.status(403).json({ error: 'Business verification is required' });
-        const { data: project, error: projectError } = await db.from('konexa_projects').select('id').eq('id', entityId).eq('company_id', req.user.uid).maybeSingle();
+        let projectQuery = db.from('konexa_projects').select('*').eq('id', entityId);
+        if (req.user.role !== 'admin') projectQuery = projectQuery.eq('company_id', req.user.uid);
+        const { data: project, error: projectError } = await projectQuery.maybeSingle();
         if (projectError) throw projectError;
         if (!project) return res.status(404).json({ error: 'Project not found' });
+        matchingProject = project;
       } else if (entityId !== req.user.uid) return res.status(404).json({ error: 'Not found' });
-      const { data, error } = await db.from('konexa_ai_assessments').select('id,assessment_type,entity_id,result,model,created_at')
+      const { data, error } = await db.from('konexa_ai_assessments').select('id,assessment_type,entity_id,result,model,created_at,prompt_version')
         .eq('requested_by', req.user.uid).eq('entity_id', entityId).eq('assessment_type', type).eq('status', 'completed').order('created_at', { ascending: false }).limit(10);
       if (error) throw error;
       if (type === 'talent_project_matching' && data?.length) {
         // A saved snapshot must never restore a candidate who withdrew visibility.
-        const eligible = new Set((await loadCandidatePages(async (after, limit) => {
+        const currentRows = await loadCandidatePages(async (after, limit) => {
           const { data, error } = await db.rpc('konexa_matching_candidate_page', { p_after: after, p_limit: limit });
           if (error) throw error; return data || [];
-        })).map(row => row.record_id));
-        for (const row of data) row.result = { ...row.result, matches: (row.result?.matches || []).filter((match: any) => eligible.has(match.id)), historical: true };
+        });
+        const eligible = new Set(currentRows.map(row => row.record_id));
+        const fingerprint = createHash('sha256').update(JSON.stringify(matchingEvidence(matchingProject, currentRows))).digest('hex');
+        for (const row of data) row.result = { ...row.result, matches: (row.result?.matches || []).filter((match: any) => eligible.has(match.id)), historical: true, stale: row.prompt_version !== MATCHING_VERSION || row.result?.evidenceFingerprint !== fingerprint };
       }
       res.json({ data: data || [] });
     } catch { res.status(503).json({ error: 'Saved analysis is temporarily unavailable. Please retry.' }); }
@@ -393,7 +399,7 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
             expectedDuration: project.expectedDuration,
             weeklyPayKrw: project.weekly_pay_krw, hoursPerWeek: project.hours_per_week, requiredLanguage: project.required_language,
           },
-          candidates,
+          candidates: candidates.map(({ trustScore, careerReadiness, employabilityScore, completedProjects, ...candidate }) => candidate),
         }),
         config: {
           systemInstruction,
@@ -434,7 +440,7 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
           skillGaps,
           interviewQuestions: list(item.interviewQuestions, 8),
         }];
-      }).sort((left: any, right: any) => right.suitabilityScore - left.suitabilityScore);
+      }).sort((left: any, right: any) => right.ruleScore - left.ruleScore || left.missingEvidence.length - right.missingEvidence.length || left.id.localeCompare(right.id));
       const assessmentId = await persistAssessment({
         id: generationId,
         requestedBy: req.user.uid,
@@ -444,7 +450,7 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
         model,
         promptVersion: MATCHING_VERSION,
         evidence: { project, candidates },
-        result: { matches, coverage, advisoryOnly: true, tokenUsage: response.usageMetadata || null },
+        result: { matches, coverage, evidenceFingerprint: createHash('sha256').update(JSON.stringify(matchingEvidence(project, talentRows))).digest('hex'), advisoryOnly: true, tokenUsage: response.usageMetadata || null },
         confidence: matches.length
           ? Math.round(matches.reduce((sum: number, item: any) => sum + item.confidence, 0) / matches.length)
           : null,

@@ -3,6 +3,7 @@ import { build } from 'esbuild';
 import { aiFixture } from '../helpers/aiFixture';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const bundled = await build({ entryPoints: [path.join(root, 'tests/browser/ui.tsx')], absWorkingDir: root, bundle: true, write: false, format: 'esm', jsx: 'automatic', platform: 'browser', plugins: [{ name: 'local-test-context', setup(builder) {
   builder.onResolve({ filter: /context\/AppContext$/ }, () => ({ path: path.join(root, 'tests/browser/appFixture.tsx') }));
@@ -43,7 +44,14 @@ app.get('/api/gemini/chat-history', (_req, res) => res.json({ turns: [] }));
 const api = app.listen(4174, '127.0.0.1');
 const { default: express } = await import('express');
 const shell = express(); shell.use(express.raw({ type: '*/*', limit: '1mb' }));
-shell.get('/', (_req, res) => res.type('html').send('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>KONEXA local workflow QA</title><style>body{font-family:Arial,sans-serif;margin:24px;line-height:1.6}button,input,textarea{font:inherit;margin:5px;padding:8px}textarea{width:90%}section{border:1px solid #ddd;border-radius:14px;padding:20px;margin:20px 0}</style></head><body><div id="root"></div><script type="module" src="/qa.js"></script></body></html>'));
+shell.use('/assets', express.static(path.join(root, 'dist/assets')));
+shell.use(express.static(path.join(root, 'public')));
+shell.get('/', (_req, res) => res.type('html').send('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>KONEXA local workflow QA</title><link rel="stylesheet" href="/qa.css"></head><body style="margin:24px"><div id="root"></div><script type="module" src="/qa.js"></script></body></html>'));
+shell.get('/qa.css', (_req, res) => {
+  const assets = path.join(root, 'dist/assets');
+  const css = existsSync(assets) ? readdirSync(assets).find(name => /^index-.*\.css$/.test(name)) : null;
+  res.type('css').send(css ? readFileSync(path.join(assets, css), 'utf8') : 'body{font-family:Arial,sans-serif;line-height:1.6}button,input,textarea,select{font:inherit;margin:5px;padding:8px}');
+});
 shell.get('/qa.js', (_req, res) => res.type('js').send(bundled.outputFiles[0].text));
 shell.use(async (req, res) => {
   const upstream = await fetch('http://127.0.0.1:4174' + req.originalUrl, { method: req.method, headers: { 'Content-Type': 'application/json', 'x-test-actor': String(req.headers['x-test-actor'] || '') }, ...(req.method !== 'GET' && req.method !== 'HEAD' ? { body: req.body } : {}) });
