@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, FileCheck2, Save } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useLocale, type Locale } from "../../i18n/LocaleContext";
@@ -57,7 +57,9 @@ const companyFields: Field[][] = [
 const copy = {
   titleStudent: ["프로필을 완성하고 기회를 만나세요.", "Complete your profile to find opportunities.", "Hoàn thiện hồ sơ để tìm cơ hội."],
   titleCompany: ["기업 프로필을 완성하고 인재를 만나세요.", "Complete your company profile to find talent.", "Hoàn thiện hồ sơ doanh nghiệp để tìm ứng viên."],
-  lead: ["계정은 만들어졌습니다. 필수 정보를 세 단계로 등록합니다. 다음 단계로 넘어갈 때 작성 내용이 저장됩니다.", "Your account is ready. Complete the required details in three steps. Your progress is saved when you continue.", "Tài khoản đã sẵn sàng. Hoàn tất thông tin bắt buộc trong ba bước. Nội dung được lưu khi bạn tiếp tục."],
+  lead: ["관리자 승인 없이 가입이 완료되었습니다. 프로필은 세 단계로 작성하며, 다 채우지 않아도 임시저장할 수 있습니다. 공고 등록이나 프로젝트 지원 전에는 필수 정보를 완성해 주세요.", "You are signed up—no admin approval needed. Build your profile in three steps, or save an unfinished draft at any time. Complete the required details before posting or applying for projects.", "Đăng ký đã hoàn tất, không cần quản trị viên phê duyệt. Tạo hồ sơ trong ba bước hoặc lưu bản nháp bất cứ lúc nào. Hoàn thành thông tin bắt buộc trước khi đăng hoặc ứng tuyển dự án."],
+  draft: ["임시저장", "Save draft", "Lưu bản nháp"],
+  draftSaved: ["작성 내용이 저장되었습니다. 다시 로그인해도 이어서 작성할 수 있습니다.", "Draft saved. You can sign in again and continue where you left off.", "Đã lưu bản nháp. Bạn có thể đăng nhập lại để tiếp tục hoàn thiện hồ sơ."],
   studentSteps: ["기본·학적 정보", "업무·희망 조건", "소개·증빙 서류"],
   companySteps: ["기업 정보", "담당자·채용 수요", "소개·증빙 서류"],
   back: ["이전", "Back", "Quay lại"], next: ["저장하고 계속", "Save and continue", "Lưu và tiếp tục"],
@@ -90,17 +92,19 @@ export default function RequiredProfileSetup({ onComplete, onCancel }: { onCompl
   const [step, setStep] = useState(0);
   const [files, setFiles] = useState<Record<string, File>>({});
   const [busy, setBusy] = useState(false);
+  const saving = useRef(false);
+  const [savedMessage, setSavedMessage] = useState("");
   const [invalid, setInvalid] = useState<string[]>([]);
   const [failure, setFailure] = useState("");
   const fields = (isStudent ? studentFields : companyFields)[step];
   const t = (key: keyof typeof copy) => tr(copy[key], locale);
-  const update = (key: string, value: unknown) => { setDraft((previous) => ({ ...previous, [key]: value })); setInvalid((previous) => previous.filter((item) => item !== key)); };
+  const update = (key: string, value: unknown) => { setSavedMessage(""); setDraft((previous) => ({ ...previous, [key]: value })); setInvalid((previous) => previous.filter((item) => item !== key)); };
   const normalized = (value: Record<string, any>): Record<string, any> => isStudent ? { ...value, preferredJob: (value.careerInterests || []).join(", ") } : { ...value, description: value.companyIntroduction || "" };
 
-  async function save(final: boolean) {
-    if (busy || !currentUser) return;
+  async function save(final: boolean, draftOnly = false) {
+    if (saving.current || !currentUser) return;
     const fieldErrors = fields.filter((field) => field.required !== false && (field.type === "tags" ? !draft[field.key]?.length : field.type === "number" ? !(Number(draft[field.key]) > 0) : !String(draft[field.key] || "").trim())).map((field) => field.key);
-    if (fieldErrors.length) { setInvalid(fieldErrors); setFailure(t("required")); return; }
+    if (!draftOnly && fieldErrors.length) { setInvalid(fieldErrors); setFailure(t("required")); return; }
     const candidate = normalized({ ...draft });
     if (final) {
       for (const key of Object.keys(files)) candidate[key] = "pending-upload";
@@ -112,7 +116,8 @@ export default function RequiredProfileSetup({ onComplete, onCancel }: { onCompl
         return;
       }
     }
-    setBusy(true); setFailure("");
+    saving.current = true;
+    setBusy(true); setFailure(""); setSavedMessage("");
     try {
       for (const [key, file] of Object.entries(files) as [string, File][]) {
         const bucket: PrivateStorageBucket = key === "resumeUrl" ? "resumes" : key === "identityDocumentPath" ? "identity-documents" : "business-documents";
@@ -124,6 +129,7 @@ export default function RequiredProfileSetup({ onComplete, onCancel }: { onCompl
       candidate.onboardingCompleted = final || previouslyComplete;
       const saved = isStudent ? await updateStudentProfile(candidate) : await updateCompanyProfile(candidate);
       if (!saved) throw new Error(t("fail"));
+      if (draftOnly) { setInvalid([]); setSavedMessage(t("draftSaved")); return; }
       if (!final) { setStep((value) => value + 1); window.scrollTo({ top: 0 }); return; }
       // Profile registration is finished. AI analysis is an independent server
       // task and must never hold the user on this screen or undo saved data.
@@ -132,7 +138,7 @@ export default function RequiredProfileSetup({ onComplete, onCancel }: { onCompl
         body: JSON.stringify({ role: isStudent ? "student" : "company" }), signal: AbortSignal.timeout(45000),
       }).then(async (response) => { if (response.ok) await refreshWorkspaceProfile(); }).catch(() => undefined);
       onComplete?.();
-    } catch { setFailure(t("fail")); } finally { setBusy(false); }
+    } catch { setFailure(t("fail")); } finally { saving.current = false; setBusy(false); }
   }
 
   const fileField = (key: string, label: string, accept: string) => (
@@ -171,8 +177,10 @@ export default function RequiredProfileSetup({ onComplete, onCancel }: { onCompl
           })}</div>
           {step === 2 && <div className="space-y-4">{isStudent ? <>{fileField("identityDocumentPath", t("proof"), ".pdf,.jpg,.jpeg,.png")}{fileField("resumeUrl", t("resume"), ".pdf")}</> : fileField("businessRegistrationDocumentPath", t("license"), ".pdf,.jpg,.jpeg,.png")}<p className="text-xs leading-6 text-[#62796e]">{t("privacy")}</p></div>}
           {failure && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm leading-6 text-red-800">{failure}</p>}
-          <div className="flex items-center justify-between gap-3 border-t border-[#17342d]/10 pt-6">
+          {savedMessage && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-800">{savedMessage}</p>}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#17342d]/10 pt-6">
             <button type="button" disabled={step === 0} onClick={() => { setStep((value) => value - 1); setFailure(""); }} className="inline-flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold disabled:opacity-30"><ArrowLeft className="h-4 w-4" />{t("back")}</button>
+            <button type="button" onClick={() => void save(false, true)} className="inline-flex items-center gap-2 rounded-xl border border-[#17342d]/20 px-4 py-3 text-sm font-semibold"><Save className="h-4 w-4" />{t("draft")}</button>
             <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-bold text-white">{busy ? t("saving") : step === 2 ? t("save") : t("next")}{busy ? <Save className="h-4 w-4 animate-pulse" /> : <ArrowRight className="h-4 w-4" />}</button>
           </div>
         </fieldset>

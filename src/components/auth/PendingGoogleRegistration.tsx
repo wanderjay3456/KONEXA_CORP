@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
+import { GoogleRegistrationError } from "../../lib/googleRegistration";
 import { ArrowRight, Building2, GraduationCap, LogOut, ShieldCheck } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useLocale } from "../../i18n/LocaleContext";
@@ -10,7 +11,8 @@ const copy = {
   ko: {
     eyebrow: "Google 계정 연결 완료",
     title: "계정 유형과 필수 동의만 확인해 주세요.",
-    lead: "Google 인증은 정상적으로 완료되었습니다. 아래 내용을 확인하면 계정이 활성화되고, 이어서 필수 프로필을 작성합니다.",
+    lead: "Google 인증이 완료되었습니다. 계정 유형을 선택하고 필수 약관에 동의하면 관리자 승인 없이 가입됩니다. 프로필은 이어서 작성하고 저장할 수 있습니다.",
+    retry: "가입 완료 요청이 처리되지 않았습니다. 선택한 내용은 이 화면에 유지됩니다. 잠시 후 아래 버튼으로 다시 시도해 주세요. 재가입할 필요는 없습니다.",
     role: "이 계정을 어떻게 사용하시나요?",
     student: "학생·인재",
     studentHelp: "프로젝트와 채용 기회를 찾습니다.",
@@ -29,7 +31,8 @@ const copy = {
   en: {
     eyebrow: "Google account connected",
     title: "Confirm your account type and required agreements.",
-    lead: "Google verification is complete. Confirm the items below to activate your account, then finish your required profile.",
+    lead: "Google verification is complete. Choose your account type and accept the required agreements to sign up without admin approval. You can then build and save your profile.",
+    retry: "We could not confirm your sign-up. Your selections are still on this screen. Wait a moment and use the button below to try again. You do not need to create another account.",
     role: "How will you use KONEXA?",
     student: "Talent",
     studentHelp: "Find projects and hiring opportunities.",
@@ -48,7 +51,8 @@ const copy = {
   vi: {
     eyebrow: "Đã kết nối tài khoản Google",
     title: "Xác nhận loại tài khoản và các đồng ý bắt buộc.",
-    lead: "Google đã xác minh thành công. Hãy xác nhận các mục dưới đây để kích hoạt tài khoản rồi hoàn thiện hồ sơ bắt buộc.",
+    lead: "Google đã xác minh thành công. Chọn loại tài khoản và đồng ý với các điều khoản bắt buộc để đăng ký mà không cần quản trị viên phê duyệt. Sau đó, bạn có thể tạo và lưu hồ sơ.",
+    retry: "Chưa thể xác nhận đăng ký. Các lựa chọn vẫn được giữ trên màn hình này. Vui lòng đợi một lát rồi nhấn nút bên dưới để thử lại. Bạn không cần tạo tài khoản mới.",
     role: "Bạn sẽ sử dụng KONEXA như thế nào?",
     student: "Ứng viên",
     studentHelp: "Tìm dự án và cơ hội tuyển dụng.",
@@ -77,14 +81,16 @@ export default function PendingGoogleRegistration() {
   const [role, setRole] = useState<UserRole>(suggestedRole);
   const [agreements, setAgreements] = useState({ terms: false, transaction: false, privacy: false, marketing: false });
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
   const [failure, setFailure] = useState<unknown>(null);
 
   const requiredAccepted = agreements.terms && agreements.transaction && agreements.privacy;
   const submit = async () => {
-    if (!requiredAccepted || busy) {
+    if (!requiredAccepted || submitting.current) {
       if (!requiredAccepted) setFailure(new Error(t.required));
       return;
     }
+    submitting.current = true;
     setBusy(true);
     setFailure(null);
     try {
@@ -99,6 +105,7 @@ export default function PendingGoogleRegistration() {
     } catch (cause) {
       setFailure(cause);
     } finally {
+      submitting.current = false;
       setBusy(false);
     }
   };
@@ -125,7 +132,7 @@ export default function PendingGoogleRegistration() {
         </div>
 
         <div className="space-y-7 p-6 sm:p-10">
-          <fieldset>
+          <fieldset disabled={busy}>
             <legend className="text-base font-black">{t.role}</legend>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {([
@@ -149,13 +156,13 @@ export default function PendingGoogleRegistration() {
               ["marketing", t.marketing, false],
             ] as const).map(([key, label, required]) => (
               <label key={key} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#3f5d55]">
-                <input type="checkbox" checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#17342d]" />
+                <input type="checkbox" disabled={busy} checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#17342d]" />
                 <span>{label}{required && <strong className="ml-1 text-[#4361ee]">*</strong>}</span>
               </label>
             ))}
           </div>
 
-          {failure && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm leading-6 text-red-800">{failure instanceof Error && failure.message === t.required ? t.required : authErrorMessage(failure, locale)}</p>}
+          {failure && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm leading-6 text-red-800">{failure instanceof Error && failure.message === t.required ? t.required : (failure instanceof GoogleRegistrationError && failure.status >= 500) || (failure instanceof Error && ['TimeoutError', 'AbortError'].includes(failure.name)) ? t.retry : authErrorMessage(failure, locale)}</p>}
           <button type="button" disabled={busy} onClick={() => void submit()} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">
             {busy ? t.busy : t.submit}{!busy && <ArrowRight className="h-4 w-4" />}
           </button>

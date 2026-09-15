@@ -6,8 +6,32 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const bundled = await build({ entryPoints: [path.join(root, 'tests/browser/ui.tsx')], absWorkingDir: root, bundle: true, write: false, format: 'esm', jsx: 'automatic', platform: 'browser', plugins: [{ name: 'local-test-context', setup(builder) {
   builder.onResolve({ filter: /context\/AppContext$/ }, () => ({ path: path.join(root, 'tests/browser/appFixture.tsx') }));
+  builder.onResolve({ filter: /lib\/(supabaseAuth|privateStorage)$/ }, () => ({ path: path.join(root, 'tests/browser/signupFixture.tsx') }));
 } }] });
 const { app, state } = aiFixture();
+// Explicitly local-only signup store. Never connected to Supabase or email.
+const signups = new Map<string, any>();
+const intents = new Map<string, any>();
+const blankSignup = (req: any) => ({ user: { uid: req.user.uid, email: 'signup-qa@example.invalid', role: req.user.role, onboardingStatus: 'pending_google' }, profile: { uid: req.user.uid, onboardingCompleted: false, verified: false, verifiedStatus: 'Pending' } });
+app.post('/__qa/signup/reset', (req: any, res) => { signups.set(req.user.uid, blankSignup(req)); res.json({ ok: true }); });
+app.get('/__qa/signup', (req: any, res) => res.json(signups.get(req.user.uid) || blankSignup(req)));
+app.post('/api/auth/google-registration-intents', (req: any, res) => {
+  const id = crypto.randomUUID(); intents.set(id, req.body); res.status(201).json({ data: { registrationId: id } });
+});
+app.post('/api/auth/google-registration-complete', (req: any, res) => {
+  const intent = intents.get(req.body.registrationId);
+  if (!intent || !['student', 'company'].includes(intent.role) || !['terms', 'nonCircumvention', 'messageAnalysis', 'crossBorderPrivacy'].every(key => intent.consents?.[key] === true)) return res.status(400).json({ error: { code: 'CONSENT_REQUIRED' } });
+  const value = signups.get(req.user.uid) || blankSignup(req);
+  value.user = { ...value.user, role: intent.role, onboardingStatus: 'complete' };
+  signups.set(req.user.uid, value); intents.delete(req.body.registrationId);
+  res.json({ data: { role: intent.role } });
+});
+app.post('/__qa/signup/profile', (req: any, res) => {
+  const value = signups.get(req.user.uid);
+  if (!value || value.user.onboardingStatus !== 'complete') return res.sendStatus(403);
+  value.profile = { ...value.profile, ...req.body, verified: false, verifiedStatus: 'Pending' };
+  res.json(value);
+});
 app.get('/__qa/profile', (req: any, res) => res.json(state.tables.app_records.find(row => row.record_id === req.user.uid)?.data || {}));
 app.post('/__qa/profile', (req: any, res) => {
   const row = state.tables.app_records.find(row => row.record_id === req.user.uid)!;

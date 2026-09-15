@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { submitGoogleRegistration } from "../lib/googleRegistration";
 import { 
   collection, 
   onSnapshot, 
@@ -739,30 +740,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           notificationPreferences: { email: true, system: true },
         };
 
-    const registrationResponse = await fetch("/api/auth/google-registration-intents", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        role: role === UserRole.COMPANY ? "company" : "student",
-        consents: consentBundle,
-        profile: profileData,
-      }),
-    });
-    const registrationPayload = await registrationResponse.json().catch(() => null);
-    const registrationId = registrationPayload?.data?.registrationId;
-    if (!registrationResponse.ok || !registrationId) {
-      throw new Error(registrationPayload?.error?.message || "Google registration could not be initialized.");
-    }
-
-    const completionResponse = await fetch("/api/auth/google-registration-complete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ registrationId }),
-    });
-    const completionPayload = await completionResponse.json().catch(() => null);
-    if (!completionResponse.ok) {
-      throw new Error(completionPayload?.error?.message || "Google registration could not be completed.");
-    }
+    await submitGoogleRegistration(
+      role === UserRole.COMPANY ? "company" : "student", consentBundle, profileData,
+    );
 
     const userSnapshot = await getDoc(doc(db, "users", authenticatedUser.uid));
     if (!userSnapshot.exists()) {

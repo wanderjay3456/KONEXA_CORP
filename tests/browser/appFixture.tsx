@@ -1,8 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { company, student, projectId } from './ids';
+import { SignupProvider } from './signupFixture';
 const Context = createContext<any>(null);
 export const useApp = () => useContext(Context);
 export function FixtureProvider({ children }: { children: React.ReactNode }) {
+  if (new URLSearchParams(location.search).has('signup')) return <SignupProvider context={Context}>{children}</SignupProvider>;
+  return <WorkforceProvider>{children}</WorkforceProvider>;
+}
+function WorkforceProvider({ children }: { children: React.ReactNode }) {
   const role = new URLSearchParams(location.search).get('role') || 'student';
   const uid = role === 'company' ? company : student;
   const [profile, setProfile] = useState<any>(null);
