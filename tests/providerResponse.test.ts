@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { generateWithModelFallback, normalizeStructuredResponse } from '../src/server/providerResponse';
+import { generateWithModelFallback, normalizeStructuredResponse, providerFailure } from '../src/server/providerResponse';
+import { validateSupportRouting } from '../src/server/support';
 import { existingSmtpDelivery, smtpAuthentication, smtpSecurity } from '../src/server/smtpPolicy';
 
 test('structured AI accepts complete JSON with harmless wrappers and trailing prose', () => {
@@ -30,6 +31,17 @@ test('chat text remains unchanged and exhausted providers fail visibly', async (
   const result=await generateWithModelFallback(['chat'],async()=>({text:'Plain reply.'}),false);
   assert.equal(result.response.text,'Plain reply.');
   await assert.rejects(generateWithModelFallback(['bad'],async()=>({text:''}),true));
+});
+test('provider failures expose only safe categories and reject token-exhausted responses', async () => {
+  assert.deepEqual(providerFailure({ status: 429, message: 'private key and prompt' }), { code: 'AI_RATE_LIMITED', httpStatus: 429 });
+  assert.equal(providerFailure({ status: 403 }).code, 'AI_PROVIDER_ACCESS');
+  assert.equal(providerFailure({ name: 'TimeoutError' }).code, 'AI_TIMEOUT');
+  assert.ok(!JSON.stringify(providerFailure(new Error('private key and prompt'))).includes('private'));
+  const result = await generateWithModelFallback(['short', 'enough'], async model => model === 'short' ? { text: '{"ok":true}', candidates: [{ finishReason: 'MAX_TOKENS' }] } : { text: '{"ok":true}' }, true);
+  assert.equal(result.model, 'enough');
+  assert.doesNotThrow(() => validateSupportRouting({ articleIds: [] }));
+  assert.throws(() => validateSupportRouting({ articleIds: ['invented'] }));
+  assert.throws(() => validateSupportRouting({}));
 });
 test('SMTP uses implicit TLS on 465 and required STARTTLS on submission ports', () => {
   assert.deepEqual(smtpSecurity(465,'false'),{secure:true,requireTLS:false});

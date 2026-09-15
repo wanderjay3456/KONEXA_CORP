@@ -21,7 +21,7 @@ The source chain is: actual profile/project → shared multilingual taxonomy and
 ## Verification
 
 - `npm run lint`: TypeScript.
-- `npm test`: 76 tests, including multilingual role preservation, exact skill boundaries, irrelevant-candidate exclusion, known vs unknown conditions, no protected-trait/prior-score influence, admin/owner authorization, private-file ownership, pagination, dependency errors and persisted AI state.
+- `npm test`: 77 tests, including multilingual role preservation, exact skill boundaries, irrelevant-candidate exclusion, known vs unknown conditions, no protected-trait/prior-score influence, admin/owner authorization, private-file ownership, pagination, dependency errors and persisted AI state.
 - `npm run build`: production frontend/backend bundles.
 - `npm run test:browser`: 9 local browser scenarios, including company/student onboarding, existing AI workflows and the new admin compare/generate/reload workflow, failed-load retry, native locales and a 390px mobile layout.
 - Browser tests use actual built CSS and isolated fictional fixtures. They do not create production people or vacancies and do not validate real model quality.
@@ -34,3 +34,11 @@ This is decision support, not a validated prediction of hiring success. Real mat
 Workspace queries paginate each source and fail explicitly beyond 10,000 records instead of silently truncating. Shortlists show up to 30 people; exclusion details show the first 50. At larger scale, replace whole-workspace reads with indexed server-side search and cursors.
 
 No new database migration, account-approval gate, paid plan, payment/escrow/e-sign activation or secret rotation is included in this change. A healthy endpoint and configured AI key are not evidence that the new real-provider flow has executed successfully.
+
+## Live provider follow-up
+
+A non-personal public-help question returned `reviewed_help_fallback` and a failed generation receipt, despite a healthy configuration report. The old generic log did not establish whether this was an output limit, timeout, provider access problem or another failure. Do not infer a root cause from that receipt alone.
+
+The follow-up records allowlisted failure categories/status codes and duration only, never prompts, keys or provider payloads. The help classifier now uses an explicit JSON schema, validates returned topic IDs, has a larger bounded output budget and can fall back to a second existing model. Model-truncated responses cannot be reported as successful. Reviewed static help remains available during an outage.
+
+Configuration reference: [Gemini 3 developer guide](https://ai.google.dev/gemini-api/docs/gemini-3) and [Flash-Lite structured classification](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite). A real production request and its persisted receipt are still required after deployment to verify recovery.
