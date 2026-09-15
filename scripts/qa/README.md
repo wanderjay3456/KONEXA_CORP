@@ -3,6 +3,10 @@
 ## Local release gate
 
 Run `npm run lint`, `npm test`, `npm run build`, and `npm audit --omit=dev --audit-level=high`.
+Run `npx playwright install chromium` once and `npm run test:browser` for the
+component → API → fixture store → reload checks. The CI runs these automatically.
+Browser/API fixtures live under `tests/`, are never imported by production,
+do not connect to Supabase/Gemini, and are not evidence of live OAuth or model quality.
 The GitHub `verify` check repeats these checks before merge. Never bypass the protected branch.
 
 ## Database integration suite
@@ -13,6 +17,9 @@ Never run only selected lines, remove the rollback, or call real payment/signatu
 The suite checks permissions, idempotency, required profile gates, milestones, sealed reviews,
 dispute isolation, notification deduplication, email opt-out and retry ownership.
 Synthetic signed/paid states are fixtures, not evidence that a payment or signature integration is live.
+Storage rows in the SQL suite are rollback-only metadata fixtures, not real uploaded documents.
+The suite also checks private candidate lookup, suspended/withdrawn candidates,
+owner career-goal updates, AI attempt states, and service-only health aggregation.
 
 ## Opt-in live authentication/API checks
 

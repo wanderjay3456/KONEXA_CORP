@@ -1,0 +1,14 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import CareerRoadmap from '../../src/components/student/CareerRoadmap';
+import AiRecruitmentCenter from '../../src/components/company/AiRecruitmentCenter';
+import { LocaleProvider } from '../../src/i18n/LocaleContext';
+import { ToastProvider } from '../../src/components/ui/Toast';
+import { FixtureProvider } from './appFixture';
+import { company, student } from './ids';
+const parameters = new URLSearchParams(location.search);
+const role = parameters.get('role') || 'student';
+localStorage.setItem('konexa_locale', parameters.get('locale') || 'en');
+const originalFetch = window.fetch.bind(window);
+window.fetch = (input, options) => originalFetch(input, { ...options, headers: { ...options?.headers, 'x-test-actor': role === 'company' ? company : student } });
+createRoot(document.getElementById('root')!).render(<LocaleProvider><ToastProvider><FixtureProvider>{role === 'company' ? <AiRecruitmentCenter onNavigate={() => {}} /> : <CareerRoadmap />}</FixtureProvider></ToastProvider></LocaleProvider>);

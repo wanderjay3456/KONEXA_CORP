@@ -38,6 +38,7 @@ export async function generateWithModelFallback(
   models: string[],
   generate: (model: string) => Promise<{ text?: string } & Record<string, any>>,
   structured: boolean,
+  validate?: (value: any) => void,
 ): Promise<{ response: { text: string } & Record<string, any>; model: string }> {
   let lastError: unknown;
   for (const model of models) {
@@ -45,6 +46,8 @@ export async function generateWithModelFallback(
       const response = await generate(model);
       if (!response.text?.trim()) throw new Error('Empty AI response');
       const text = structured ? normalizeStructuredResponse(response.text) : response.text;
+      // Validation belongs inside the retry boundary, not after choosing a model.
+      if (validate) validate(structured ? JSON.parse(text) : text);
       return { response: { ...response, text }, model };
     } catch (error) {
       lastError = error;

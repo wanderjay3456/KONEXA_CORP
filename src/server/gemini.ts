@@ -18,11 +18,12 @@ export function getAIClient() {
 }
 
 export async function generateGeminiContent(request: Record<string, any>, models = defaultModels) {
+  const { validateResponse, ...providerRequest } = request;
   return generateWithModelFallback(models, async model => {
     const response = await getAIClient().models.generateContent({
-      ...request, model,
+      ...providerRequest, model,
       config: { ...request.config, httpOptions: { ...request.config?.httpOptions, timeout: Math.max(1_000, Math.min(25_000, Number(request.config?.httpOptions?.timeout) || 25_000)) } },
     } as any);
     return { ...response, text: response.text };
-  }, request.config?.responseMimeType === 'application/json');
+  }, request.config?.responseMimeType === 'application/json', validateResponse);
 }

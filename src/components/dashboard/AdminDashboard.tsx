@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, BriefcaseBusiness, Building2, CheckCircle2, Clock3, Database, RefreshCw, Search, ShieldCheck, UserRoundCheck, Users2, XCircle } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../ui/Toast";
+import AutomationHealth from './AutomationHealth';
 
 interface DirectoryUser {
   id: string;
@@ -26,7 +27,7 @@ interface VerificationRequest {
   updatedAt?: string | number;
 }
 
-type AdminTab = "overview" | "members" | "projects" | "verifications" | "activity";
+type AdminTab = "overview" | "members" | "projects" | "verifications" | "activity" | "automation";
 
 const tabs: Array<{ id: AdminTab; label: string }> = [
   { id: "overview", label: "운영 현황" },
@@ -34,6 +35,7 @@ const tabs: Array<{ id: AdminTab; label: string }> = [
   { id: "projects", label: "프로젝트" },
   { id: "verifications", label: "인증 심사" },
   { id: "activity", label: "활동 기록" },
+  { id: "automation", label: "자동 운영 점검" },
 ];
 
 function formatDate(value?: string | number) {
@@ -152,6 +154,7 @@ export default function AdminDashboard() {
           {tabs.map((tab) => <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-bold ${activeTab === tab.id ? "bg-neutral-950 text-white" : "text-neutral-600 hover:bg-neutral-50"}`}>{tab.label}</button>)}
         </nav>
 
+        {activeTab === 'automation' && <AutomationHealth />}
         {activeTab === "overview" && (
           <div className="space-y-6">
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
