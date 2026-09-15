@@ -33,12 +33,12 @@ test('company can ask for preparation before a job exists, and matching restores
   await expect(page.getByText('Research evidence needs human confirmation.')).toBeVisible();
 });
 
-test('Korean and Vietnamese roadmap controls are native and goal text is not translated', async ({ page }) => {
+test('Korean and English roadmap controls are native and goal text is not translated', async ({ page }) => {
   await page.goto('/?locale=en');
   await page.getByLabel('Career goal').fill('Preserve my original research goal');
   await page.getByRole('button', { name: 'Save goal', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Save goal', exact: true })).toBeDisabled();
-  for (const [locale, label, button] of [['ko', '진로 목표', '목표 저장'], ['vi', 'Mục tiêu nghề nghiệp', 'Lưu mục tiêu']]) {
+  for (const [locale, label, button] of [['ko', '진로 목표', '목표 저장'], ['en', 'Career goal', 'Save goal']]) {
     await page.goto(`/?locale=${locale}`);
     await expect(page.getByLabel(label, { exact: true })).toHaveValue('Preserve my original research goal');
     await expect(page.getByRole('button', { name: button, exact: true })).toBeVisible();

@@ -18,7 +18,7 @@ export default function EmployeeConversion({ onNavigate }: EmployeeConversionPro
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-3xl border border-neutral-200 bg-white p-5"><ShieldCheck className="h-5 w-5" /><h2 className="mt-3 font-black">E-7 사전 검토</h2><p className="mt-2 text-xs leading-5 text-neutral-500">직무·전공 적합성만 사전 점검합니다. 비자 발급을 보장하지 않으며 행정사·출입국 전문가의 최종 검토가 필요합니다.</p></div>
-        <div className="rounded-3xl border border-neutral-200 bg-white p-5"><FileSignature className="h-5 w-5" /><h2 className="mt-3 font-black">실제 계약 기록</h2><p className="mt-2 text-xs leading-5 text-neutral-500">현재 플랫폼 확인서명을 저장하며, 운영 활성화 시 {providerPlan.electronicSignature}의 문서 상태와 서명 완료 웹훅을 연결합니다.</p></div>
+        <div className="rounded-3xl border border-neutral-200 bg-white p-5"><FileSignature className="h-5 w-5" /><h2 className="mt-3 font-black">실제 계약 기록</h2><p className="mt-2 text-xs leading-5 text-neutral-500">실제 전자서명 사업자의 문서 상태와 서명 완료 기록으로 확인합니다. 연동 전에는 서명 완료로 처리하지 않습니다.</p></div>
         <div className="rounded-3xl border border-neutral-200 bg-white p-5"><CheckCircle2 className="h-5 w-5" /><h2 className="mt-3 font-black">90일 보증정책</h2><p className="mt-2 text-xs leading-5 text-neutral-500">30일 이내 1회 무료 재추천, 31~60일 70%, 61~90일 40% 크레딧. 기업의 임금체불·조건변경·괴롭힘이 원인이면 제외합니다.</p></div>
       </div>
 

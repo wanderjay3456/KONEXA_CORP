@@ -10,7 +10,7 @@ export const EMAIL_TEMPLATES = [
   'welcome', 'application_received', 'application_status', 'new_application',
   'project_published', 'contract_action', 'milestone_action', 'payment_status',
   'subscription_activated', 'payment_failed', 'introduction_requested',
-  'review_updated', 'dispute_action',
+  'review_updated', 'dispute_action', 'coordination_action',
 ] as const;
 export type EmailTemplate = typeof EMAIL_TEMPLATES[number];
 
@@ -80,6 +80,12 @@ export function renderEmail(template: EmailTemplate, data: SendEmailInput["data"
   const status = escapeHtml(data.status || "updated");
 
   const copy: Record<EmailTemplate, { subject: string; heading: string; body: string; action: string }> = {
+    coordination_action: {
+      subject: 'KONEXA | 일정·요청 업데이트 / Workspace update',
+      heading: '확인이 필요한 운영 기록이 있습니다 / Your workspace has an update',
+      body: '면접 일정, 업무 변경안 또는 대체·보증 요청의 최신 상태를 확인해 주세요. 변경안 합의만으로 추가 결제나 전자서명이 완료되지는 않습니다.<br/><br/>Review the latest meeting, scope-change or support request in your secure workspace. A business acknowledgement does not execute a payment or electronic signature.',
+      action: '운영 화면 열기 / Open workspace',
+    },
     welcome: {
       subject: "Welcome to KONEXA",
       heading: `Welcome, ${name}`,

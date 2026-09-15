@@ -5,10 +5,10 @@ export function preservesTranslationNumbers(source: string, translated: string) 
 
 export function canApplyUiTranslation(input: {
   connected: boolean; excluded: boolean; current: string; source: string;
-  original: string; lastApplied: string; translated: string;
+  original: string; lastApplied: string; translated: string; reviewedCopy?: boolean;
 }) {
   return input.connected && !input.excluded && Boolean(input.translated)
     && input.original === input.source
     && (input.current === input.source || input.current === input.lastApplied)
-    && preservesTranslationNumbers(input.source, input.translated);
+    && (input.reviewedCopy === true || preservesTranslationNumbers(input.source, input.translated));
 }

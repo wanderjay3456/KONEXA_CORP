@@ -15,6 +15,7 @@ import {
 } from "./email";
 import { reviewVisibilityFilter, shouldDeliverAccountEmail } from './workflowVisibility';
 import { registerDeliveryReadRoutes } from './deliveryRoutes';
+import { registerCoordinationRoutes } from './coordinationRoutes';
 import { workflowClientError } from './workflowErrors';
 import {
   ApiInputError,
@@ -135,6 +136,8 @@ interface NotificationOutboxRow {
 
 export async function processNotificationOutboxBatch(limit = 20, recipientId?: string) {
   if (!recipientId) {
+    try { await rpc('konexa_queue_coordination_reminders_v4', {}); }
+    catch (cause) { console.warn('Coordination reminder queue unavailable', { code: (cause as any)?.code || 'DATABASE_ERROR' }); }
     try { await rpc('konexa_queue_delivery_reminders_v3', {}); }
     catch (cause) { console.warn('Delivery reminder queue unavailable', { code: (cause as any)?.code || 'DATABASE_ERROR' }); }
   }
@@ -226,15 +229,19 @@ export async function getBackendV2Readiness(): Promise<BackendV2Readiness> {
     return readinessCache.value;
   }
   try {
-    const [{ error: projectError }, { count, error: outboxError }] = await Promise.all([
+    const [{ error: projectError }, { count, error: outboxError }, {error: coordinationError}, {error: historyError}] = await Promise.all([
       getSupabaseAdmin().from("konexa_projects").select("id", { head: true, count: "exact" }),
       getSupabaseAdmin()
         .from("konexa_notification_outbox")
         .select("id", { head: true, count: "exact" })
         .in("status", ["pending", "failed", "dead_letter"]),
+      getSupabaseAdmin().from('konexa_coordination_items').select('id', {head: true}).limit(1),
+      getSupabaseAdmin().from('konexa_coordination_events').select('id', {head: true}).limit(1),
     ]);
     if (projectError) throw projectError;
     if (outboxError) throw outboxError;
+    if (coordinationError) throw coordinationError;
+    if (historyError) throw historyError;
     const emailReady = isTransactionalEmailConfigured();
     const value = {
       schema: true,
@@ -379,6 +386,7 @@ export function registerBackendV2PublicRoutes(app: Express) {
 }
 
 export function registerBackendV2Routes(app: Express) {
+  registerCoordinationRoutes(app, getSupabaseAdmin, processOutboxSoon);
   registerDeliveryReadRoutes(app);
   const notificationDispatchLimit = rateLimit({ windowMs: 60_000, limit: 2, standardHeaders: 'draft-8', legacyHeaders: false,
     keyGenerator: (req: AuthenticatedRequest) => req.user!.uid });

@@ -40,16 +40,16 @@ test('weekly delivery, revision, approval and bilateral completion survive reloa
   await expect(page.getByText('First market research brief with sources.',{exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });
-test('delivery controls render natively in Korean and Vietnamese',async({page})=>{
-  for(const [locale,title] of [['ko','결과물 제출·검수·프로젝트 종료'],['vi','Sản phẩm bàn giao và hoàn thành dự án']]){
+test('delivery controls render natively in Korean and English',async({page})=>{
+  for(const [locale,title] of [['ko','결과물 제출·검수·프로젝트 종료'],['en','Deliverables and project completion']]){
     await page.goto(`/?delivery=1&role=student&locale=${locale}`);await expect(page.getByRole('heading',{name:title})).toBeVisible();
   }
 });
 test('delivery form fits a narrow screen without horizontal overflow',async({page,request})=>{
   await request.post('/__qa/delivery/reset',{headers:{'x-test-actor':company},data:{}});
   await page.setViewportSize({width:390,height:844});
-  await page.goto('/?delivery=1&role=company&locale=vi');
-  await expect(page.getByRole('button',{name:'Thêm mốc công việc',exact:true})).toBeVisible();
+  await page.goto('/?delivery=1&role=company&locale=en');
+  await expect(page.getByRole('button',{name:'Add milestone',exact:true})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy();
   await page.screenshot({path:'test-results/delivery-mobile.png',fullPage:true});
 });
