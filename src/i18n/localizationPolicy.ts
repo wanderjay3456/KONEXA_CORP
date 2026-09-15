@@ -1,9 +1,9 @@
 import { preservesTranslationNumbers } from './translationSafety';
 
 export const LOCALIZATION_BATCH_SIZE = 20;
-export const LOCALIZATION_PROVIDER_TIMEOUT_MS = 8_000;
+export const LOCALIZATION_PROVIDER_TIMEOUT_MS = 12_000;
 export const LOCALIZATION_MAX_MODELS = 2;
-export const LOCALIZATION_CLIENT_TIMEOUT_MS = 25_000;
+export const LOCALIZATION_CLIENT_TIMEOUT_MS = 30_000;
 export const LOCALIZATION_RETRY_DELAY_MS = 30_000;
 
 const hangul = /[가-힣]/;
