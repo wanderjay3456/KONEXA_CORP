@@ -5,6 +5,20 @@ import { shortlistCandidates } from '../src/server/matching';
 import { evidenceHash, profileEvidence, PROFILE_ANALYSIS_VERSION, summarizeMember } from '../src/server/decisionSupport';
 import { aiFixture, admin, company, student, projectId } from './helpers/aiFixture';
 import { isProductionMember } from '../src/lib/adminBackend';
+import { normalizeAiProfileAnalysis } from '../src/server/profileAnalysisRoutes';
+
+test('admin profile reviews require specific questions and evidence requests, not learning recommendations', () => {
+  const review = { strengthSummary: 'Declared evidence', weaknessSummary: 'Needs clarification', careerReadiness: 50, employabilityScore: 50, recommendedLearningPath: ['Take a course'], verificationQuestions: ['What did you deliver?', 'What was your contribution?', 'What weekly schedule is possible?'], evidenceRequests: ['A redacted work sample'] };
+  assert.equal(normalizeAiProfileAnalysis(review).verificationQuestions.length, 3);
+  for (const value of [undefined, [], ['Only one'], [1, 'Two', 'Three'], ['Repeated', 'Repeated', 'Third']]) assert.throws(() => normalizeAiProfileAnalysis({ ...review, verificationQuestions: value }), /assessment/);
+  assert.throws(() => normalizeAiProfileAnalysis({ ...review, evidenceRequests: [] }), /assessment/);
+  assert.throws(() => normalizeAiProfileAnalysis({ ...review, evidenceRequests: ['x'.repeat(301)] }), /assessment/);
+  const row = { entity_id: student, assessment_type: 'student_profile_analysis', status: 'completed', result: review };
+  const summary = summarizeMember({ record_id: student, data: { role: 'student' } }, { data: {} }, [row], []);
+  assert.deepEqual(summary.ai.verificationQuestions, review.verificationQuestions);
+  assert.deepEqual(summary.ai.evidenceRequests, review.evidenceRequests);
+  assert.ok(!JSON.stringify(summary.ai).includes('Take a course'));
+});
 
 test('multilingual taxonomy preserves all existing skilled-work options and exact technical skills', () => {
   for (const group of ROLE_GROUPS) for (const option of group.roles) {
@@ -75,6 +89,11 @@ test('admin workflow is protected, live-source backed, paginated, reloadable and
     const response = await post(admin, { role: 'student', profileOwnerId: student, locale: 'ko' }); assert.equal(response.status, 200);
     assert.ok(state.pendingObserved); const body = await response.json(); assert.ok(body.assessmentId);
     const updated = await get(admin).then(r => r.json()); assert.equal(updated.members.find((m: any) => m.id === student).ai.state, 'current');
+    assert.equal(updated.members.find((m: any) => m.id === student).ai.verificationQuestions.length, 3);
+    const companyProfile = state.tables.app_records.find(row => row.collection_name === 'company_profiles' && row.record_id === company)!;
+    companyProfile.data.companyIntroduction = 'Research project team'; companyProfile.data.requiredSkills = ['Research'];
+    const companyAnalysis = await post(admin, { role: 'company', profileOwnerId: company, locale: 'en' }); assert.equal(companyAnalysis.status, 200);
+    assert.equal((await companyAnalysis.json()).evidenceRequests.length, 1);
     state.tables.app_records.find(row => row.record_id === student && row.collection_name === 'student_profiles')!.data.skills.push('New skill');
     const changed = await get(admin).then(r => r.json()); assert.equal(changed.members.find((m: any) => m.id === student).ai.state, 'stale');
     const match = await get(admin, `?projectId=${projectId}`).then(r => r.json()); assert.equal(match.matching.scanned, 301); assert.equal(match.matching.candidates.length, 1);
