@@ -37,3 +37,9 @@ Synthetic fixture payment and signature records exist only inside isolated tests
 Real payment/escrow/e-signature activation is intentionally not bypassed. Consequently a newly issued production agreement cannot be treated as funded/signed just to unlock delivery. Commercial hosting authorization, final legal/service policy review and real company/candidate pilot outcomes remain separate launch gates. Visa approval, recruitment outcomes, replacement guarantees, genuine identity checks and dispute judgments are not delegated to AI.
 
 The shared matching/administrator analysis remains evidence-based decision support. The release does not establish a statistical hiring-success rate or turn absent candidate evidence into verified competency. Large-scale indexed search, fully automated sales campaigns, interview scheduling, formal change-order automation and provider-backed talent payouts remain separate capabilities, not completed merely by this delivery release.
+
+## Localization follow-up
+
+Live-browser verification exposed a pre-existing localization deadline mismatch: the browser aborted after 15 seconds while each server-side model could run for 25 seconds. The follow-up shares explicit budgets (8 seconds per provider, at most two providers, 25 seconds client-side), reduces client batches to 20 strings, and uses the already verified default model family. It preserves source text already written in the selected language, cancels obsolete requests, adds a retry delay and rejects malformed or number-changing translations before caching. This does not eliminate third-party outage risk or replace the remaining legacy translation layer with native dictionaries.
+
+After this follow-up, TypeScript, the production build, all 84 automated tests and all 14 isolated browser scenarios passed. The added browser case proves native and private copy is not sent for automatic rewriting. The 55-assertion SQL suite and the database migrations are unchanged.

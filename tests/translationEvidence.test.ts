@@ -2,6 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { canApplyUiTranslation, preservesTranslationNumbers } from '../src/i18n/translationSafety';
 import { normalizePdfEvidence } from '../src/server/pdfEvidence';
+import { needsUiTranslation, validateUiTranslations, LOCALIZATION_BATCH_SIZE, LOCALIZATION_CLIENT_TIMEOUT_MS, LOCALIZATION_PROVIDER_TIMEOUT_MS, LOCALIZATION_MAX_MODELS } from '../src/i18n/localizationPolicy';
+
+test('native UI copy stays stable and localization server budget fits the client deadline',()=>{
+  assert.equal(needsUiTranslation('결과물 및 종료 검토','ko'),false);
+  assert.equal(needsUiTranslation('KONEXA 프로젝트 확인','ko'),false);
+  assert.equal(needsUiTranslation('Submission history','ko'),true);
+  assert.equal(needsUiTranslation('Submission history','en'),false);
+  assert.equal(needsUiTranslation('제출 이력','en'),true);
+  assert.equal(needsUiTranslation('Lịch sử bàn giao','vi'),false);
+  assert.equal(needsUiTranslation('Submission history','vi'),true);
+  assert.ok(LOCALIZATION_PROVIDER_TIMEOUT_MS*LOCALIZATION_MAX_MODELS+3000<LOCALIZATION_CLIENT_TIMEOUT_MS);
+  assert.ok(LOCALIZATION_BATCH_SIZE<=20);
+});
+test('localization rejects missing, fabricated numeric and non-text values before caching',()=>{
+  assert.deepEqual(validateUiTranslations([' 알림 2개 '],['2 notifications']),['알림 2개']);
+  for(const value of [[],[{}],[null],[''],['알림 0개']])assert.throws(()=>validateUiTranslations(value,['2 notifications']));
+});
 
 test('late translations cannot overwrite refreshed React values or newly private chat nodes', () => {
   const input = { connected: true, excluded: false, current: 'Hello', source: 'Hello', original: 'Hello', lastApplied: 'Hello', translated: '안녕하세요' };
