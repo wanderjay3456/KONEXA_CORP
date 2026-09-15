@@ -25,7 +25,7 @@ The existing company opportunity/application/relationship flow now leads to an a
 ## Verification method
 
 - `npm run lint`: TypeScript.
-- `npm test`: 81 passing tests covering validation, delivery read-route authorization/private-file scoping, notification semantics, plus existing authentication, AI, profile, matching and recovery regressions.
+- `npm test`: 82 tests covering validation, delivery read-route authorization/private-file scoping, localized recovery guidance, notification semantics, plus existing authentication, AI, profile, matching and recovery regressions.
 - `npm run build`: production client and server.
 - `npm run test:browser`: 13 passing scenarios covering the isolated company/talent submission-revision-approval-completion-reload flow, administrator moderation/resolution, native locales, narrow-screen layout, and prior signup/AI/admin flows. Fixtures are local-only and never imported by production.
 - `scripts/qa/workflow-rollback.sql`: 55 assertions against the SQL functions in one rolled-back transaction. These include unrelated-account rejection, unfunded/empty/forged-file submission rejection, budget ceilings, final-review gates, version-specific notifications, bilateral completion, exact-once evidence, reminder deduplication and administrator resolution without moving money.

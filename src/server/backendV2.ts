@@ -15,6 +15,7 @@ import {
 } from "./email";
 import { reviewVisibilityFilter, shouldDeliverAccountEmail } from './workflowVisibility';
 import { registerDeliveryReadRoutes } from './deliveryRoutes';
+import { workflowClientError } from './workflowErrors';
 import {
   ApiInputError,
   enumValue,
@@ -70,6 +71,8 @@ function asErrorMessage(error: unknown) {
 }
 
 function routeError(res: Response, error: unknown, fallback = "The request could not be completed.") {
+  const guidance=workflowClientError(error,res.req.get('X-KONEXA-Locale'));
+  if(guidance){res.status(guidance.status).json({error:{code:guidance.code,message:guidance.message}});return;}
   if (isTransientDependencyError(error)) {
     console.warn('KONEXA database dependency is temporarily unavailable');
     res.setHeader('Retry-After', '3');

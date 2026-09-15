@@ -35,7 +35,7 @@ export default function DeliveryWorkspace({ snapshot, refresh }: { snapshot: Tru
   useEffect(()=>{setConfirmed(false);setMessage('');},[contract?.id]);
   async function command(path:string,body:Record<string,unknown>) {
     const identity=path+JSON.stringify(body); const key=keys.current.get(identity)||`delivery:${crypto.randomUUID()}`; keys.current.set(identity,key);
-    const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Idempotency-Key':key},body:JSON.stringify(body)});
+    const response=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Idempotency-Key':key,'X-KONEXA-Locale':locale},body:JSON.stringify(body)});
     const value=await response.json().catch(()=>({}));
     if(!response.ok) throw new Error(value.error?.message||t.failed);
     keys.current.delete(identity); return value.data;

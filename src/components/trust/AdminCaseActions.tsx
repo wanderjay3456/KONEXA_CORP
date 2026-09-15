@@ -9,7 +9,7 @@ export default function AdminCaseActions({snapshot,refresh}:{snapshot:TrustSnaps
   const keys=useRef(new Map<string,string>());
   async function act(id:string,path:string,body:Record<string,unknown>){if(busy)return;setBusy(id);setMessage('');try{
     const identity=path+JSON.stringify(body);const key=keys.current.get(identity)||`admin-case:${crypto.randomUUID()}`;keys.current.set(identity,key);
-    const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Idempotency-Key':key},body:JSON.stringify(body)});const v=await r.json();if(!r.ok)throw new Error(v.error?.message||t('요청을 저장하지 못했습니다. 다시 시도해 주세요.','Could not save the request. Please retry.','Không thể lưu yêu cầu. Vui lòng thử lại.'));await refresh();keys.current.delete(identity);setMessage(t('처리 결과와 알림을 저장했습니다.','Decision and notifications saved.','Đã lưu quyết định và thông báo.'));
+    const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Idempotency-Key':key,'X-KONEXA-Locale':locale},body:JSON.stringify(body)});const v=await r.json();if(!r.ok)throw new Error(v.error?.message||t('요청을 저장하지 못했습니다. 다시 시도해 주세요.','Could not save the request. Please retry.','Không thể lưu yêu cầu. Vui lòng thử lại.'));await refresh();keys.current.delete(identity);setMessage(t('처리 결과와 알림을 저장했습니다.','Decision and notifications saved.','Đã lưu quyết định và thông báo.'));
   }catch(e){setMessage(e instanceof Error?e.message:String(e));}finally{setBusy('');}}
   const button='rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold disabled:opacity-40';
   return <section data-no-translate className="space-y-5 rounded-3xl border border-neutral-200 bg-white p-6">
