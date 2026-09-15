@@ -6,7 +6,11 @@ async function fixture(page:Page){
  await page.route('**/api/v2/coordination**',async route=>{
   const request=route.request(),url=new URL(request.url()),headers=request.headers(),actor=headers['x-test-actor'];
   const send=(body:any,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
-  if(request.method()==='GET')return send(url.pathname.endsWith('/events')?{data:state.events,nextOffset:null}:{data:state.items.filter(x=>x.kind===url.searchParams.get('kind')),nextOffset:null});
+  if(request.method()==='GET'){
+   // Keep the refresh indicator visible long enough to exercise concurrent status messages.
+   await new Promise(resolve=>setTimeout(resolve,100));
+   return send(url.pathname.endsWith('/events')?{data:state.events,nextOffset:null}:{data:state.items.filter(x=>x.kind===url.searchParams.get('kind')),nextOffset:null});
+  }
   state.keys.push(headers['x-idempotency-key']);
   if(state.failOnce){state.failOnce=false;return send({error:{message:'Temporary test outage. Your input is preserved.'}},503);}
   const body=request.postDataJSON();
@@ -22,7 +26,7 @@ test('company proposes an interview, student confirms and saved history survives
  await page.getByText('Create a request',{exact:true}).click();await page.getByLabel('Introduction',{exact:true}).selectOption(relationId);
  await page.getByLabel('Title',{exact:true}).fill('Research interview');const future=new Date(Date.now()+86400000);future.setMinutes(0,0,0);
  await page.getByLabel('Proposed time 1').fill(future.toISOString().slice(0,16));await page.getByRole('button',{name:'Send request',exact:true}).click();
- await expect(page.getByRole('status')).toContainText('Request saved');expect(state.items).toHaveLength(1);
+ await expect(page.getByRole('status').filter({hasText:'Request saved'})).toBeVisible();expect(state.items).toHaveLength(1);
  await page.goto('/?coordination=1&role=student&locale=en');await page.getByLabel('Time to accept').selectOption(state.items[0].slots[0]);await page.getByRole('button',{name:'Save action',exact:true}).click();
  await expect(page.getByText('Confirmed',{exact:true})).toBeVisible();await page.reload();await expect(page.getByRole('heading',{name:'Research interview'})).toBeVisible();
  await page.getByRole('button',{name:'View history'}).click();await expect(page.getByText('Request created',{exact:false})).toBeVisible();
@@ -33,12 +37,12 @@ test('a failed scope request preserves text and its retry key, then requires the
  await page.getByRole('tab',{name:'Scope changes'}).click();await page.getByText('Create a request',{exact:true}).click();await page.getByLabel('Introduction',{exact:true}).selectOption(relationId);await page.getByLabel('Contract (required)').selectOption(contractId);
  await page.getByLabel('Title',{exact:true}).fill('Additional market research');await page.getByLabel('Reason and supporting facts').fill('We need to compare a second market segment.');await page.getByLabel('Proposed work and deliverables').fill('A sourced summary of the additional segment.');await page.getByLabel('Revised schedule and deadlines').fill('Next week Friday');await page.getByLabel('Additional amount (KRW;').fill('0');
  await page.getByRole('button',{name:'Send request',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Temporary test outage');await expect(page.getByLabel('Title',{exact:true})).toHaveValue('Additional market research');
- await page.getByRole('button',{name:'Send request',exact:true}).click();await expect(page.getByRole('status')).toContainText('Request saved');expect(state.keys[0]).toBe(state.keys[1]);
+ await page.getByRole('button',{name:'Send request',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'Request saved'})).toBeVisible();expect(state.keys[0]).toBe(state.keys[1]);
  await page.goto('/?coordination=1&role=student&locale=en');await page.getByRole('tab',{name:'Scope changes'}).click();await page.getByRole('checkbox').check();await page.getByRole('button',{name:'Save action',exact:true}).click();await expect(page.getByText('Agreed · contract steps required',{exact:true})).toBeVisible();await expect(page.getByText(/The original contract and payment remain unchanged/)).toBeVisible();
 });
 test('support requests use real case state and admin must provide a reason; mobile Korean layout fits',async({page})=>{
- const state=await fixture(page);await page.goto('/?coordination=1&role=student&locale=en');await page.getByRole('tab',{name:'Replacement & guarantee'}).click();await page.getByText('Create a request',{exact:true}).click();await page.getByLabel('Introduction',{exact:true}).selectOption(relationId);await page.getByLabel('Title',{exact:true}).fill('Replacement review');await page.getByLabel('Reason and supporting facts').fill('Please review the project handover record and discuss the next step.');await page.getByRole('button',{name:'Send request',exact:true}).click();await expect(page.getByRole('status')).toContainText('Request saved');
- await page.goto('/?coordination=1&role=admin&locale=en');await page.getByRole('tab',{name:'Replacement & guarantee'}).click();await page.getByLabel('Next action').selectOption('in_review');await page.getByLabel('Reason and supporting details').fill('We are reviewing the submitted records with both participants.');await page.getByRole('button',{name:'Save action',exact:true}).click();expect(state.items[0].status).toBe('in_review');expect(state.events[0].actor_id).toBe(admin);
+ const state=await fixture(page);await page.goto('/?coordination=1&role=student&locale=en');await page.getByRole('tab',{name:'Replacement & guarantee'}).click();await page.getByText('Create a request',{exact:true}).click();await page.getByLabel('Introduction',{exact:true}).selectOption(relationId);await page.getByLabel('Title',{exact:true}).fill('Replacement review');await page.getByLabel('Reason and supporting facts').fill('Please review the project handover record and discuss the next step.');await page.getByRole('button',{name:'Send request',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'Request saved'})).toBeVisible();
+ await page.goto('/?coordination=1&role=admin&locale=en');await page.getByRole('tab',{name:'Replacement & guarantee'}).click();await page.getByLabel('Next action').selectOption('in_review');await page.getByLabel('Reason and supporting details').fill('We are reviewing the submitted records with both participants.');await page.getByRole('button',{name:'Save action',exact:true}).click();await expect(page.getByText('Under review',{exact:true})).toBeVisible();expect(state.items[0].status).toBe('in_review');expect(state.events[0].actor_id).toBe(admin);
  await page.setViewportSize({width:390,height:844});await page.goto('/?coordination=1&role=student&locale=ko');await page.getByRole('tab',{name:'대체·보증 요청'}).click();await expect(page.getByText('검토 중',{exact:true})).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 test('removed Vietnamese preference becomes English, with no runtime translation requests',async({page})=>{
