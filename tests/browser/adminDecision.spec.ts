@@ -22,6 +22,8 @@ test('admin reviews real fixture evidence, filters roles, compares a job and res
   await expect(page.getByText('How many hours can you commit each week?')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Work samples or scope documents to review' })).toBeVisible();
   await expect(page.getByText('Practice structured research interviews.')).toHaveCount(0);
+  await expect(page.getByText('Verify the work sample and weekly availability.')).toHaveCount(0);
+  await expect(page.getByText('Missing fields in Next verification steps come only from stored values, never AI wording.', { exact: false })).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: /Research candidate/ }).click();
   await expect(page.getByText('Declared research skills support an initial project discussion.')).toBeVisible();
