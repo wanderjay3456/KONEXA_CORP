@@ -24,3 +24,11 @@ export function validateUiTranslations(values:unknown, sources:string[]): string
   }
   return values.map(value=>value.trim());
 }
+
+// Only configuration field names may enter diagnostics; never provider text,
+// submitted UI content, credential values or the full request/response.
+export function localizationFailureFields(error:unknown) {
+  const message=String((error as {message?:unknown})?.message||'');
+  return ['temperature','responseJsonSchema','response_schema','schema','minItems','min_items','maxItems','max_items','thinkingLevel','thinking_level','maxOutputTokens','max_output_tokens']
+    .filter(field=>new RegExp(`\\b${field}\\b`,'i').test(message));
+}

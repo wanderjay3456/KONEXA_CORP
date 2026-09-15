@@ -2,7 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { canApplyUiTranslation, preservesTranslationNumbers } from '../src/i18n/translationSafety';
 import { normalizePdfEvidence } from '../src/server/pdfEvidence';
-import { needsUiTranslation, validateUiTranslations, LOCALIZATION_BATCH_SIZE, LOCALIZATION_CLIENT_TIMEOUT_MS, LOCALIZATION_PROVIDER_TIMEOUT_MS, LOCALIZATION_MAX_MODELS } from '../src/i18n/localizationPolicy';
+import { needsUiTranslation, validateUiTranslations, localizationFailureFields, LOCALIZATION_BATCH_SIZE, LOCALIZATION_CLIENT_TIMEOUT_MS, LOCALIZATION_PROVIDER_TIMEOUT_MS, LOCALIZATION_MAX_MODELS } from '../src/i18n/localizationPolicy';
+
+test('localization diagnostics include only allowlisted configuration field names',()=>{
+  assert.deepEqual(localizationFailureFields({message:'Invalid temperature. Private account user@example.invalid api-key=secret'}),['temperature']);
+  assert.deepEqual(localizationFailureFields({message:'Private contents and credential values'}),[]);
+  assert.deepEqual(localizationFailureFields(null),[]);
+});
 
 test('native UI copy stays stable and localization server budget fits the client deadline',()=>{
   assert.equal(needsUiTranslation('결과물 및 종료 검토','ko'),false);

@@ -138,8 +138,9 @@ export function registerAiWorkforceRoutes(app: any, generateGeminiContent: Gener
         config: {
           responseMimeType: "application/json",
           systemInstruction: 'Return raw JSON only: {"status":"ok"}. Do not add any other fields.',
-          temperature: 0,
-          maxOutputTokens: 20,
+          maxOutputTokens: 1024,
+          thinkingConfig: { thinkingLevel: 'minimal' },
+          responseJsonSchema: { type:'object',properties:{status:{type:'string',enum:['ok']}},required:['status'],additionalProperties:false },
         },
       });
       const parsed = JSON.parse(String(response.text || "{}"));

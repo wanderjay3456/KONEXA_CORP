@@ -24,7 +24,7 @@ import { registerSupportRoutes } from './src/server/support';
 import { registerCoachChatRoutes } from './src/server/coachChat';
 import { requireAssessmentScore, requireAssessmentText } from './src/server/assessmentValidation';
 import { normalizePdfEvidence } from './src/server/pdfEvidence';
-import { LOCALIZATION_MAX_MODELS, LOCALIZATION_PROVIDER_TIMEOUT_MS, validateUiTranslations } from './src/i18n/localizationPolicy';
+import { LOCALIZATION_MAX_MODELS, LOCALIZATION_PROVIDER_TIMEOUT_MS, validateUiTranslations, localizationFailureFields } from './src/i18n/localizationPolicy';
 import { providerFailure } from './src/server/providerResponse';
 import {
   getBackendV2Readiness,
@@ -155,7 +155,6 @@ export function createApp() {
                 items: missingTexts.map((text, index) => ({ text, context: missingContexts[index] })),
               }),
               config: {
-                temperature: 0.2,
                 responseMimeType: "application/json",
                 maxOutputTokens: 8192,
                 httpOptions: { timeout: LOCALIZATION_PROVIDER_TIMEOUT_MS },
@@ -183,7 +182,7 @@ Never invent capabilities, guarantees, credentials, discounts, deadlines, or leg
             break;
           } catch (error) {
             lastLocalizationError = error;
-            console.warn('UI localization model failed; trying fallback:', providerFailure(error));
+            console.warn('UI localization model failed; trying fallback:', { ...providerFailure(error), parameters:localizationFailureFields(error) });
           }
         }
         if (!generatedTranslations) throw lastLocalizationError || new Error("No localization model is configured");
