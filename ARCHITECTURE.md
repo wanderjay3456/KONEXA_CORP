@@ -215,12 +215,12 @@ The AI layer in KONEXA uses Google Gemini to verify, assist, and optimize withou
 
 ## 6. Design Tokens (The Design System)
 
-Central design values defined in `/src/config/designTokens.ts` are bound to standard CSS variables:
+Active theme values are defined by the Tailwind `@theme` block in `/src/index.css`. The application does not depend on a separate JavaScript design-token module.
 
-* **Colors**: Pure Contrast Slate (`#000000`, `#0A0A0A`, `#171717`) paired with soft minimalist neutral borders (`#E5E5E5`, `#F5F5F5`) and **Emerald Accent** (`#10B981`) representing trust.
-* **Typography**: Primary interface text using **Inter**; technical stats and system actions use **JetBrains Mono**; main titles use **Space Grotesk**.
-* **Spacing**: Consistent 4px grid progression, utilizing spacing variables `0.5` through `16` to form perfect layouts.
-* **Transitions**: Smooth duration values (`150ms`, `250ms`, `350ms`) with ease timing curves (`cubic-bezier(0.4, 0, 0.2, 1)`) for micro-interactions.
+* **Colors**: Neutral backgrounds and text use the configured zinc-like palette; brand accents use the teal scale (`#14b8a6`, `#0d9488`, `#0f766e`).
+* **Typography**: Interface and display text use Segoe UI Variable with Apple SD Gothic Neo and system fallbacks; body text also includes Noto Sans KR. Monospace text uses Cascadia Mono, SFMono-Regular, or Consolas.
+* **Spacing**: Layouts use Tailwind spacing utilities and component-specific values.
+* **Transitions**: Motion and timing are defined in active component styles and shared CSS utilities, not in the removed demo configuration.
 
 ---
 
