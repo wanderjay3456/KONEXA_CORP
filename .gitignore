@@ -12,3 +12,8 @@ supabase/.temp/
 .vercel
 .npm-cache/
 konexa-sites-*.tar*
+konexa-sites-*.tgz
+node_modules.incomplete/
+*.tsbuildinfo
+/qa-*.png
+/admin-decision-*.png

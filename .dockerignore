@@ -6,3 +6,12 @@ dist
 !.env.example
 *.log
 coverage
+test-results
+playwright-report
+node_modules.incomplete
+.npm-cache
+*.tsbuildinfo
+konexa-sites-*.tar*
+konexa-sites-*.tgz
+qa-*.png
+admin-decision-*.png

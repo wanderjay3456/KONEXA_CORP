@@ -6,5 +6,12 @@ supabase/.temp/
 .npm-cache/
 konexa-sites-*.tar
 konexa-sites-*.tar.gz
+konexa-sites-*.tgz
+node_modules.incomplete/
+test-results/
+playwright-report/
+*.tsbuildinfo
+/qa-*.png
+/admin-decision-*.png
 .env*
 *.log
