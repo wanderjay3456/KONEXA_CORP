@@ -84,8 +84,8 @@ export default function SupportChatbot() {
                 setBusy(false);
         }
     };
-    return <aside data-no-translate className={`fixed right-4 z-[70] font-sans md:right-6 ${inWorkspace ? 'bottom-24' : 'bottom-5 md:bottom-6'}`}>
-    {open && <section role="dialog" aria-label={t.open} className={`fixed inset-x-3 flex flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white text-neutral-900 shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-16 sm:right-0 sm:w-[420px] ${inWorkspace ? 'bottom-40 max-h-[calc(100dvh-11rem)]' : 'bottom-20 max-h-[calc(100dvh-6.5rem)]'}`}>
+    return <aside data-no-translate className={`fixed right-4 z-[70] font-sans md:right-6 ${inWorkspace ? 'bottom-24' : 'bottom-24 md:bottom-6'}`}>
+    {open && <section role="dialog" aria-label={t.open} className={`fixed inset-x-3 flex flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white text-neutral-900 shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-16 sm:right-0 sm:w-[420px] bottom-40 max-h-[calc(100dvh-11rem)]`}>
       <header className="shrink-0 border-b border-neutral-100 px-5 pb-3 pt-4">
         <div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold tracking-widest text-teal-700">KONEXA HELP</span><div className="flex items-center gap-1">
           <select aria-label="Language" value={locale} onChange={e => setLocale(e.target.value as SupportLocale)} className="max-w-28 rounded-lg border border-neutral-200 px-1 py-1 text-xs">{Object.entries(localeNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>

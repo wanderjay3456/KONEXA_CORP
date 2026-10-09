@@ -25,3 +25,5 @@ export function SignupProvider({ context: Context, children }: { context: React.
 
 export function getPendingGoogleAuthIntent() { return { role: new URLSearchParams(location.search).get('role') || 'student' }; }
 export async function uploadPrivateFile(bucket: string, uid: string, file: File) { return `${uid}/qa-${bucket}-${file.name}`; }
+// The landing sign-in modal imports this; the QA fixture never completes a password reset.
+export async function updatePassword(_password: string) { throw new Error('Password reset is not available in the local QA fixture.'); }
