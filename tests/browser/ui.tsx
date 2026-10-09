@@ -14,9 +14,12 @@ import AdminCaseActions from '../../src/components/trust/AdminCaseActions';
 import AutoTranslator from '../../src/i18n/AutoTranslator';
 import CoordinationWorkspace from '../../src/components/trust/CoordinationWorkspace';
 import { coordinationSnapshot } from './coordinationFixture';
+import LandingHero from '../../src/components/landing/LandingHero';
 const parameters = new URLSearchParams(location.search);
 const role = parameters.get('role') || 'student';
 localStorage.setItem('konexa_locale', parameters.get('locale') || 'en');
+// The landing page is a full-bleed layout; drop the QA shell's body margin for it.
+if (parameters.has('landing')) document.body.style.margin = '0';
 const originalFetch = window.fetch.bind(window);
 window.fetch = (input, options) => originalFetch(input, { ...options, headers: { ...options?.headers, 'x-test-actor': role === 'admin' ? admin : role === 'company' ? company : student } });
 function SignupScreen() {
@@ -27,4 +30,4 @@ function SignupScreen() {
 }
 function DeliveryScreen(){const [snapshot,setSnapshot]=React.useState<any>(null);const refresh=async()=>{const response=await fetch('/__qa/delivery');setSnapshot(await response.json());};React.useEffect(()=>{void refresh();},[]);return snapshot?(role==='admin'?<AdminCaseActions snapshot={snapshot} refresh={refresh}/>:<DeliveryWorkspace snapshot={snapshot} refresh={refresh}/>):<p>Loading</p>;}
 function TranslationScreen(){return <><div data-auto-translate><h1>결과물 및 종료 검토</h1><p>Submission history</p><p>관리자 계정</p><p>기업 계정</p><p>학생 계정</p><nav><button>인재·기업 검토</button><button>결과물·종료 검토</button></nav><p data-no-translate>Do not translate private content</p></div><AutoTranslator/></>;}
-createRoot(document.getElementById('root')!).render(<LocaleProvider><ToastProvider><FixtureProvider>{parameters.has('coordination') ? <CoordinationWorkspace snapshot={coordinationSnapshot}/> : parameters.has('translation') ? <TranslationScreen/> : parameters.has('delivery') ? <DeliveryScreen/> : parameters.has('signup') ? <SignupScreen /> : role === 'admin' ? <AdminDecisionWorkspace /> : role === 'company' ? <AiRecruitmentCenter onNavigate={() => {}} /> : <CareerRoadmap />}</FixtureProvider></ToastProvider></LocaleProvider>);
+createRoot(document.getElementById('root')!).render(<LocaleProvider><ToastProvider><FixtureProvider>{parameters.has('landing') ? <LandingHero onEnterApp={() => {}} /> : parameters.has('coordination') ? <CoordinationWorkspace snapshot={coordinationSnapshot}/> : parameters.has('translation') ? <TranslationScreen/> : parameters.has('delivery') ? <DeliveryScreen/> : parameters.has('signup') ? <SignupScreen /> : role === 'admin' ? <AdminDecisionWorkspace /> : role === 'company' ? <AiRecruitmentCenter onNavigate={() => {}} /> : <CareerRoadmap />}</FixtureProvider></ToastProvider></LocaleProvider>);
