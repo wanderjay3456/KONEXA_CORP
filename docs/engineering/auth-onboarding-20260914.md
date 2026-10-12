@@ -79,3 +79,66 @@ Verified Render preview: service srv-db6jiorrjlhs73f307c0, https://konexa-rules-
 Render supplier disclosure for the preview: execution region Singapore; AWS, GCP, Cloudflare and ClickHouse corporate entities listed as United States (https://render.com/security). Corporate country does not establish all physical processing destinations. Official log retention is Hobby 7 / Pro 14 / Scale 30 days; the actual workspace plan and billing payment-method status still need verification before claiming the exact retention or guaranteed zero overage. DPA deletion is on written request and applicable contractual/legal exceptions, not an invented numeric deadline (https://render.com/dpa). Do not activate production processing until those details and Auth sender configuration are verified.
 
 Auth sender evidence: read-only metadata inspection of actual 2026-09-14 authentication emails found Resend authentication signatures and AWS SES delivery headers. Message bodies, login links and tokens were not read or exposed. This establishes the historic delivery processor; current configuration-change verification remains required at activation.
+
+## Deployed receipt guards and coordinated cutover
+
+The additive migration rules_pilot_signup_receipt_guards is applied to the existing Supabase project. Three guards validate new-version receipts before Auth user creation, Google intent storage and signup-consent storage. Required choices must be JSON booleans, talent adult attestation and participation version are enforced, and optional marketing false is accepted. The existing eight consent records are preserved. Pure database validation checks rejected missing/non-boolean choices and stale versions without creating users or changing receipts.
+
+Legacy-client cutover is deliberately off: no system_settings/signup_policy_cutover record is created. Before retiring the old deployed client, confirm the final disclosure and new build, then set that private record's data.required to true in a coordinated release. This enforces the current receipt for all subsequent signup paths; it never rewrites existing consent. Until cutover, legacy receipts continue to follow the existing deployed client's behavior. Trigger helpers live in private schema and PUBLIC/anon/authenticated execution is revoked. The migration is reproduced here to keep schema evidence in the existing file rather than adding or modifying an already-applied migration file.
+
+```sql
+create or replace function private.pilot_signup_cutover_required()
+returns boolean language sql stable security definer set search_path=public,private
+as $$ select coalesce((select data->'required'='true'::jsonb from public.app_records where collection_name='system_settings' and record_id='signup_policy_cutover'),false); $$;
+revoke all on function private.pilot_signup_cutover_required() from public,anon,authenticated;
+create or replace function private.validate_rules_pilot_receipt(requested_role text, receipt jsonb)
+returns void language plpgsql set search_path=public,private
+as $$
+declare required_key text;
+begin
+ if requested_role not in ('student','company') or requested_role is null or jsonb_typeof(receipt) is distinct from 'object'
+ or receipt->>'documentVersion' is distinct from '2026-10-12-rules-pilot'
+ or receipt->>'consentScope' is distinct from 'signup-no-paid-obligation' then
+ raise exception using errcode='22023',message='Current signup receipt required';
+ end if;
+ foreach required_key in array array['terms','dataCollection','nonCircumvention','messageAnalysis','crossBorderPrivacy'] loop
+ if receipt->required_key is distinct from 'true'::jsonb then raise exception using errcode='22023',message='Required signup consent missing'; end if;
+ end loop;
+ if requested_role='student' and (receipt->'adultParticipation' is distinct from 'true'::jsonb or receipt->>'participationPolicyVersion' is distinct from '2026-10-12') then
+ raise exception using errcode='22023',message='Adult participation attestation required'; end if;
+ if receipt ? 'marketing' and jsonb_typeof(receipt->'marketing') is distinct from 'boolean' then
+ raise exception using errcode='22023',message='Marketing choice must be boolean'; end if;
+end; $$;
+revoke all on function private.validate_rules_pilot_receipt(text,jsonb) from public,anon,authenticated;
+create or replace function private.guard_rules_pilot_auth()
+returns trigger language plpgsql security definer set search_path=public,private
+as $$
+declare receipt jsonb:=new.raw_user_meta_data->'consent_bundle';
+begin
+ if (new.raw_app_meta_data->>'provider'='google' or coalesce(new.raw_app_meta_data->'providers','[]'::jsonb)?'google') and new.raw_user_meta_data->>'role' is null then return new; end if;
+ if receipt->>'documentVersion'='2026-10-12-rules-pilot' or private.pilot_signup_cutover_required() then
+ perform private.validate_rules_pilot_receipt(new.raw_user_meta_data->>'role',receipt); end if;
+ return new;
+end; $$;
+create trigger konexa_rules_pilot_auth_receipt before insert on auth.users for each row execute function private.guard_rules_pilot_auth();
+create or replace function private.guard_rules_pilot_intent()
+returns trigger language plpgsql security definer set search_path=public,private
+as $$ begin
+ if new.consent_payload->>'documentVersion'='2026-10-12-rules-pilot' or private.pilot_signup_cutover_required() then
+ perform private.validate_rules_pilot_receipt(new.requested_role,new.consent_payload); end if;
+ return new;
+end; $$;
+create trigger konexa_rules_pilot_intent_receipt before insert or update on private.oauth_registration_intents for each row execute function private.guard_rules_pilot_intent();
+create or replace function private.guard_rules_pilot_consent()
+returns trigger language plpgsql security definer set search_path=public,private
+as $$ begin
+ if new.collection_name='consents' and new.data->>'stage'='signup' and
+ (new.data->>'documentVersion'='2026-10-12-rules-pilot' or private.pilot_signup_cutover_required()) then
+ perform private.validate_rules_pilot_receipt(new.data->>'role',new.data); end if;
+ return new;
+end; $$;
+create trigger konexa_rules_pilot_consent_receipt before insert or update on public.app_records for each row execute function private.guard_rules_pilot_consent();
+revoke all on function private.guard_rules_pilot_auth() from public,anon,authenticated;
+revoke all on function private.guard_rules_pilot_intent() from public,anon,authenticated;
+revoke all on function private.guard_rules_pilot_consent() from public,anon,authenticated;
+```
