@@ -153,7 +153,7 @@ test('reduced motion freezes repeating animation and shows content immediately',
   expect(animated).toBe(0);
   const lead = await page.locator('.lv3-lead').evaluate(node => getComputedStyle(node.parentElement!).opacity);
   expect(lead).toBe('1');
-  await expect(page.locator('.lv3-ticker-set[aria-hidden="true"]')).toBeHidden();
+  await expect(page.getByText('Escrow payments', { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
   await context.close();
 });
@@ -165,5 +165,18 @@ test('landing text makes no numeric, testimonial or guarantee claims', async ({ 
     const text = await page.locator('.lv3').innerText();
     expect(text).not.toMatch(/\d\s*%|top\s*1|\d{2,}\s*\+|★|testimonial|guarantee|보장|후기/i);
   }
+  expect(errors).toEqual([]);
+});
+
+test('example brief and pilot limits are readable without animated activity', async ({ page }) => {
+  const errors: string[] = [];
+  await open(page, 'en', errors);
+  await expect(page.getByRole('heading', { name: 'Adapt a campaign for three ad formats' })).toBeVisible();
+  await expect(page.getByText('Illustration / Example brief', { exact: true })).toBeVisible();
+  await expect(page.getByText('pilot review required', { exact: true })).toBeVisible();
+  await expect(page.getByText('in preparation', { exact: true })).toBeVisible();
+  const loops = await page.evaluate(() => [...document.querySelectorAll('.lv3 *')].filter(node =>
+    getComputedStyle(node).animationName !== 'none').length);
+  expect(loops).toBe(0);
   expect(errors).toEqual([]);
 });

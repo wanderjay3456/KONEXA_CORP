@@ -56,9 +56,11 @@ test("landing copy makes no unsupported statistic, testimonial, ranking or guara
 
 test("escrow is described as in preparation, never as live", () => {
     for (const locale of ["ko", "en"] as const) {
-        const escrow = landingCopy[locale].ticker.items.find(item => item.live === false);
+        const escrow = landingCopy[locale].ticker.items[3];
         assert.ok(escrow, `${locale} has an in-preparation item`);
-        assert.equal(landingCopy[locale].ticker.items.filter(item => item.live).length, 3);
+        assert.equal(escrow.live, false);
+        assert.equal(landingCopy[locale].ticker.items[1].live, false, "posting requires pilot review");
+        assert.equal(landingCopy[locale].ticker.items.filter(item => item.live).length, 2);
     }
     assert.equal(CONTACT_EMAIL, "konexa.corp@gmail.com");
 });

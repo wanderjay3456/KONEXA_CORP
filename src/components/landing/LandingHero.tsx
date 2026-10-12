@@ -17,7 +17,7 @@ interface LandingHeroProps {
 }
 
 const EASE = [0.22, 1, 0.36, 1] as const;
-const LINE_STAGGER = 0.15;
+const LINE_STAGGER = 0.08;
 
 /** There is no public Terms or Privacy page yet. Until one ships, these open an
  * email request instead of pointing at a page that does not exist. */
@@ -80,24 +80,22 @@ function FragmentText({ parts }: { parts: Fragment[] }) {
 }
 
 function Ticker({ copy }: { copy: LandingCopy["ticker"] }) {
-    const ref = usePauseOffscreen<HTMLElement>();
-    const set = (hidden: boolean) => <ul className="lv3-ticker-set" aria-hidden={hidden || undefined}>
+    return <section className="lv3-ticker" aria-label={copy.label}>
+      <div className="lv3-wrap"><ul className="lv3-ticker-set">
       {copy.items.map((item) => <li key={item.label} className="lv3-ticker-item">
         <span className={`lv3-dot${item.live ? "" : " lv3-dot-off"}`} aria-hidden="true"/>
-        <span>{item.label}</span><span className="lv3-ticker-state">— {item.state}</span>
+        <span>{item.label}</span><span className="lv3-ticker-state">{item.state}</span>
       </li>)}
-      {copy.notes.map((note) => <li key={note} className="lv3-ticker-item lv3-ticker-note">{note}</li>)}
-    </ul>;
-    return <section ref={ref} className="lv3-ticker" aria-label={copy.label}>
-      <div className="lv3-ticker-track">{set(false)}{set(true)}</div>
+      </ul><p className="lv3-ticker-note">{copy.notes.join(" ")}</p></div>
     </section>;
 }
 
-function PhotoPanel({ id, tone, tag, title, cta, onClick, photo, locale }: {
+function PhotoPanel({ id, tone, tag, title, body, cta, onClick, photo, locale }: {
     id?: string;
     tone: "company" | "talent";
     tag: string;
     title: string;
+    body: string;
     cta: string;
     onClick: () => void;
     photo?: LandingPhoto;
@@ -110,6 +108,7 @@ function PhotoPanel({ id, tone, tag, title, cta, onClick, photo, locale }: {
       <span className="lv3-panel-tag">{tag}</span>
       <div className="lv3-panel-body">
         <h3>{title}</h3>
+        <p>{body}</p>
         <button type="button" onClick={onClick} className="lv3-btn lv3-btn-primary">{cta}<ArrowRight aria-hidden="true"/></button>
       </div>
     </article>;
@@ -189,14 +188,13 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
 
               <div className="lv3-hero-grid">
                 <div className="lv3-hero-copy">
-                  <Rise delay={0} className="lv3-pill-row"><span className="lv3-pill"><i aria-hidden="true"/>{t.hero.pill}</span></Rise>
+                  <Rise delay={0} className="lv3-pill-row"><span className="lv3-pill">{t.hero.pill}</span></Rise>
                   <Headline lines={t.hero.title}/>
                   <Rise delay={afterTitle}><p className="lv3-lead">{t.hero.lead}</p></Rise>
                   <Rise delay={afterTitle + 0.12} className="lv3-cta-row">
                     <button type="button" onClick={openCompany} className="lv3-btn lv3-btn-primary">{t.hero.postCta}<ArrowRight aria-hidden="true"/></button>
                     <button type="button" onClick={openTalent} className="lv3-btn lv3-btn-ghost">{t.hero.talentCta}</button>
                   </Rise>
-                  <Rise delay={afterTitle + 0.24}><p className="lv3-note">{t.hero.note}</p></Rise>
                 </div>
                 <LandingVisual copy={t.record}/>
               </div>
@@ -220,8 +218,8 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
 
           <section className="lv3-section lv3-split">
             <div className="lv3-wrap lv3-split-grid">
-              <Reveal><PhotoPanel tone="company" tag={t.split.company.tag} title={t.split.company.title} cta={t.split.company.cta} onClick={openCompany} photo={landingPhotos.company} locale={locale}/></Reveal>
-              <Reveal delay={0.1}><PhotoPanel id="talent" tone="talent" tag={t.split.talent.tag} title={t.split.talent.title} cta={t.split.talent.cta} onClick={openTalent} photo={landingPhotos.talent} locale={locale}/></Reveal>
+              <Reveal><PhotoPanel tone="company" tag={t.split.company.tag} title={t.split.company.title} body={t.split.company.body} cta={t.split.company.cta} onClick={openCompany} photo={landingPhotos.company} locale={locale}/></Reveal>
+              <Reveal delay={0.1}><PhotoPanel id="talent" tone="talent" tag={t.split.talent.tag} title={t.split.talent.title} body={t.split.talent.body} cta={t.split.talent.cta} onClick={openTalent} photo={landingPhotos.talent} locale={locale}/></Reveal>
             </div>
           </section>
 
