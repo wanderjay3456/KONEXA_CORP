@@ -229,7 +229,7 @@ for (const locale of ['ko', 'en'] as const) {
     expect(text).toContain(locale === 'ko' ? '수행하지 않은 부분은 환불' : 'Unperformed work is refunded');
     await page.locator('.lv3-policy-layout aside nav').first().getByRole('link', {name:locale === 'ko' ? '개인정보처리방침' : 'Privacy policy',exact:true}).click();
     await expect(page.locator('.lv3-policy article')).toContainText(locale === 'ko' ? '상담 종료 후 90일' : '90 days after the enquiry closes');
-    await expect(page.locator('.lv3-policy-notice')).toContainText(locale === 'ko' ? '호스팅 이전의 실제 지역' : 'Hosting migration');
+    await expect(page.locator('.lv3-policy-notice')).toContainText(locale === 'ko' ? '수탁자별 상세 국가' : 'Hosting migration');
     await page.getByRole('link', {name:locale === 'ko' ? '← 홈으로' : '← Back to home'}).click();
     await expect(page.getByRole('heading', {level:1})).toHaveText(heading[locale]);
     expect(errors).toEqual([]);

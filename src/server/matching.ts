@@ -21,7 +21,7 @@ const numeric = (value: unknown, max: number): number | null => {
 };
 const tokens = (value: string) => new Set(value.toLowerCase().normalize('NFKC').match(/[\p{L}\p{N}+#.]+/gu)?.filter(item => item.length > 1 && !['and', 'the', 'with', 'for', 'our', 'you', 'work', 'experience'].includes(item)) || []);
 const languages = (value: string) => {
-    const patterns = { en: /english|영어|tiếng anh/i, ko: /korean|한국어|tiếng hàn/i, ja: /japanese|일본어|tiếng nhật/i, zh: /chinese|중국어|mandarin|tiếng trung/i, fr: /french|프랑스어|tiếng pháp/i, de: /german|독일어|tiếng đức/i, es: /spanish|스페인어|tiếng tây ban nha/i, th: /thai|태국어|tiếng thái/i, id: /indonesian|인도네시아어|tiếng indonesia/i };
+    const patterns = { en: /english|영어|tiếng anh/i, ko: /korean|한국어|tiếng hàn/i, vi: /vietnamese|베트남어|tiếng việt/i, ja: /japanese|일본어|tiếng nhật/i, zh: /chinese|중국어|mandarin|tiếng trung/i, fr: /french|프랑스어|tiếng pháp/i, de: /german|독일어|tiếng đức/i, es: /spanish|스페인어|tiếng tây ban nha/i, th: /thai|태국어|tiếng thái/i, id: /indonesian|인도네시아어|tiếng indonesia/i };
     return Object.entries(patterns).filter(([, pattern]) => pattern.test(value)).map(([key]) => key);
 };
 function languageLevel(value: string): number | null {
@@ -130,6 +130,10 @@ export function shortlistCandidates(project: RecordData, rows: Array<{
             if (languageConflict)
                 conflicts.push('required_language');
             criteria.push({ key: 'required_language', required: text(project.required_language), declared: [...candidate.languages, candidate.englishLevel ? `English: ${candidate.englishLevel}` : '', candidate.koreanLevel ? `Korean: ${candidate.koreanLevel}` : ''].filter(Boolean).join(', '), status: languageConflict ? 'conflict' : (anyLanguage ? matches.length > 0 : matches.length === requiredLanguages.length) && (minimum === null || declaredLevel !== null) ? 'declared' : 'unknown' });
+        }
+        if (text(project.required_language) && !requiredLanguages.length) {
+            missingEvidence.push('required_language', 'language_proficiency_confirmation');
+            criteria.push({ key: 'required_language', required: text(project.required_language), declared: candidate.languages.join(', '), status: 'unknown' });
         }
         if (!candidate.availability)
             missingEvidence.push('start_date');

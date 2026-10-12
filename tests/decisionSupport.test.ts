@@ -156,6 +156,14 @@ test('admin workflow is protected, live-source backed, paginated, reloadable and
    assert.throws(getAIClient, /AI_DISABLED/); if (old !== undefined) process.env.ENABLE_EXTERNAL_AI = old;
  });
 
+ test('Vietnamese requirements match declarations and unsupported languages remain review criteria', () => {
+   const rows = [{ record_id: 'vi', data: { skills: ['Excel'], languages: ['Tiếng Việt'] } }];
+   const vietnamese = shortlistCandidates({ title: 'Reporting', tags: ['Excel'], required_language: 'Vietnamese' }, rows);
+   assert.equal(vietnamese.candidates[0].criteria.find(item => item.key === 'required_language')?.status, 'declared');
+   const unsupported = shortlistCandidates({ title: 'Reporting', tags: ['Excel'], required_language: 'Arabic' }, rows);
+   assert.equal(unsupported.candidates[0].criteria.find(item => item.key === 'required_language')?.status, 'unknown');
+   assert.ok(unsupported.candidates[0].missingEvidence.includes('required_language'));
+ });
  test('real PDF fixture extracts locally and role work-sample indicators have no invented values', async () => {
    const {readFile} = await import('node:fs/promises');
    const {extractPdfEvidence, classifyResumeText} = await import('../src/server/pdfEvidence');
