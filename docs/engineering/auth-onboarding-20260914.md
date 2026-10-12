@@ -204,3 +204,9 @@ Live negative-auth verification used the real consent_bundle metadata with terms
 Sources: https://resend.com/security ; https://resend.com/legal/privacy-policy ; https://render.com/privacy ; https://supabase.com/legal/privacy-resources/data-residency-and-transfers-faq ; https://law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1033215841 .
 
 Resend replied in thread 1a131e9e54ebf777: public security/legal pages and account documents are the written materials available outside Enterprise; individual line-by-line assessments require an Enterprise agreement. No upgrade, sales introduction or paid commitment was requested. This reply does not enumerate the missing detailed processing countries. Supabase/Render substantive answers were not present at this check.
+
+### Account documents reviewed 2026-10-13
+
+The authenticated KONEXA Resend Documents page exposes a signed DPA, a penetration-test attestation, SOC 2 report and W-9. Its description says the supplier-signed DPA is executed on signup; no new signature or agreement was submitted in this review. The signed DPA (updated 2025-12-31) identifies primary processing in the United States (6.1) and customer-data deletion within 90 days after account termination (Exhibit A), distinct from ordinary email/log retention. It links the subprocessor list but does not supply a complete physical-country inventory for every security/support access. SOC 2 is a security audit, not a processing-country guarantee. The Enterprise-only email reply therefore does not resolve all public-activation gates. No paid upgrade was made.
+
+Evidence: https://resend.com/settings/documents ; https://resend.com/static/documents/resend-dpa-signed.pdf . Keep PILOT_PREVIEW_ONLY=true until disclosure basis and coordinated positive email/Google signup-login checks are complete. The existing authenticated email-delivery and negative-consent results remain separate from positive onboarding verification.
