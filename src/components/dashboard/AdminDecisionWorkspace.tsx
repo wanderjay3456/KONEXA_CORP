@@ -27,6 +27,10 @@ export default function AdminDecisionWorkspace() {
     const [query, setQuery] = useState('');
     const [reviewOnly, setReviewOnly] = useState(false);
     const [selectedId, setSelectedId] = useState('');
+    const [benchmarkInput, setBenchmarkInput] = useState('');
+    const [benchmarkResult, setBenchmarkResult] = useState<any>(null);
+    const [benchmarkBusy, setBenchmarkBusy] = useState(false);
+    const [benchmarkError, setBenchmarkError] = useState('');
     const [revision, setRevision] = useState(0);
     const [analyzing, setAnalyzing] = useState('');
     const [analysisMessage, setAnalysisMessage] = useState('');
@@ -71,7 +75,19 @@ export default function AdminDecisionWorkspace() {
     const excluded = data?.matching?.exclusions.find(item => item.id === member?.id);
     const project = data?.projects.find(item => item.id === projectId);
     const needs = data?.members.filter(item => item.missing.length || item.ai.state !== 'current').length;
-    const aiState = (state: string) => ({ current: t('최신 분석', 'Current analysis'), stale: t('입력 변경 · 재분석 필요', 'Changed · refresh analysis'), not_analyzed: t('AI 미분석', 'Not analyzed'), failed: t('최근 분석 실패 · 재시도 가능', 'Last attempt failed · retry'), pending: t('분석 진행·저장 확인 중', 'Analysis pending') }[state] || state);
+    const aiState = (state: string) => ({ current: t('최신 분석', 'Current analysis'), stale: t('입력 변경 · 재분석 필요', 'Changed · refresh analysis'), not_analyzed: t('미검토', 'Not analyzed'), failed: t('최근 분석 실패 · 재시도 가능', 'Last attempt failed · retry'), pending: t('분석 진행·저장 확인 중', 'Analysis pending') }[state] || state);
+    async function measureBenchmark() {
+        if (benchmarkBusy) return;
+        setBenchmarkBusy(true); setBenchmarkError(''); setBenchmarkResult(null);
+        try {
+            const body = JSON.parse(benchmarkInput);
+            const response = await fetch('/api/admin/matching-benchmark', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(20000) });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error);
+            setBenchmarkResult(result);
+        } catch { setBenchmarkError(t('정답 라벨과 입력 형식을 확인해 주세요. 결과는 저장되지 않았습니다.', 'Check the human relevance labels and input format. No result was saved.')); }
+        finally { setBenchmarkBusy(false); }
+    }
     async function analyze(target: Member) {
         if (analyzing)
             return;
@@ -117,9 +133,11 @@ export default function AdminDecisionWorkspace() {
     return <div data-no-translate className="space-y-5 break-keep text-neutral-900">
     <header className={`${box} flex flex-wrap items-start justify-between gap-4`}>
       <div><h2 className="text-xl font-bold">{t('인재·기업 검토실', 'Talent & company review')}</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-600">{t('실제 입력 → 조건 비교 → 확인 질문 순서로 검토합니다. 관심 직무와 검증된 역량은 다르며, AI가 승인·거절을 결정하지 않습니다.', 'Review actual inputs, compare conditions, then verify evidence. Role interests are not proven skills. AI does not approve or reject people.')}</p></div>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-600">{t('실제 입력 → 조건 비교 → 확인 질문 순서로 검토합니다. 관심 직무와 검증된 역량은 다르며, 시스템이 승인·거절을 결정하지 않습니다.', 'Review actual inputs, compare conditions, then verify evidence. Role interests are not proven skills. The system does not approve or reject people.')}</p></div>
       <button className={control} disabled={loading} onClick={() => setRevision(value => value + 1)}>{t('새로고침', 'Refresh')}</button>
     </header>
+    <details className={box}><summary className="cursor-pointer font-semibold">{t('매칭 품질 측정', 'Measure matching quality')}</summary><p className="mt-3 text-sm leading-7">{t('전문가 정답 라벨을 넣으면 Precision@k·Recall@k·NDCG@k를 계산합니다. 정답 사례가 없으면 정확도를 표시하지 않습니다. 동일 데이터를 기준 조정과 최종 평가에 함께 사용하지 마세요.', 'Supply human relevance labels to measure Precision@k, Recall@k and NDCG@k. Accuracy remains unmeasured without labelled cases. Keep tuning data separate from final evaluation data.')}</p><label className="mt-4 block text-sm font-semibold">{t('평가 사례 JSON', 'Evaluation cases JSON')}<textarea className="mt-2 min-h-40 w-full rounded-xl border p-3 font-mono text-xs" value={benchmarkInput} maxLength={2000000} onChange={event=>setBenchmarkInput(event.target.value)} placeholder={'{"k":5,"cases":[{"project":{"title":"Accounting","tags":["Excel"]},"candidates":[{"record_id":"a","data":{"skills":["Excel"]}}],"relevance":{"a":3}}]}'}/></label><p className="mt-2 text-xs leading-6">{t('관련도: 0 부적합 · 1 일부 관련 · 2 적합 · 3 매우 적합. 개인정보를 제거한 평가 자료를 사용하세요. 후보마다 전문가 라벨이 필요합니다.', 'Relevance: 0 unsuitable, 1 partly relevant, 2 suitable, 3 highly suitable. Use de-identified evaluation data; every candidate needs a reviewer label.')}</p><button disabled={benchmarkBusy || !benchmarkInput.trim()} onClick={()=>void measureBenchmark()} className="mt-3 rounded-xl bg-neutral-950 px-4 py-3 text-sm text-white disabled:opacity-50">{benchmarkBusy?t('측정 중', 'Measuring'):t('지표 계산', 'Calculate metrics')}</button>{benchmarkError && <p role="alert" className="mt-3 text-sm text-red-800">{benchmarkError}</p>}{benchmarkResult && <p role="status" className="mt-4 text-sm leading-7">{benchmarkResult.queries} {t('사례', 'cases')} · Precision@{benchmarkResult.k}: {benchmarkResult.precisionAtK===null?'—':(benchmarkResult.precisionAtK*100).toFixed(1)+'%'} · Recall@{benchmarkResult.k}: {benchmarkResult.recallAtK===null?'—':(benchmarkResult.recallAtK*100).toFixed(1)+'%'} · NDCG@{benchmarkResult.k}: {benchmarkResult.ndcgAtK===null?'—':benchmarkResult.ndcgAtK.toFixed(3)} · {benchmarkResult.rankingVersion}</p>}</details>
+
     {loading && <p role="status" className={box}>{t('실제 데이터를 불러오는 중입니다.', 'Loading live records.')}</p>}
     {failure && <div role="alert" className={`${box} text-rose-800`}>{t('데이터를 불러오지 못했습니다. 회원이 없다는 뜻이 아닙니다. 새로고침해 주세요.', 'Data could not be loaded. This does not mean there are no members. Please retry.')}</div>}
     {analysisMessage && <p role="status" className={`${box} text-sm leading-6`}>{analysisMessage}</p>}
@@ -142,7 +160,7 @@ export default function AdminDecisionWorkspace() {
           {filtered.map(item => <button key={item.id} onClick={() => setSelectedId(item.id)} className={`w-full rounded-xl border p-3 text-left ${item.id === member?.id ? 'border-teal-800 bg-teal-50' : 'border-neutral-200 hover:bg-neutral-50'}`}><b className="block text-sm">{item.name || t('이름 미입력', 'Unnamed')}</b><span className="mt-1 block text-xs leading-5 text-neutral-600">{item.role === 'company' ? t('기업', 'Company') : t('인재', 'Talent')} · {item.roles.map(id => roleLabel(id, locale)).join(' · ') || item.declaredRoles.join(' · ') || t('직무 미입력', 'Role missing')}</span><span className="mt-2 block text-xs">{item.missing.length ? `${t('확인할 정보', 'Missing details')} ${item.missing.length}` : t('주요 정보 입력됨', 'Core details provided')} · {aiState(item.ai.state)}</span></button>)}
         </section>
         {member && <article className={`${box} min-w-0 space-y-5`}>
-          <header><div className="flex flex-wrap items-start justify-between gap-3"><h3 className="text-xl font-bold">{member.name || '—'}</h3><button disabled={!!analyzing} onClick={() => void analyze(member)} className="rounded-xl bg-teal-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{analyzing === member.id ? t('AI 분석 중', 'Analyzing') : t('AI 요약·확인 질문 생성', 'Generate AI review')}</button></div><p className="mt-2 text-xs leading-5 text-neutral-600">{t('가입', 'Registration')}: {member.complete ? t('프로필 작성 완료', 'Profile complete') : t('작성 중', 'Draft')} · {t('계정', 'Account')}: {member.status} · {t('신원·기업 검증', 'Identity/business verification')}: {member.verification}</p>{!member.visible && <p className="mt-2 text-sm text-amber-900">{t('비공개 프로필: 기업 매칭 후보에 노출하지 않습니다.', 'Private profile: excluded from company discovery.')}</p>}</header>
+          <header><div className="flex flex-wrap items-start justify-between gap-3"><h3 className="text-xl font-bold">{member.name || '—'}</h3><button disabled={!!analyzing} onClick={() => void analyze(member)} className="rounded-xl bg-teal-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{analyzing === member.id ? t('근거 검토 중', 'Analyzing') : t('근거 검토·확인 질문 생성', 'Review evidence')}</button></div><p className="mt-2 text-xs leading-5 text-neutral-600">{t('가입', 'Registration')}: {member.complete ? t('프로필 작성 완료', 'Profile complete') : t('작성 중', 'Draft')} · {t('계정', 'Account')}: {member.status} · {t('신원·기업 검증', 'Identity/business verification')}: {member.verification}</p>{!member.visible && <p className="mt-2 text-sm text-amber-900">{t('비공개 프로필: 기업 매칭 후보에 노출하지 않습니다.', 'Private profile: excluded from company discovery.')}</p>}</header>
           <section className="space-y-2 text-sm leading-6"><p><b>{t('희망·필요 직무', 'Target roles')}: </b>{member.declaredRoles.join(' · ') || '—'}</p><p><b>{t('입력한 역량', 'Declared skills')}: </b>{member.skills.join(' · ') || '—'}</p><p><b>{t('언어', 'Languages')}: </b>{member.languages.join(' · ') || '—'}</p>{member.role === 'student' && <p><b>{t('협업 조건', 'Work conditions')}: </b>{member.hours ?? '—'} h / {t('주', 'week')} · ₩{member.weeklyPay?.toLocaleString() ?? '—'} / {t('주', 'week')} · {member.mode || '—'} · {member.availability || '—'} · {member.timezone || '—'}</p>}<p className="whitespace-pre-line">{member.introduction || t('소개 미입력', 'No introduction provided')}</p></section>
           <section className="rounded-xl bg-neutral-50 p-4"><h4 className="text-sm font-bold">{t('다음 확인 사항', 'Next verification steps')}</h4><ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6">{member.missing.map(key => <li key={key}>{criterionLabel(key, locale)} — {t('입력·보완 요청', 'Request details')}</li>)}<li>{t('입력한 역량을 실제 작업물·직무 과제·면접으로 확인', 'Verify declared skills with work samples, a relevant task or interview')}</li>{member.role === 'company' && <li>{t('주차별 결과물·검수 기준·요청 책임자 확인', 'Confirm weekly deliverables, acceptance criteria and project owner')}</li>}</ul></section>
           <section><h4 className="text-sm font-bold">{t('등록 자료', 'Submitted evidence')}</h4><p className="mt-2 text-sm leading-6">{Object.entries(member.files).filter(([, present]) => present).map(([key]) => ({ resume: t('이력서', 'Resume'), portfolio: t('포트폴리오 링크', 'Portfolio link'), video: t('소개 영상', 'Intro video'), identity: t('신원·사업 증빙', 'Identity/business document') }[key])).join(' · ') || t('등록 자료 없음', 'No submitted evidence')}</p><p className="mt-1 text-xs leading-5 text-neutral-600">{t('등록 여부만 표시합니다. 파일 진위나 실제 역량 검증을 완료했다는 뜻은 아닙니다. 민감한 문서·연락처는 이 요약에 포함하지 않습니다.', 'Presence only, not authenticity or skill verification. Sensitive documents and contact details are not included in this summary.')}</p></section>
@@ -151,8 +169,8 @@ export default function AdminDecisionWorkspace() {
           {candidate && <MatchCriteria criteria={candidate.criteria}/>}
           {excluded && <p className="rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-900">{t('현재 공고 후보에서 제외된 이유', 'Not shortlisted for this project')}: {excluded.reasons.map(key => criterionLabel(key, locale)).join(' · ')}. {t('능력 부족 확정이나 계정 거절을 뜻하지 않습니다.', 'This is not an ability verdict or account rejection.')}</p>}
           <section className="space-y-4 border-t border-neutral-200 pt-5">
-            <h4 className="text-sm font-bold">{t('AI 참고 요약', 'AI advisory summary')} · {aiState(member.ai.state)}</h4>
-            <p className="text-xs leading-6 text-neutral-600">{t('AI가 본인 입력 내용을 요약하고 확인 질문을 제안합니다. 위 ‘다음 확인 사항’의 미입력 항목은 실제 저장값으로 판단하며, AI 문장으로 추가하거나 변경하지 않습니다. 요약은 실제 역량 검증 결과가 아닙니다.', 'AI summarizes self-reported information and suggests review questions. Missing fields in Next verification steps come only from stored values, never AI wording. This summary is not proof of competence.')}</p>
+            <h4 className="text-sm font-bold">{t('근거 참고 요약', 'Evidence review')} · {aiState(member.ai.state)}</h4>
+            <p className="text-xs leading-6 text-neutral-600">{t('규칙 엔진이 기재 항목을 확인하고 검토 질문을 제안합니다. 위 ‘다음 확인 사항’의 미입력 항목은 실제 저장값으로 판단하며, 자동 문장으로 추가하거나 변경하지 않습니다. 요약은 실제 역량 검증 결과가 아닙니다.', 'The rules engine checks supplied fields and proposes review questions. Missing fields in Next verification steps come only from stored values, never generated wording. This summary is not proof of competence.')}</p>
             {member.ai.analyzedAt && <p className="text-xs text-neutral-600">{new Date(member.ai.analyzedAt).toLocaleString(locale)} · {member.ai.model}</p>}
             {member.ai.strength && <p className="text-sm leading-7">{member.ai.strength}</p>}
             {/* Do not turn a model's free-text weakness summary into missing-field facts.
@@ -160,11 +178,11 @@ export default function AdminDecisionWorkspace() {
             {member.ai.verificationQuestions.length > 0 && <div><h5 className="text-sm font-semibold">{t('면담에서 확인할 질문', 'Questions for the review conversation')}</h5><ol className="mt-2 list-decimal space-y-2 pl-5 text-sm leading-6">{member.ai.verificationQuestions.map((question, i) => <li key={i}>{question}</li>)}</ol></div>}
             {member.ai.evidenceRequests.length > 0 && <div><h5 className="text-sm font-semibold">{t('확인할 작업물·업무 자료', 'Work samples or scope documents to review')}</h5><ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6">{member.ai.evidenceRequests.map((request, i) => <li key={i}>{request}</li>)}</ul></div>}
             {member.ai.strength && !member.ai.verificationQuestions.length && <p className="text-sm leading-6 text-neutral-600">{t('이전 분석에는 면담 질문이 없습니다. 다시 분석하면 확인 질문과 요청 자료를 함께 저장합니다.', 'This earlier analysis has no review questions. Generate a new review to save questions and evidence requests.')}</p>}
-            {!member.ai.strength && <p className="text-sm text-neutral-600">{t('저장된 AI 분석이 없습니다. 위 실제 정보로 검토하거나 분석을 요청하세요.', 'No saved AI analysis. Review the actual evidence above or request analysis.')}</p>}
+            {!member.ai.strength && <p className="text-sm text-neutral-600">{t('저장된 근거 검토가 없습니다. 위 실제 정보로 검토하거나 분석을 요청하세요.', 'No saved evidence review. Review the actual evidence above or request analysis.')}</p>}
           </section>
         </article>}
       </div>
-      <p className="text-xs leading-5 text-neutral-500">{t('출처: 실제 회원 프로필 · 실제 공고 · 저장된 AI 분석. 비자·직업소개 적합성은 별도 전문가 확인이 필요합니다.', 'Sources: actual profiles, projects and saved AI assessments. Visa and placement compliance require separate qualified review.')}</p>
+      <p className="text-xs leading-5 text-neutral-500">{t('출처: 실제 회원 프로필 · 실제 공고 · 저장된 근거 검토. 비자·직업소개 적합성은 별도 전문가 확인이 필요합니다.', 'Sources: actual profiles, projects and saved evidence reviews. Visa and placement compliance require separate qualified review.')}</p>
     </>}
   </div>;
 }

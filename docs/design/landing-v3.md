@@ -29,3 +29,14 @@ Primary policy references: PIPC 2026-04-24 updated privacy guidance (https://pip
 ## Verification
 
 Use npm run lint, npm test, npm run build and npx playwright test. Landing checks cover both languages at 360/390/768/1440px, targets >=44px, no overflow, real signup/login/recovery links and no fabricated proof. Policy checks cover direct routes, navigation/reload, agreed refund/retention wording, review status and increased text spacing. Runtime financial/consent/backend deployment is not asserted by local fixture tests.
+## October 12 rules pilot and modern classic refinement
+
+The existing public/og.png is replaced with one generated editorial collaboration image, also used in the hero. It is labelled as a staged brand image; no office/customer provenance is claimed. Warm ivory, charcoal and slate navy replace cobalt. English display uses a restrained serif; Korean remains legible sans. Motion respects reduced-motion preferences. No new image or documentation files are introduced.
+
+External Gemini transmission is disabled unless the operator explicitly approves a later release. Resume PDFs are parsed locally (pdf-parse 2.4.5), bounded to 7.5 MB, 40 pages and 60,000 text characters. Scanned/image-only documents require a readable text PDF; proficiency and years are not inferred. Extracted skills have excerpts and require explicit member confirmation before being added to the profile.
+
+The existing role taxonomy and remote task rubrics cover software/QA, data, design, finance/accounting, marketing, sales, research, translation, support, operations and media. Each work-sample rubric defines measurable ratios and leaves values null until the sample is actually evaluated. Rules ranking is skill coverage 70, role alignment 10, declared work conditions 20. Unknowns remain visible; known hours/budget/mode/language conflicts are excluded. Protected traits and institution prestige do not affect scores.
+
+Admin quality measurement accepts de-identified, human-labelled cases and reports Precision@k, Recall@k and graded NDCG@k. Empty ground truth means unmeasured accuracy. Separate calibration and held-out evaluation sets; do not call fixture correctness proof of AI-equivalent performance. Scores measure declared alignment, not verified competence or hiring probability.
+
+Registration now separates terms, data collection/use, introduction conditions, international processing and optional marketing. New receipts use 2026-10-12-rules-pilot; old receipts are preserved. Resend successful notification records and US processing (30-day email/log, 7-day backup), Supabase Seoul/US Marketplace/Singapore support/European logs are disclosed. Host migration, exact subprocessor countries and Supabase Auth sender configuration still gate formal international-transfer activation. No paid-service, payment or escrow activation is claimed.

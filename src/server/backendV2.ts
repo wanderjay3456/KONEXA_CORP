@@ -1,3 +1,4 @@
+import { SIGNUP_CONSENT_VERSION } from '../config/compliancePolicy';
 import crypto from "node:crypto";
 import { drainOutbox } from './outboxDrain';
 import { deferNotificationWork } from "./deferredWork";
@@ -316,7 +317,9 @@ export function registerBackendV2PublicRoutes(app: Express) {
           ? body.profile
           : {};
         if (
-          consents.terms !== true
+          consents.dataCollection !== true
+          || consents.documentVersion !== SIGNUP_CONSENT_VERSION
+          || consents.terms !== true
           || consents.nonCircumvention !== true
           || consents.messageAnalysis !== true
           || consents.crossBorderPrivacy !== true

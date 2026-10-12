@@ -61,3 +61,15 @@ These are not authentication bugs and must not be described as resolved by this 
 4. Supabase leaked-password protection is a paid-plan capability and is not misrepresented as enabled. Authentication, email confirmation and RLS remain enforced without it.
 
 For incident review, use `/api/health/ready`, the public `/status` page and Vercel runtime logs. Do not put access tokens, password-reset links, private documents or production secret values into issue/PR text.
+
+## Free commercial-hosting migration preparation (2026-10-12)
+
+Owner approved Render My Workspace. Retain Supabase Seoul for durable data/storage; never move production data to Render free Postgres (expires in 30 days). Use the existing Dockerfile, Node 22, free Web Service, branch agent/konexa-recovery-20261012, region Singapore near the Seoul database, health check /api/health/live. No paid resources, card or paid upgrade. Verify zero spend limit and absence of a payment method; exhausted quotas suspend service rather than authorize charges. Disable automatic production/domain promotion until authenticated flows and privacy disclosures are verified.
+
+Render free instances sleep after 15 minutes; waking takes about one minute, have ephemeral filesystems and block SMTP ports 25/465/587. Use Resend HTTPS for app notifications; do not migrate SMTP secrets or enable artificial keep-alive traffic. Existing data and user uploads stay in Supabase. Free deployment is a limited pilot/preview, not verified continuous production uptime. Official reference: https://render.com/docs/free .
+
+Required runtime keys: SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY, APP_URL, EMAIL_FROM, RESEND_API_KEY, RESEND_WEBHOOK_SECRET (existing exact configuration names must be checked). Public client URL/publishable values already have existing defaults; only public values may be provided at build time. Never transfer GEMINI_API_KEY, SMTP passwords or payment credentials for this pilot. Secret copying and live user-data access by the new host require explicit scope approval after the concrete deployment is reviewable.
+
+Consent release: new form receipt version is 2026-10-12-rules-pilot and collection/use is separate from international processing. Backend Google-intent validation rejects stale versions and missing collection consent. Reconcile direct Supabase signup trigger validation before formal public activation; do not change existing members' receipts or apply a new mandatory version against the old deployed client. Current international disclosures distinguish verified Resend notifications from unverified Auth sender configuration and prepared hosting migration.
+
+The isolated Render migration preview sets PILOT_PREVIEW_ONLY=true. Only health/runtime-mode APIs remain available; business reads/writes are blocked, and email/Google signup checks preview mode before contacting Auth. No Supabase secret, Resend key or production data is copied to this preview. Opening a static page is distinct from activating the operational service.

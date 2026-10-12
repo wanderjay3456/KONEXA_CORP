@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
-import { classifyRoles } from '../lib/talentTaxonomy';
+import { classifyRoles, suggestedRemoteCategories, workSampleRubrics } from '../lib/talentTaxonomy';
 
-export const PROFILE_ANALYSIS_VERSION = 'profile-analysis-v4';
+export const PROFILE_ANALYSIS_VERSION = 'profile-analysis-v5-rules';
 type Data = Record<string, any>;
 export const words = (value: unknown): string[] => Array.isArray(value) ? value.filter(item => typeof item === 'string').map(item => item.trim().slice(0, 300)).filter(Boolean).slice(0, 40) : [];
 export const short = (value: unknown, max = 1000) => typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -84,4 +84,22 @@ export function summarizeProject(p: Data) {
   return { id: p.id, companyId: p.company_id, title: short(p.title), status: p.status, description: short(p.description, 2000),
     skills: words(p.tags), deliverables: words(p.requirements), roles: classifyRoles([short(p.title), ...words(p.tags)]),
     hours: positive(p.hours_per_week, 80), weeklyPay: positive(p.weekly_pay_krw), mode: short(p.work_type), languages: short(p.required_language), missing };
+}
+
+export function reviewProfileEvidence(role: 'student' | 'company', profile: Data, locale = 'en') {
+  const e = profileEvidence(role, profile);
+  const ko = locale === 'ko';
+  const skills = words(role === 'student' ? profile.skills : profile.requiredSkills);
+  const checks = role === 'student' ? [skills.length > 0, words(profile.careerInterests).length > 0 || !!short(profile.preferredJob), !!short(profile.bio), !!positive(profile.availableHoursPerWeek, 80), !!positive(profile.preferredWeeklyPayKrw), !!short(profile.workPreference), !!short(profile.availability), words(profile.languages).length > 0] : [skills.length > 0, words(profile.hiringRoles).length > 0, !!short(profile.companyIntroduction || profile.description), words(profile.preferredLanguages).length > 0, !!short(profile.remotePolicy)];
+  const categories = [...new Set([...e.roleFamilies, ...suggestedRemoteCategories(skills)])];
+  const samples = workSampleRubrics(categories, locale);
+  const coverage = Math.round(checks.filter(Boolean).length / checks.length * 100);
+  return { status: 'completed' as const, processingMode: 'deterministic', evidenceCoverage: coverage,
+    categories, workSamples: samples,
+    strengthSummary: ko ? `기재한 역량 ${skills.length}개를 확인했습니다. 실력 검증 결과가 아니라 프로필 정보입니다.` : `${skills.length} declared skills are recorded. This describes supplied information, not verified ability.`,
+    weaknessSummary: ko ? `검토 항목 ${checks.length}개 중 ${checks.filter(Boolean).length}개가 기재되어 있습니다. 미기재 조건과 작업 결과를 별도로 확인해야 합니다.` : `${checks.filter(Boolean).length} of ${checks.length} review fields are supplied. Missing conditions and work quality require separate verification.`,
+    verificationQuestions: ko ? ['이 역량을 사용한 결과물과 본인의 기여 범위를 보여줄 수 있나요?', '업무 언어, 주당 시간과 시작 가능일을 확인해 주세요.', '검수 기준과 필요한 접근 권한을 구체적으로 합의할 수 있나요?'] : ['Can you show a work sample and identify your own contribution?', 'Confirm working language, weekly hours and start availability.', 'Can you specify acceptance criteria and necessary access?'],
+    evidenceRequests: [samples[0]?.task || (ko ? '민감정보를 제거한 직무 관련 작업 샘플' : 'A role-relevant work sample with confidential information removed'), ko ? '범위·결과물·검수 기준을 정리한 업무 설명' : 'A brief defining scope, deliverables and acceptance criteria'],
+    skillGap: [], recommendedSkills: [], recommendedProjects: [], recommendedCompanies: [], recommendedLearningPath: [],
+    careerReadiness: coverage, employabilityScore: coverage, scoreDefinition: 'Supplied-field coverage only; not ability or employment probability', evidence: e };
 }

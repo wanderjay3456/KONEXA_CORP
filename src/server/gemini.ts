@@ -9,6 +9,8 @@ const defaultModels = (process.env.GEMINI_MODELS || "gemini-3.5-flash-lite,gemin
   .filter(Boolean);
 
 export function getAIClient() {
+  // Public pilot: an existing credential must never enable provider transmission.
+  if (process.env.ENABLE_EXTERNAL_AI !== 'explicitly-approved') throw new Error('AI_DISABLED_PUBLIC_PILOT');
   if (!client) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY environment variable is required");

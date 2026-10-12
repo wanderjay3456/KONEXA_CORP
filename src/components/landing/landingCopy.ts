@@ -32,6 +32,8 @@ export interface LandingCopy {
         contactNote: string;
     };
     record: {
+        imageAlt: string;
+        imageCaption: string;
         label: string;
         illustration: string;
         title: string;
@@ -98,6 +100,8 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             contactNote: "Opens an email draft. No account required.",
         },
         record: {
+            imageAlt: "Two adult collaborators reviewing a shared project brief at a work table. Brand illustration, not a KONEXA office or client photograph.",
+            imageCaption: "A shared task. A clearer decision. · Brand image",
             label: "A small project, clearly scoped",
             illustration: "Illustration / Example brief",
             title: "Adapt a campaign for three ad formats",
@@ -184,6 +188,8 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             contactNote: "이메일 초안이 열립니다. 가입 없이 문의할 수 있습니다.",
         },
         record: {
+            imageAlt: "같은 테이블에서 업무 자료를 검토하는 두 성인 협업자를 표현한 브랜드 연출 이미지. 실제 KONEXA 사무실이나 고객 사진이 아닙니다.",
+            imageCaption: "작은 업무에서 시작되는 협업 · 브랜드 연출 이미지",
             label: "작게 시작하는 구체적인 업무",
             illustration: "업무 브리프 예시",
             title: "캠페인 이미지를 광고 규격 3종으로 제작",

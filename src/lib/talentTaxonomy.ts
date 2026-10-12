@@ -243,6 +243,12 @@ const aliases: Array<[
     string,
     string
 ]> = [
+    ['quickbooks', 'quickbooks'], ['xero', 'xero'], ['bookkeeping', 'bookkeeping|장부관리|기장'],
+    ['ga4', 'ga4|google analytics|구글 애널리틱스'], ['powerbi', 'power bi|powerbi'], ['tableau', 'tableau|태블로'],
+    ['zendesk', 'zendesk'], ['hubspot', 'hubspot'], ['salesforce', 'salesforce'],
+    ['qa-testing', 'software testing|qa testing|manual testing|소프트웨어 테스트|수동 테스트'],
+    ['premiere', 'premiere pro|프리미어'], ['davinci', 'davinci resolve|다빈치 리졸브'],
+    ['wordpress', 'wordpress|워드프레스'], ['technical-writing', 'technical writing|기술 문서'],
     ['research', 'research|조사|리서치|nghiên cứu'], ['market-research', 'market research|시장조사|시장 조사|nghiên cứu thị trường'],
     ['interviews', 'interviews|interview research|인터뷰|phỏng vấn'], ['survey', 'survey|설문|khảo sát'],
     ['translation', 'translation|번역|biên dịch'], ['localization', 'localization|현지화|bản địa hóa'],
@@ -293,4 +299,35 @@ export function roleLabel(id: string, locale = 'ko') {
     }
     const row = ROLE_FAMILIES.find(row => row[0] === id);
     return row ? row[locale === 'ko' ? 2 : 1] : id;
+}
+
+export function extractDeclaredSkills(text: string) {
+    const statements = text.slice(0, 60000).split(/[\n;.!?]+/).filter(line => line.trim());
+    return aliases.flatMap(([skill, options]) => {
+        const evidence = statements.find(line => !/(?:no experience|not experienced|never used|without experience|learning|want to learn|경험\s*없|배우고|학습\s*중|배울)/i.test(line) && options.split('|').some(alias => hasPhrase(normalizedText(line), alias)));
+        return evidence ? [{ skill, excerpt: evidence.trim().replace(/[\w.+-]+@[\w.-]+\.[a-z]{2,}|https?:\/\/\S+/gi, '[contact removed]').slice(0, 240), source: 'resume_text', verified: false }] : [];
+    });
+}
+
+// Work-sample indicators are measured from accepted submissions, never guessed
+// from a resume. Each ratio requires an agreed denominator and reviewer record.
+export const REMOTE_WORK_RUBRICS = [
+ { id: 'software', skills: ['react','python','javascript','typescript','java','qa-testing','wordpress'], sample: ['작은 기능 구현 또는 재현 가능한 오류 수정', 'Implement a small feature or a reproducible bug fix'], metrics: ['accepted_tests / agreed_tests', 'confirmed_defects / reviewed_changes', 'accepted_deliverables / agreed_deliverables'] },
+ { id: 'data', skills: ['data-analysis','sql','tableau','powerbi','python-ml'], sample: ['익명 데이터의 분석과 재현 가능한 계산', 'Analyze anonymised data with reproducible calculations'], metrics: ['correct_results / checked_results', 'reproducible_steps / required_steps', 'traceable_sources / cited_sources'] },
+ { id: 'design', skills: ['figma','graphic-design','photoshop','illustrator'], sample: ['제약과 접근성 기준을 포함한 한 화면 설계', 'Design one screen against constraints and accessibility criteria'], metrics: ['passed_criteria / agreed_criteria', 'resolved_usability_issues / observed_issues', 'required_assets_delivered / required_assets'] },
+ { id: 'finance', skills: ['accounting','bookkeeping','quickbooks','xero','finance'], sample: ['가상 장부 대사와 차이 원인 설명', 'Reconcile a synthetic ledger and explain discrepancies'], metrics: ['correct_entries / checked_entries', 'explained_discrepancies / identified_discrepancies', 'traceable_calculations / checked_calculations'] },
+ { id: 'marketing', skills: ['marketing','seo','ga4','social-media','writing'], sample: ['가상 캠페인 기획과 추적 계획', 'Plan a synthetic campaign and measurement scheme'], metrics: ['passed_brief_criteria / agreed_criteria', 'valid_tracking_events / required_events', 'supported_claims / reviewed_claims'] },
+ { id: 'sales', skills: ['sales','hubspot','salesforce'], sample: ['익명 리드의 조건 분류와 제안 작성', 'Qualify anonymised leads and draft an outreach proposal'], metrics: ['correctly_classified_leads / reviewed_leads', 'complete_required_fields / required_fields', 'passed_brief_criteria / agreed_criteria'] },
+ { id: 'research', skills: ['market-research','research','interviews','survey'], sample: ['출처를 추적할 수 있는 시장조사 메모', 'Prepare a source-traceable market research memo'], metrics: ['verified_claims / checked_claims', 'traceable_sources / cited_sources', 'answered_questions / agreed_questions'] },
+ { id: 'translation', skills: ['translation','localization'], sample: ['용어집을 적용한 제품 설명 번역', 'Translate a product description using a glossary'], metrics: ['correct_terms / checked_terms', 'meaning_errors / reviewed_segments', 'accepted_segments / submitted_segments'] },
+ { id: 'support', skills: ['customer-service','zendesk'], sample: ['가상 문의의 분류·응답·상위 전달', 'Triage, answer and escalate synthetic support tickets'], metrics: ['correct_resolutions / reviewed_tickets', 'correct_escalations / required_escalations', 'responses_within_agreed_time / eligible_tickets'] },
+ { id: 'operations', skills: ['project-management','excel'], sample: ['업무 일정·변경·인수인계 기록', 'Prepare a task schedule, change log and handover'], metrics: ['complete_required_fields / required_fields', 'accepted_deliverables / agreed_deliverables', 'on_time_submissions / due_submissions'] },
+ { id: 'media', skills: ['video-editing','premiere','davinci'], sample: ['제공 소스로 짧은 편집본과 원본 프로젝트 전달', 'Edit supplied material and hand over the source project'], metrics: ['passed_export_checks / required_checks', 'passed_brief_criteria / agreed_criteria', 'required_assets_delivered / required_assets'] },
+] as const;
+export function suggestedRemoteCategories(skills: string[]) {
+ const concepts = new Set(skills.flatMap(skillConcepts));
+ return REMOTE_WORK_RUBRICS.filter(row => row.skills.some(skill=>concepts.has(skill))).map(row=>row.id);
+}
+export function workSampleRubrics(categories: string[], locale = 'en') {
+ return REMOTE_WORK_RUBRICS.filter(row=>categories.includes(row.id)).map(row=>({ category: row.id, task: row.sample[locale==='ko'?0:1], indicators: [...row.metrics], status: 'requires_agreed_work_sample', measuredValues: null }));
 }

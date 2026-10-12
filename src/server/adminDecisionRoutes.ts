@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from './supabaseAdmin';
-import { loadCandidatePages, shortlistCandidates, MATCHING_VERSION } from './matching';
+import { loadCandidatePages, shortlistCandidates, MATCHING_VERSION, evaluateMatchingBenchmark } from './matching';
 import { summarizeMember, summarizeProject } from './decisionSupport';
 import type { Express } from 'express';
 
@@ -16,6 +16,16 @@ async function pages(query: () => any) {
   throw new Error('WORKSPACE_REQUIRES_INDEXED_PAGINATION');
 }
 export function registerAdminDecisionRoutes(app: Express, database = getSupabaseAdmin) {
+  app.post('/api/admin/matching-benchmark', (req: any, res) => {
+    if (!req.user?.uid) return res.status(401).json({ error: 'Authentication required' });
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Administrator access required' });
+    res.setHeader('Cache-Control', 'private, no-store');
+    try {
+      const cases = req.body?.cases;
+      if (!Array.isArray(cases) || JSON.stringify(cases).length > 2000000 || cases.some(item => !item || !Array.isArray(item.candidates) || item.candidates.length > 1000 || !item.project || !item.relevance)) throw new Error('Provide up to 200 labelled project cases, with at most 1000 candidates each.');
+      res.json({ ...evaluateMatchingBenchmark(cases, req.body?.k ?? 5), rankingVersion: MATCHING_VERSION, measuredAt: new Date().toISOString() });
+    } catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid benchmark' }); }
+  });
   app.get('/api/admin/member-evidence/:userId', async (req: any, res) => {
     if (!req.user?.uid) return res.status(401).json({ error: 'Authentication required' });
     if (req.user.role !== 'admin') return res.status(403).json({ error: 'Administrator access required' });

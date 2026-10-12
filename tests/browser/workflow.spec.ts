@@ -23,14 +23,13 @@ test('student saves a goal through API, reloads it, generates and restores a roa
 
 test('company can ask for preparation before a job exists, and matching restores after reload', async ({ page }) => {
   await page.goto('/?role=company&empty=1&locale=en');
-  await expect(page.getByRole('heading', { name: 'AI hiring preparation assistant' })).toBeVisible();
-  await expect(page.getByLabel('Hiring preparation question')).toBeEnabled();
+  await expect(page.getByRole('heading', { name: 'Post a project to start matching' })).toBeVisible();
   await page.goto('/?role=company&locale=en');
   await page.getByRole('button', { name: 'Analyze talent' }).click();
   await expect(page.getByText('301 profiles reviewed', { exact: false })).toBeVisible();
-  await expect(page.getByText('Research evidence needs human confirmation.')).toBeVisible();
+  await expect(page.getByText('Declared-condition score', {exact:false})).toBeVisible();
   await page.reload();
-  await expect(page.getByText('Research evidence needs human confirmation.')).toBeVisible();
+  await expect(page.getByText('Declared-condition score', {exact:false})).toBeVisible();
 });
 
 test('Korean and English roadmap controls are native and goal text is not translated', async ({ page }) => {

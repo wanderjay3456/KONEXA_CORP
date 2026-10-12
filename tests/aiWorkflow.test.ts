@@ -14,11 +14,12 @@ test('API: roadmap and resume persist before generation, recover malformed conte
       const response = await request(`/api/ai/${route}`, student, { careerGoal: 'Research', locale: 'en' });
       assert.equal(response.status, 200); const body = await response.json(); assert.ok(body.assessmentId);
       const restored = await request(`/api/ai/assessments?type=${type}&entityId=${student}`, student).then(r => r.json());
-      assert.equal(restored.data[0].id, body.assessmentId); assert.equal(restored.data[0].model, 'second');
-      assert.equal(restored.data[0].result.tokenUsage.totalTokenCount, 100);
+      assert.equal(restored.data[0].id, body.assessmentId); assert.equal(restored.data[0].model, route === 'resume-review' ? 'profile-analysis-v5-rules' : 'second');
+      if (route === 'resume-review') assert.equal(restored.data[0].result.tokenUsage, null);
+      else assert.equal(restored.data[0].result.tokenUsage.totalTokenCount, 100);
       assert.equal((await request(`/api/ai/assessments?type=${type}&entityId=${student}`, other)).status, 404);
     }
-    assert.ok(state.pendingObserved); assert.equal(state.calls, 4);
+    assert.ok(state.pendingObserved); assert.equal(state.calls, 2);
     state.failProvider = true;
     assert.equal((await request('/api/ai/student-roadmap', student, { careerGoal: 'Research' })).status, 502);
     assert.equal(state.tables.konexa_ai_assessments.filter(row => row.status === 'failed').length, 1);
@@ -39,7 +40,8 @@ test('API: matching scans more than 20 candidates, gates companies and honors wi
     assert.equal(body.coverage.scanned, 301); assert.equal(body.matches.length, 1);
     assert.equal(body.coverage.insufficientEvidence, 300);
     assert.ok(body.matches.some((row: any) => row.id.endsWith('000000000300')));
-    assert.ok(state.pendingObserved);
+    assert.equal(state.calls, 0);
+    assert.equal(body.model, 'talent-matching-v5-rules');
     const withdrawn = body.matches[0].id; state.candidates = state.candidates.filter(row => row.record_id !== withdrawn);
     const restored = await fetch(`${base}/api/ai/assessments?type=talent_project_matching&entityId=${projectId}`, { headers: { 'x-test-actor': company } }).then(r => r.json());
     assert.ok(!restored.data[0].result.matches.some((row: any) => row.id === withdrawn));

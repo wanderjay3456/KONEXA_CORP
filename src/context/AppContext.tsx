@@ -1,3 +1,4 @@
+import { SIGNUP_CONSENT_VERSION } from '../config/compliancePolicy';
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { submitGoogleRegistration } from "../lib/googleRegistration";
 import { collection, onSnapshot, addDoc, setDoc, updateDoc, getDoc, doc, query, where, } from "../lib/supabaseStore";
@@ -520,6 +521,9 @@ export function AppProvider({ children }: {
     };
     const registerUser = async (email: string, displayName: string, role: UserRole, studentData?: Partial<StudentProfile>, companyData?: Partial<CompanyProfile>, password?: string, consentBundle?: Record<string, unknown>) => {
         try {
+            const runtime = await fetch('/api/public/runtime-mode', { signal: AbortSignal.timeout(10000) });
+            if (!runtime.ok || (await runtime.json()).previewOnly === true) throw new Error('Migration preview: registration is not enabled yet. / 이전 미리보기에서는 가입이 아직 활성화되지 않았습니다.');
+
             if (![UserRole.STUDENT, UserRole.COMPANY].includes(role)) {
                 throw new Error("Only student and company self-registration is supported.");
             }
@@ -531,11 +535,11 @@ export function AppProvider({ children }: {
                 throw new Error("올바른 이메일 주소를 입력해 주세요.");
             if (password.length < 8)
                 throw new Error("비밀번호는 8자 이상이어야 합니다.");
-            const requiredConsents = ["terms", "nonCircumvention", "messageAnalysis", "crossBorderPrivacy"];
+            const requiredConsents = ["dataCollection", "terms", "nonCircumvention", "messageAnalysis", "crossBorderPrivacy"];
             if (role === UserRole.STUDENT && consentBundle?.adultParticipation !== true) {
                 throw new Error("Talent participants must confirm they are at least 18.");
             }
-            if (requiredConsents.some((key) => consentBundle?.[key] !== true)) {
+            if (consentBundle?.documentVersion !== SIGNUP_CONSENT_VERSION || requiredConsents.some((key) => consentBundle?.[key] !== true)) {
                 throw new Error("필수 약관과 개인정보 고지에 모두 동의해 주세요.");
             }
             if (role === UserRole.STUDENT && !studentData?.name?.trim()) {
@@ -625,6 +629,9 @@ export function AppProvider({ children }: {
     };
     const googleLogin = async (role: UserRole, options: GoogleLoginOptions = {}) => {
         try {
+            const runtime = await fetch('/api/public/runtime-mode', { signal: AbortSignal.timeout(10000) });
+            if (!runtime.ok || (await runtime.json()).previewOnly === true) throw new Error('Migration preview: account access is not enabled yet.');
+
             if (![UserRole.STUDENT, UserRole.COMPANY, UserRole.ADMIN].includes(role)) {
                 throw new Error("This account type cannot use self-service login.");
             }

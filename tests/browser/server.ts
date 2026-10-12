@@ -24,7 +24,7 @@ app.post('/api/auth/google-registration-intents', (req: any, res) => {
 });
 app.post('/api/auth/google-registration-complete', (req: any, res) => {
   const intent = intents.get(req.body.registrationId);
-  if (!intent || !['student', 'company'].includes(intent.role) || !['terms', 'nonCircumvention', 'messageAnalysis', 'crossBorderPrivacy'].every(key => intent.consents?.[key] === true)) return res.status(400).json({ error: { code: 'CONSENT_REQUIRED' } });
+  if (!intent || !['student', 'company'].includes(intent.role) || !['dataCollection', 'terms', 'nonCircumvention', 'messageAnalysis', 'crossBorderPrivacy'].every(key => intent.consents?.[key] === true)) return res.status(400).json({ error: { code: 'CONSENT_REQUIRED' } });
   const value = signups.get(req.user.uid) || blankSignup(req);
   value.user = { ...value.user, role: intent.role, onboardingStatus: 'complete' };
   signups.set(req.user.uid, value); intents.delete(req.body.registrationId);

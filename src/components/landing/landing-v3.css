@@ -1,12 +1,12 @@
 /* KONEXA / Shared Span: editorial typography, a work specimen and one cobalt accent.
 References inform hierarchy, not a borrowed UI library. Reduced motion stays static. */
 .lv3 {
-  --ink:#20211f;
-  --deep:#20211f;
-  --forest:#244bd7;
-  --cream:#f7f7f2;
+  --ink:#292822;
+  --deep:#292822;
+  --forest:#253b4e;
+  --cream:#f7f4ec;
   --line:#d8d9d2;
-  --mint:#dbe3ff;
+  --mint:#e2e8eb;
   --muted:#5b5d56;
   --gutter:clamp(22px,5vw,72px);
   --wrap:1320px;
@@ -61,7 +61,7 @@ html[lang=ko] .lv3 {
   color:white;
 }
 .lv3-btn-primary:hover {
-  background:#193bad;
+  background:#172b3b;
   transform:translateY(-2px);
 }
 .lv3-btn-ghost {
@@ -283,75 +283,6 @@ html[lang=ko] .lv3-h1 {
   font-size:.73rem;
   font-weight:650;
   margin:22px 0 12px;
-}
-.lv3-asset-preview {
-  margin-top:28px;
-  display:grid;
-  grid-template-columns:1fr .85fr 1.35fr;
-  align-items:end;
-  gap:12px;
-  margin:28px 0 28px;
-}
-.lv3-asset-preview figure {
-  margin:0;
-  min-width:0;
-}
-.lv3-asset-preview figcaption {
-  font-size:.65rem;
-  color:var(--muted);
-  margin-top:8px;
-}
-.lv3-sample-art {
-  position:relative;
-  isolation:isolate;
-  display:flex;
-  align-items:flex-end;
-  aspect-ratio:1;
-  padding:14px;
-  background:var(--forest);
-  color:white;
-  overflow:hidden;
-}
-.lv3-sample-art-1 {
-  aspect-ratio:4/5;
-  background:var(--ink);
-}
-.lv3-sample-art-2 {
-  aspect-ratio:1.65;
-  background:#f7f7f2;
-  color:var(--forest);
-  border:1px solid #c7cbc2;
-}
-.lv3-sample-art strong {
-  font-size:clamp(.82rem,1.4vw,1.28rem);
-  letter-spacing:-.06em;
-  line-height:1.05;
-  max-width:4em;
-  font-weight:700;
-}
-.lv3-sample-shape {
-  position:absolute;
-  z-index:-1;
-  width:70%;
-  height:85%;
-  border:9px solid #a8b9ff;
-  border-radius:50% 50% 0 0;
-  top:-20%;
-  right:-9%;
-  transform:rotate(-28deg);
-}
-.lv3-sample-shape::after {
-  content:'';
-  position:absolute;
-  inset:13px 18px -30px -22px;
-  border:8px solid #fff;
-  border-radius:50% 50% 0 0;
-}
-.lv3-sample-art-2 .lv3-sample-shape {
-  border-color:#244bd7;
-}
-.lv3-sample-art-2 .lv3-sample-shape::after {
-  border-color:#899ee9;
 }
 .lv3-outputs {
   margin:0;
@@ -580,7 +511,7 @@ html[lang=ko] .lv3-panel-body h3 {
   position:absolute;
   inset:0;
   z-index:-1;
-  background:#20211fe6;
+  background:#292822e6;
 }
 .lv3-examples .lv3-h2 {
   max-width:25em;
@@ -626,7 +557,7 @@ html[lang=ko] .lv3-panel-body h3 {
 }
 .lv3-final {
   padding-block:64px 80px;
-  background:#dfe6fa;
+  background:#e8e6dd;
 }
 .lv3-final-inner {
   display:grid;
@@ -822,7 +753,7 @@ html[lang=ko] .lv3-final-title {
 }
 .lv3-policy-notice {
   border-left:3px solid var(--forest);
-  background:#e8edf9;
+  background:#edece3;
   padding:20px 24px;
   font-size:.84rem;
   line-height:1.9;
@@ -963,79 +894,45 @@ html[lang=ko] .lv3-final-title {
   }
 }
 @media(max-width:389px) {
-  .lv3-wordmark {
-    font-size:1.05rem;
-  }
-  .lv3-span-mark {
-    width:28px;
-  }
-  .lv3-login {
-    padding-inline:6px;
-  }
-  .lv3-actions {
-    gap:2px;
-  }
-  .lv3-asset-preview {
-    gap:8px;
-  }
-  .lv3-sample-art {
-    padding:10px;
-  }
+  .lv3-wordmark { font-size:1.05rem; }
+  .lv3-span-mark { width:28px; }
+  .lv3-login { padding-inline:6px; }
+  .lv3-actions { gap:2px; }
 }
-@media(prefers-reduced-motion:reduce) {
-  .lv3 *,.lv3 *::before,.lv3 *::after {
-    animation:none!important;
-    transition:none!important;
-    scroll-behavior:auto!important;
-  }
+
+/* Modern classic: warm photographic material, serif English display, precise sans Korean. */
+html[lang=en] .lv3-h1, html[lang=en] .lv3-h2, html[lang=en] .lv3-final-title, html[lang=en] .lv3-policy h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  letter-spacing: -.045em;
 }
-@media print {
-  .lv3-policy header,.lv3-policy aside {
-    display:none;
-  }
-  .lv3-policy-layout {
-    display:block;
-  }
-  .lv3-policy article {
-    max-width:none;
-  }
-  .lv3-policy {
-    background:white;
-    color:black;
-  }
-  .lv3-policy article section {
-    break-inside:avoid;
-  }
-}
-.lv3-brief-details {
-  margin-top: 20px;
-  border-top: 1px solid #c8ccc2;
-}
-.lv3-brief-details summary {
-  display: flex;
-  min-height: 44px;
-  justify-content: space-between;
-  align-items: center;
-  gap: 18px;
-  cursor: pointer;
-  font-size: .78rem;
-  font-weight: 600;
-  list-style: none;
-}
-.lv3-brief-details summary::-webkit-details-marker {
-  display: none;
-}
-.lv3-brief-details[open] summary span {
-  transform: rotate(45deg);
-}
-.lv3-brief-details .lv3-outputs {
-  margin-top: 10px;
-}
-@media (min-width: 960px) {
-  .lv3-asset-preview {
-    grid-template-columns: 1fr .9fr 1.25fr;
-  }
-  .lv3-sample-art strong {
-    font-size: 1.25rem;
-  }
-}
+html[lang=en] .lv3-line-strong { font-style: italic; }
+html[lang=en] .lv3-h1 { font-size: clamp(2.5rem, 12.6cqw, 5.3rem); line-height: 1.08; }
+html[lang=ko] .lv3-h1 { font-weight: 550; font-size: clamp(2.3rem, 10.8cqw, 4.8rem); line-height: 1.3; }
+.lv3-wordmark { letter-spacing: .035em; font-size: 1.08rem; }
+.lv3-hero-grid { align-items: center; }
+.lv3-hero-copy { padding-block: 20px; }
+.lv3-lead { font-size: 1.06rem; line-height: 1.9; max-width: 28rem; }
+html[lang=en] .lv3-lead { max-width: 31rem; letter-spacing: .005em; }
+.lv3-line-strong { color: #253b4e; }
+.lv3-btn { border-radius: 2px; font-weight: 550; transition: background-color .2s ease, transform .2s ease; }
+.lv3-btn svg { transition: transform .2s ease; }
+.lv3-btn:hover svg { transform: translateX(3px); }
+.lv3-visual { padding: 0; border: 0; background: #eeeee6; }
+.lv3-editorial-photo { position: relative; margin: 0; overflow: hidden; aspect-ratio: 3/2; }
+.lv3-editorial-photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.lv3-editorial-photo figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 24px 22px 14px; background: linear-gradient(transparent,rgba(23,24,21,.78)); color: #fff; font-size: .72rem; line-height: 1.6; letter-spacing: .01em; }
+.lv3-brief-content { padding: 25px 28px 18px; }
+.lv3-brief-title { margin-top: 16px; font-size: 1.3rem; font-weight: 550; line-height: 1.55; }
+.lv3-brief-description { font-size: .86rem; line-height: 1.85; }
+.lv3-brief-details { margin-top: 16px; }
+.lv3-panel-body h3 { font-weight: 550; }
+html[lang=en] .lv3-panel-body h3 { font-family: Georgia,'Times New Roman',serif; font-weight: 400; letter-spacing: -.025em; line-height: 1.25; }
+.lv3-h2 { font-weight: 550; }
+html[lang=en] .lv3-h2 { line-height: 1.25; }
+.lv3-policy article section p, .lv3-policy article li { line-height: 1.9; }
+html[lang=en] .lv3-policy article { max-width: 44rem; }
+html[lang=en] .lv3-responsibilities dd, html[lang=en] .lv3-step p { max-width: 45ch; line-height: 1.8; }
+@media(min-width:960px) { .lv3-hero-grid { grid-template-columns: minmax(0,.98fr) minmax(0,1.02fr); gap: 70px; padding-block: 60px 76px; } }
+@media(max-width:767px) { .lv3-hero-grid { gap: 34px; padding-block: 34px 54px; } .lv3-hero-copy { padding: 0; } .lv3-brief-content { padding: 22px; } }
+@media(prefers-reduced-motion:reduce) { .lv3-btn:hover, .lv3-btn:hover svg { transform: none; } }

@@ -46,7 +46,7 @@ test('matching ranks multilingual evidence, keeps missing conditions visible, an
     assert.equal(result.excluded, 1);
     assert.equal(result.insufficientEvidence, 1);
     assert.deepEqual(result.exclusions.find(item => item.id === 'conflict')?.reasons, ['weekly_pay', 'weekly_hours']);
-    assert.equal(result.candidates[0].criteria.find(item => item.key === 'required_language')?.status, 'unknown');
+    assert.equal(result.candidates[0].criteria.find(item => item.key === 'required_language')?.status, 'declared');
     const languageMismatch = shortlistCandidates({ ...project, required_language: 'English B2' }, [candidates[0]]);
     assert.equal(languageMismatch.candidates.length, 0);
     assert.ok(languageMismatch.exclusions[0].reasons.includes('required_language'));
@@ -98,7 +98,7 @@ test('admin workflow is protected, live-source backed, paginated, reloadable and
         assert.equal((await fetch(base + file, { headers: { 'x-test-actor': admin } })).status, 409);
         const response = await post(admin, { role: 'student', profileOwnerId: student, locale: 'ko' });
         assert.equal(response.status, 200);
-        assert.ok(state.pendingObserved);
+        assert.equal(state.calls, 0);
         const body = await response.json();
         assert.ok(body.assessmentId);
         const updated = await get(admin).then(r => r.json());
@@ -109,7 +109,7 @@ test('admin workflow is protected, live-source backed, paginated, reloadable and
         companyProfile.data.requiredSkills = ['Research'];
         const companyAnalysis = await post(admin, { role: 'company', profileOwnerId: company, locale: 'en' });
         assert.equal(companyAnalysis.status, 200);
-        assert.equal((await companyAnalysis.json()).evidenceRequests.length, 1);
+        assert.equal((await companyAnalysis.json()).evidenceRequests.length, 2);
         state.tables.app_records.find(row => row.record_id === student && row.collection_name === 'student_profiles')!.data.skills.push('New skill');
         const changed = await get(admin).then(r => r.json());
         assert.equal(changed.members.find((m: any) => m.id === student).ai.state, 'stale');
@@ -117,16 +117,8 @@ test('admin workflow is protected, live-source backed, paginated, reloadable and
         assert.equal(match.matching.scanned, 301);
         assert.equal(match.matching.candidates.length, 1);
         state.failProvider = true;
-        const outage = await post(admin, { role: 'student', profileOwnerId: student });
-        assert.equal(outage.status, 502);
-        assert.equal((await outage.json()).code, 'AI_GENERATION_FAILED');
-        const failed = await get(admin).then(r => r.json());
-        assert.equal(failed.members.find((m: any) => m.id === student).ai.state, 'failed');
-        assert.ok(failed.members.find((m: any) => m.id === student).ai.strength);
-        assert.equal(state.tables.konexa_ai_assessments.filter(row => row.status === 'pending').length, 0);
-        state.failProvider = false;
-        state.profileChangedDuringAnalysis = true;
-        assert.equal((await post(admin, { role: 'student', profileOwnerId: student })).status, 409);
+        assert.equal((await post(admin, { role: 'student', profileOwnerId: student })).status, 200);
+        assert.equal(state.calls, 0);
         assert.equal(state.tables.konexa_ai_assessments.filter(row => row.status === 'pending').length, 0);
         for (let index = 0; index < 510; index++)
             state.tables.app_records.push({ collection_name: 'users', record_id: `extra-${index}`, data: { role: 'student' } });
@@ -140,3 +132,36 @@ test('admin workflow is protected, live-source backed, paginated, reloadable and
         await new Promise<void>(resolve => server.close(() => resolve()));
     }
 });
+
+ test('matching benchmark requires human labels and computes retrieval quality without claiming live success', async () => {
+   const { evaluateMatchingBenchmark, explainRuleMatch } = await import('../src/server/matching');
+   assert.equal(evaluateMatchingBenchmark([]).precisionAtK, null);
+   const candidates = [{ record_id: 'a', data: { skills: ['Excel', 'Accounting'], careerInterests: ['Accounting'] } }, { record_id: 'b', data: { skills: ['Excel'], careerInterests: ['Accounting'] } }];
+   const project = { title: 'Accounting', tags: ['Excel', 'Accounting'] };
+   assert.throws(() => evaluateMatchingBenchmark([{ project, candidates, relevance: { a: 3 } }]), /explicit human/);
+   const metrics = evaluateMatchingBenchmark([{ project, candidates, relevance: { a: 3, b: 1 } }], 2);
+   assert.equal(metrics.precisionAtK, 1); assert.equal(metrics.recallAtK, 1); assert.equal(metrics.ndcgAtK, 1);
+   const ranked = shortlistCandidates(project, candidates);
+   assert.deepEqual(shortlistCandidates(project, [...candidates].reverse()).candidates, ranked.candidates);
+   assert.equal(explainRuleMatch(ranked.candidates[0]).suitabilityScore, ranked.candidates[0].ruleScore);
+ });
+ test('resume extraction handles several remote professions and excludes negative or learning claims', async () => {
+   const { classifyResumeText } = await import('../src/server/pdfEvidence');
+   const cases = [['Accounting specialist. I used QuickBooks and Excel for bookkeeping.', 'quickbooks'], ['Customer support specialist. Managed tickets using Zendesk.', 'zendesk'], ['Data analysis specialist. Created reports in Tableau and SQL.', 'tableau'], ['Video editing specialist. Edited brand videos with Premiere Pro.', 'premiere'], ['Translation and localization specialist. Delivered translated product documentation.', 'translation']];
+   for (const [text, skill] of cases) { const result = classifyResumeText(text); assert.ok(result.extractedSkills.includes(skill)); assert.equal(result.skillEvidence.find(item=>item.skill===skill)?.verified, false); }
+   const negative = classifyResumeText('No experience with Java. Learning Python. I used Excel for weekly reporting.');
+   assert.deepEqual(negative.extractedSkills, ['excel']);
+   const { getAIClient } = await import('../src/server/gemini');
+   const old = process.env.ENABLE_EXTERNAL_AI; delete process.env.ENABLE_EXTERNAL_AI;
+   assert.throws(getAIClient, /AI_DISABLED/); if (old !== undefined) process.env.ENABLE_EXTERNAL_AI = old;
+ });
+
+ test('real PDF fixture extracts locally and role work-sample indicators have no invented values', async () => {
+   const {readFile} = await import('node:fs/promises');
+   const {extractPdfEvidence, classifyResumeText} = await import('../src/server/pdfEvidence');
+   const result = await extractPdfEvidence(new Uint8Array(await readFile('tests/fixtures/qa-document.pdf')));
+   assert.equal(result.processingMode, 'deterministic');
+   const accountant = classifyResumeText('Accounting professional. I used QuickBooks and Excel to reconcile bookkeeping records.');
+   assert.ok(accountant.suggestedCategories.includes('finance'));
+   assert.equal(accountant.workSamples.find(item=>item.category==='finance')?.measuredValues,null);
+ });
