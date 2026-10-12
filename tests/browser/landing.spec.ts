@@ -246,3 +246,11 @@ test('example deliverables can be inspected with the keyboard without fake live 
   await page.keyboard.press('Enter');
   await expect(page.getByText('Three resized assets',{exact:true})).toBeHidden();
 });
+
+ test('migration preview is explicitly labelled in both languages', async ({page})=>{
+   await page.route('**/api/public/runtime-mode', route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({previewOnly:true,externalAiEnabled:false})}));
+   for(const locale of ['ko','en']) {
+     await page.goto(`/?landing=1&locale=${locale}`);
+     await expect(page.getByRole('status').filter({hasText:locale==='ko'?'무료 호스팅 이전 미리보기':'Free-hosting migration preview'})).toBeVisible();
+   }
+ });

@@ -12,6 +12,7 @@ const bundled = await build({ entryPoints: [path.join(root, 'tests/browser/ui.ts
 } }] });
 const { app, state } = aiFixture();
 registerDeliveryFixture(app);
+app.get('/api/public/runtime-mode', (_req, res) => res.json({ previewOnly: false, externalAiEnabled: false }));
 // Explicitly local-only signup store. Never connected to Supabase or email.
 const signups = new Map<string, any>();
 const intents = new Map<string, any>();

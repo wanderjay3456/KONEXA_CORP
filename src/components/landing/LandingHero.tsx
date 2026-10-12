@@ -139,6 +139,12 @@ function PhotoPanel({ id, tone, tag, title, body, cta, onClick, href, photo, loc
 }
 
 export default function LandingHero({ onEnterApp }: LandingHeroProps) {
+    const [previewOnly, setPreviewOnly] = useState(false);
+    useEffect(() => {
+        const request = new AbortController();
+        void fetch('/api/public/runtime-mode', { signal: request.signal }).then(async response => response.ok ? response.json() : null).then(body => { if (!request.signal.aborted) setPreviewOnly(body?.previewOnly === true); }).catch(() => {});
+        return () => request.abort();
+    }, []);
     const { locale, setLocale } = useLocale();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(() => typeof window !== "undefined" && (location.hash.includes("type=recovery") || location.search.includes("type=recovery")));
     const [activeRegisterRole, setActiveRegisterRole] = useState<UserRole | null>(registrationRoleFromUrl);
@@ -190,6 +196,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
     const afterTitle = 0.1 + lines * LINE_STAGGER + 0.2;
 
     return <div id="landing-master">
+    {previewOnly && <div role="status" className="bg-[#253b4e] px-5 py-3 text-center text-sm leading-7 text-white">{locale === 'ko' ? '무료 호스팅 이전 미리보기입니다. 실제 가입·회원 데이터·프로젝트 운영은 아직 연결하지 않았습니다.' : 'Free-hosting migration preview. Registration, member data and project operations are not connected yet.'}</div>}
     <AnimatePresence mode="wait">
       {activeRegisterRole ? <motion.div key="registration" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="konexa-light min-h-screen overflow-x-clip text-[#20211f] selection:bg-[#dbe3ff] selection:text-[#20211f]">
         <motion.main data-no-translate className="min-h-screen bg-[#f7f6f1] text-neutral-900">
