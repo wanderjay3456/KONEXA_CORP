@@ -64,6 +64,21 @@ html[lang="ko"] .lv3-h1 { font-size: clamp(2.2rem, 11.8cqw, 4.1rem); line-height
 .lv3-lead { max-width: 31rem; margin: 24px 0 0; color: var(--muted); font-size: 1.08rem; line-height: 1.7; }
 .lv3-cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
 .lv3-cta-row .lv3-btn { flex: 1 1 100%; }
+.lv3-contact-note { margin: 12px 0 4px; color: var(--muted); font-size: .8rem; line-height: 1.6; }
+.lv3-company-entry { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding-block: 8px; color: var(--forest); font-size: .85rem; text-decoration: underline; text-underline-offset: 4px; }
+.lv3-company-entry svg { width: 14px; height: 14px; }
+.lv3-asset-preview { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; align-items: end; margin: 20px 0; }
+.lv3-asset-preview figure { margin: 0; min-width: 0; }
+.lv3-asset-preview figcaption { color: var(--muted); font-size: .72rem; margin-top: 8px; }
+.lv3-sample-art { position: relative; display: flex; align-items: end; overflow: hidden; isolation: isolate; aspect-ratio: 1; padding: 10px; background: var(--forest); color: #fff; }
+.lv3-sample-art-1 { aspect-ratio: 4/5; }
+.lv3-sample-art-2 { aspect-ratio: 1.91; padding: 8px; }
+.lv3-sample-art strong { font-size: clamp(.8rem,1.2vw,1rem); line-height: 1.1; letter-spacing: -.04em; max-width: 4em; font-weight: 600; }
+.lv3-sample-shape { position: absolute; z-index: -1; width: 95%; height: 95%; border: 18px solid #a86440; border-radius: 50%; top: -38%; right: -38%; }
+.lv3-sample-art-1 .lv3-sample-shape { top: -22%; right: -28%; }
+.lv3-review-note { margin-top: 24px; padding-left: 16px; border-left: 2px solid #a86440; }
+.lv3-review-note h3 { font-size: .8rem; font-weight: 600; margin: 0 0 8px; }
+.lv3-review-note p { font-size: .85rem; color: var(--muted); margin: 0; line-height: 1.65; }
 
 /* Illustrative brief: semantic content, not a mock live dashboard. */
 .lv3-visual {
@@ -77,11 +92,6 @@ html[lang="ko"] .lv3-h1 { font-size: clamp(2.2rem, 11.8cqw, 4.1rem); line-height
 .lv3-brief-description { margin: 22px 0 0; color: var(--muted); font-size: .92rem; line-height: 1.7; }
 .lv3-output-label { margin: 24px 0 10px; font-size: .85rem; font-weight: 600; }
 .lv3-outputs { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0; padding-left: 18px; color: var(--ink); font-size: .82rem; line-height: 1.7; }
-.lv3-brief-details { margin: 24px 0 0; padding-top: 18px; border-top: 1px solid #c7d1c7; }
-.lv3-brief-details div { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 16px; padding-block: 6px; font-size: .82rem; line-height: 1.6; }
-.lv3-brief-details dt { color: var(--muted); }
-.lv3-brief-details dd { margin: 0; }
-.lv3-brief-review { margin: 20px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.65; }
 
 /* Static availability: readable and complete at every viewport width. */
 .lv3-ticker { background: #e7ece5; padding-block: 24px; }
@@ -125,6 +135,7 @@ html[lang="ko"] .lv3-final-title { line-height: 1.3; }
 .lv3-footer a { display: inline-flex; min-height: 44px; align-items: center; padding: 0 12px; border-radius: 8px; }
 .lv3-footer a:hover { color: var(--ink); }
 .lv3-footer p { margin: 0; }
+.lv3-contact-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; padding-block: 12px; }
 .lv3-mobile-cta { position: fixed; inset: auto 0 0; z-index: 30; display: none; padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--cream); }
 .lv3-mobile-cta .lv3-btn { width: 100%; }
 @media (min-width: 560px) { .lv3-cta-row .lv3-btn { flex: 0 0 auto; } }
@@ -145,7 +156,6 @@ html[lang="ko"] .lv3-final-title { line-height: 1.3; }
 @media (max-width: 389px) {
   .lv3-wordmark { font-size: 1rem; letter-spacing: .1em; }
   .lv3-login { padding-inline: 8px; }
-  .lv3-brief-details div { grid-template-columns: 76px minmax(0,1fr); gap: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lv3 *, .lv3 *::before, .lv3 *::after { animation: none !important; transition: none !important; }

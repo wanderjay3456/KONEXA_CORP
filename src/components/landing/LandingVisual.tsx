@@ -12,10 +12,13 @@ export default function LandingVisual({ copy }: { copy: LandingCopy["record"] })
       <p className="lv3-brief-meta">{copy.meta}</p>
       <p className="lv3-brief-description">{copy.brief}</p>
       <h3 className="lv3-output-label">{copy.outputLabel}</h3>
+      <div className="lv3-asset-preview" role="group" aria-label={copy.outputLabel}>
+        {copy.formats.map((format, index) => <figure key={format}>
+          <div className={`lv3-sample-art lv3-sample-art-${index}`}><span aria-hidden="true" className="lv3-sample-shape"/><strong>{copy.sampleText}</strong></div>
+          <figcaption>{format}</figcaption>
+        </figure>)}
+      </div>
       <ul className="lv3-outputs">{copy.outputs.map(output => <li key={output}>{output}</li>)}</ul>
-      <dl className="lv3-brief-details">
-        {copy.rows.map(([label, detail]) => <div key={label}><dt>{label}</dt><dd>{detail}</dd></div>)}
-      </dl>
-      <p className="lv3-brief-review">{copy.review}</p>
+      <div className="lv3-review-note"><h3>{copy.reviewLabel}</h3><p>{copy.review}</p></div>
     </motion.aside>;
 }

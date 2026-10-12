@@ -12,7 +12,7 @@ test.beforeAll(() => {
 
 const widths = [360, 390, 768, 1440] as const;
 const locales = ['en', 'ko'] as const;
-const heading = { en: 'Hire after one real project.', ko: '이력서 말고, 프로젝트 하나로 결정하세요.' } as const;
+const heading = { en: 'Work together. Then decide.', ko: '채용 전에, 먼저 함께 일해보세요.' } as const;
 
 async function open(page: Page, locale: (typeof locales)[number], errors: string[]) {
   page.on('pageerror', error => errors.push(error.message));
@@ -54,13 +54,13 @@ test('KO/EN toggle switches copy, document language and metadata', async ({ page
   const errors: string[] = [];
   await open(page, 'en', errors);
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(page).toHaveTitle('KONEXA | Hire after one real project');
+  await expect(page).toHaveTitle('KONEXA | Work together before you hire');
   // The QA shell page has no description tag; the real index.html does.
   await page.evaluate(() => { const meta = document.createElement('meta'); meta.name = 'description'; meta.content = 'placeholder'; document.head.append(meta); });
   await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'KO' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading.ko);
   await expect(page.locator('html')).toHaveAttribute('lang', 'ko');
-  await expect(page).toHaveTitle('KONEXA | 프로젝트 하나로 결정하는 채용');
+  await expect(page).toHaveTitle('KONEXA | 채용 전에 먼저 함께 일해보세요');
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /첫 파트너 기업을 모집 중/);
   await page.getByRole('group', { name: '언어' }).getByRole('button', { name: 'EN' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading.en);
@@ -70,7 +70,7 @@ test('KO/EN toggle switches copy, document language and metadata', async ({ page
 test('hero CTAs open the company and talent sign-up forms and can return', async ({ page }) => {
   const errors: string[] = [];
   await open(page, 'en', errors);
-  await page.getByRole('main').getByRole('button', { name: 'Post a project' }).first().click();
+  await page.getByRole('main').getByRole('button', { name: 'Create a company account' }).first().click();
   await expect(page.getByRole('heading', { name: /Create the company account now/ })).toBeVisible();
   await page.getByRole('button', { name: 'Back' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading.en);
@@ -106,7 +106,7 @@ for (const entry of ['company', 'talent'] as const) {
 test('browser Back and Forward restore the registration entry point', async ({ page }) => {
   const errors: string[] = [];
   await open(page, 'en', errors);
-  await page.getByRole('main').getByRole('button', { name: 'Post a project' }).first().click();
+  await page.getByRole('main').getByRole('button', { name: 'Create a company account' }).first().click();
   await expect(page.getByRole('heading', { name: /Create the company account now/ })).toBeVisible();
   expect(new URL(page.url()).searchParams.get('start')).toBe('company');
   await page.goBack();
@@ -134,7 +134,7 @@ test('footer links resolve and the mobile CTA appears only on small screens', as
   await expect(page.getByRole('link', { name: 'Status' })).toHaveAttribute('href', '/status');
   await expect(page.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', /^mailto:konexa\.corp@gmail\.com/);
   await expect(page.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', /^mailto:konexa\.corp@gmail\.com/);
-  await expect(page.getByRole('link', { name: 'Email KONEXA' })).toHaveAttribute('href', 'mailto:konexa.corp@gmail.com');
+  await expect(page.getByRole('link', { name: 'Discuss a project' }).first()).toHaveAttribute('href', /^mailto:konexa\.corp@gmail\.com\?subject=.*&body=/);
   await expect(page.locator('.lv3-mobile-cta')).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page.locator('.lv3-mobile-cta')).toBeHidden();
@@ -179,4 +179,19 @@ test('example brief and pilot limits are readable without animated activity', as
     getComputedStyle(node).animationName !== 'none').length);
   expect(loops).toBe(0);
   expect(errors).toEqual([]);
+});
+
+ test('consultation opens a scoped email draft while company registration stays separate', async ({page}) => {
+  await page.goto('/?landing=1&locale=en');
+  const link = page.getByRole('link', {name:'Discuss a project'}).first();
+  const href = await link.getAttribute('href');
+  const query = new URLSearchParams(href!.split('?')[1]);
+  expect(query.get('body')).toContain('Expected deliverables:');
+  expect(query.get('body')).toContain('Budget range:');
+  await expect(page.getByText('Opens an email draft. No account required.')).toBeVisible();
+  await page.getByRole('group', {name:'Language'}).getByRole('button', {name:'KO'}).click();
+  const koHref = await page.getByRole('link', {name:'프로젝트 상담하기'}).first().getAttribute('href');
+  expect(new URLSearchParams(koHref!.split('?')[1]).get('body')).toContain('원하는 결과물:');
+  await page.getByRole('button', {name:'기업 계정 만들기'}).first().click();
+  expect(new URL(page.url()).searchParams.get('start')).toBe('company');
 });

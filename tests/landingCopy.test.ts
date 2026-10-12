@@ -29,7 +29,8 @@ test("landing copy has the same structure and no empty text in Korean and Englis
     assert.deepEqual(shape(landingCopy.ko), shape(landingCopy.en));
     for (const locale of ["ko", "en"] as const) {
         assert.equal(landingCopy[locale].how.steps.length, 3);
-        assert.equal(landingCopy[locale].record.rows.length, 4);
+        assert.equal(landingCopy[locale].record.outputs.length, 3);
+        assert.equal(landingCopy[locale].record.formats.length, 3);
         assert.equal(landingCopy[locale].ticker.items.length, 4);
     }
     for (const locale of ["ko", "en"] as const)
@@ -38,8 +39,8 @@ test("landing copy has the same structure and no empty text in Korean and Englis
 
 test("hero and final headlines carry the approved wording and one emphasised run", () => {
     const heroLines = (locale: "ko" | "en") => landingCopy[locale].hero.title.map(line => line.map(part => part.text).join(""));
-    assert.deepEqual(heroLines("en"), ["Hire after", "one real project."]);
-    assert.deepEqual(heroLines("ko"), ["이력서 말고,", "프로젝트 하나로", "결정하세요."]);
+    assert.deepEqual(heroLines("en"), ["Work together.", "Then decide."]);
+    assert.deepEqual(heroLines("ko"), ["채용 전에,", "먼저 함께", "일해보세요."]);
     for (const locale of ["ko", "en"] as const) {
         const strong = (parts: Fragment[]) => parts.filter(part => part.strong).length;
         assert.equal(landingCopy[locale].hero.title.reduce((total, line) => total + strong(line), 0), 1);

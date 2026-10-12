@@ -22,6 +22,11 @@ const LINE_STAGGER = 0.08;
 /** There is no public Terms or Privacy page yet. Until one ships, these open an
  * email request instead of pointing at a page that does not exist. */
 const legalHref = (subject: string) => `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`;
+const consultationHref = (locale: Locale) => {
+    const subject = locale === "ko" ? "KONEXA 프로젝트 상담" : "KONEXA project enquiry";
+    const body = locale === "ko" ? "맡길 업무:\n원하는 결과물:\n마감일:\n예산 범위:\n" : "Task:\nExpected deliverables:\nDeadline:\nBudget range:\n";
+    return `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+};
 
 function registrationRoleFromUrl(): UserRole | null {
     if (typeof window === "undefined") return null;
@@ -90,7 +95,7 @@ function Ticker({ copy }: { copy: LandingCopy["ticker"] }) {
     </section>;
 }
 
-function PhotoPanel({ id, tone, tag, title, body, cta, onClick, photo, locale }: {
+function PhotoPanel({ id, tone, tag, title, body, cta, onClick, href, photo, locale }: {
     id?: string;
     tone: "company" | "talent";
     tag: string;
@@ -98,6 +103,7 @@ function PhotoPanel({ id, tone, tag, title, body, cta, onClick, photo, locale }:
     body: string;
     cta: string;
     onClick: () => void;
+    href?: string;
     photo?: LandingPhoto;
     locale: Locale;
 }) {
@@ -109,7 +115,7 @@ function PhotoPanel({ id, tone, tag, title, body, cta, onClick, photo, locale }:
       <div className="lv3-panel-body">
         <h3>{title}</h3>
         <p>{body}</p>
-        <button type="button" onClick={onClick} className="lv3-btn lv3-btn-primary">{cta}<ArrowRight aria-hidden="true"/></button>
+        {href ? <a href={href} className="lv3-btn lv3-btn-primary">{cta}<ArrowRight aria-hidden="true"/></a> : <button type="button" onClick={onClick} className="lv3-btn lv3-btn-primary">{cta}<ArrowRight aria-hidden="true"/></button>}
       </div>
     </article>;
 }
@@ -182,7 +188,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
                   <div className="lv3-lang" role="group" aria-label={t.nav.language}>
                     {(["ko", "en"] as Locale[]).map((item) => <button key={item} type="button" onClick={() => setLocale(item)} aria-pressed={locale === item} lang={item}>{item.toUpperCase()}</button>)}
                   </div>
-                  <button type="button" onClick={openCompany} className="lv3-btn lv3-btn-primary lv3-header-cta">{t.nav.post}</button>
+                  <a href={consultationHref(locale)} className="lv3-btn lv3-btn-primary lv3-header-cta">{t.nav.post}</a>
                 </div>
               </header>
 
@@ -192,9 +198,11 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
                   <Headline lines={t.hero.title}/>
                   <Rise delay={afterTitle}><p className="lv3-lead">{t.hero.lead}</p></Rise>
                   <Rise delay={afterTitle + 0.12} className="lv3-cta-row">
-                    <button type="button" onClick={openCompany} className="lv3-btn lv3-btn-primary">{t.hero.postCta}<ArrowRight aria-hidden="true"/></button>
+                    <a href={consultationHref(locale)} className="lv3-btn lv3-btn-primary">{t.hero.postCta}<ArrowRight aria-hidden="true"/></a>
                     <button type="button" onClick={openTalent} className="lv3-btn lv3-btn-ghost">{t.hero.talentCta}</button>
                   </Rise>
+                  <p className="lv3-contact-note">{t.hero.contactNote}</p>
+                  <button type="button" onClick={openCompany} className="lv3-company-entry">{t.hero.companyRegister}<ArrowRight aria-hidden="true"/></button>
                 </div>
                 <LandingVisual copy={t.record}/>
               </div>
@@ -218,7 +226,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
 
           <section className="lv3-section lv3-split">
             <div className="lv3-wrap lv3-split-grid">
-              <Reveal><PhotoPanel tone="company" tag={t.split.company.tag} title={t.split.company.title} body={t.split.company.body} cta={t.split.company.cta} onClick={openCompany} photo={landingPhotos.company} locale={locale}/></Reveal>
+              <Reveal><PhotoPanel tone="company" tag={t.split.company.tag} title={t.split.company.title} body={t.split.company.body} cta={t.split.company.cta} onClick={openCompany} href={consultationHref(locale)} photo={landingPhotos.company} locale={locale}/></Reveal>
               <Reveal delay={0.1}><PhotoPanel id="talent" tone="talent" tag={t.split.talent.tag} title={t.split.talent.title} body={t.split.talent.body} cta={t.split.talent.cta} onClick={openTalent} photo={landingPhotos.talent} locale={locale}/></Reveal>
             </div>
           </section>
@@ -229,8 +237,8 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
                 <h2 className="lv3-final-title"><FragmentText parts={t.final.title}/></h2>
                 <p>{t.final.body}</p>
                 <div className="lv3-cta-row lv3-cta-center">
-                  <button type="button" onClick={openCompany} className="lv3-btn lv3-btn-primary">{t.final.post}<ArrowRight aria-hidden="true"/></button>
-                  <a href={`mailto:${CONTACT_EMAIL}`} className="lv3-btn lv3-btn-ghost">{t.final.email}</a>
+                  <a href={consultationHref(locale)} className="lv3-btn lv3-btn-primary">{t.final.post}<ArrowRight aria-hidden="true"/></a>
+                  <button type="button" onClick={openCompany} className="lv3-btn lv3-btn-ghost">{t.final.email}</button>
                 </div>
               </Reveal>
             </div>
@@ -238,6 +246,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
         </main>
 
         <footer className="lv3-footer">
+          <div className="lv3-wrap lv3-contact-row"><p>{t.footer.founder}</p><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></div>
           <div className="lv3-wrap lv3-footer-row">
             <nav aria-label="Legal">
               <a href={legalHref("KONEXA Terms of Service request")} title={t.footer.legalRequest}>{t.footer.terms}</a>
@@ -249,7 +258,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
         </footer>
 
         <div className="lv3-mobile-cta">
-          <button type="button" onClick={openCompany} className="lv3-btn lv3-btn-primary">{t.mobileCta}<ArrowRight aria-hidden="true"/></button>
+          <a href={consultationHref(locale)} className="lv3-btn lv3-btn-primary">{t.mobileCta}<ArrowRight aria-hidden="true"/></a>
         </div>
       </motion.div>}
     </AnimatePresence>

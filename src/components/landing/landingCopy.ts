@@ -28,6 +28,8 @@ export interface LandingCopy {
         lead: string;
         postCta: string;
         talentCta: string;
+        companyRegister: string;
+        contactNote: string;
     };
     record: {
         label: string;
@@ -38,7 +40,9 @@ export interface LandingCopy {
         outputLabel: string;
         outputs: string[];
         review: string;
-        rows: Array<[label: string, state: string]>;
+        reviewLabel: string;
+        sampleText: string;
+        formats: string[];
     };
     ticker: {
         label: string;
@@ -65,6 +69,7 @@ export interface LandingCopy {
         status: string;
         rights: string;
         legalRequest: string;
+        founder: string;
     };
     mobileCta: string;
 }
@@ -72,32 +77,31 @@ export interface LandingCopy {
 export const landingCopy: Record<Locale, LandingCopy> = {
     en: {
         meta: {
-            title: "KONEXA | Hire after one real project",
+            title: "KONEXA | Work together before you hire",
             description: "Start with a small remote task, agree on the deliverables and review the work. KONEXA is onboarding its first company partners.",
         },
-        nav: { how: "How it works", talent: "For talent", login: "Log in", post: "Post a project", primary: "Primary navigation", language: "Language" },
+        nav: { how: "How it works", talent: "For talent", login: "Log in", post: "Discuss a project", primary: "Primary navigation", language: "Language" },
         hero: {
             pill: "Early access · Remote projects",
-            title: [[{ text: "Hire after" }], [{ text: "one real project.", strong: true }]],
-            lead: "Start with a small remote task. Agree on the deliverables, review the work, then decide whether to continue.",
-            postCta: "Post a project",
+            title: [[{ text: "Work together." }], [{ text: "Then decide.", strong: true }]],
+            lead: "Start with a small paid project. Review the work and collaboration before deciding on the next step.",
+            postCta: "Discuss a project",
             talentCta: "Join as talent",
+            companyRegister: "Create a company account",
+            contactNote: "Opens an email draft. No account required.",
         },
         record: {
             label: "A small project, clearly scoped",
             illustration: "Illustration / Example brief",
             title: "Adapt a campaign for three ad formats",
             meta: "Design · Remote · Two-week example",
-            brief: "Use an existing campaign design to prepare square, portrait and landscape assets. Keep the supplied logo, type and colours consistent.",
+            brief: "Adapt one campaign design for square, portrait and landscape placements. Keep the same visual identity across all three.",
             outputLabel: "What gets delivered",
             outputs: ["Three resized assets", "Editable source files", "A short handover note"],
-            review: "Review the first drafts before final export. Agree on the fee, deadline and revision scope before work starts.",
-            rows: [
-                ["Brief", "Existing campaign + brand files"],
-                ["First review", "Check layout and legibility"],
-                ["Handover", "Exports + editable files"],
-                ["Next step", "Continue · Hire · Close"],
-            ],
+            review: "Keep the headline readable in the portrait version. Leave more room around the call to action.",
+            reviewLabel: "Example review note",
+            sampleText: "A small start.",
+            formats: ["Square", "Portrait", "Landscape"],
         },
         ticker: {
             label: "Operating status",
@@ -118,14 +122,14 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             ],
         },
         split: {
-            company: { tag: "For companies", title: "Bring a task you need done.", body: "Start with a clear brief and a manageable scope. Contact KONEXA to discuss whether your project fits the current pilot.", cta: "Post a project" },
+            company: { tag: "For companies", title: "Bring a task you need done.", body: "Tell us the outcome, deadline and budget you have in mind. We will discuss whether the task fits the current pilot.", cta: "Discuss a project" },
             talent: { tag: "For talent", title: "Show how you work.", body: "Build your profile around your skills, availability and work samples. We are onboarding talent for future projects.", cta: "Join as talent" },
         },
         final: {
             title: [{ text: "Start with " }, { text: "one project.", strong: true }],
             body: "Have a task in mind? Send the scope and deadline. We can discuss the next step before you register.",
-            post: "Post a project",
-            email: "Email KONEXA",
+            post: "Discuss a project",
+            email: "Create a company account",
         },
         footer: {
             terms: "Terms",
@@ -133,37 +137,37 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             status: "Status",
             rights: "KONEXA",
             legalRequest: "Request a copy by email",
+            founder: "Jay Yoo · Founder",
         },
-        mobileCta: "Post a project",
+        mobileCta: "Discuss a project",
     },
     ko: {
         meta: {
-            title: "KONEXA | 프로젝트 하나로 결정하는 채용",
+            title: "KONEXA | 채용 전에 먼저 함께 일해보세요",
             description: "작은 원격 업무 하나를 맡기고, 매주 실제 결과물을 확인하세요. 채용은 그다음에 결정해도 됩니다. 첫 파트너 기업을 모집 중입니다.",
         },
-        nav: { how: "진행 방식", talent: "인재 참여", login: "로그인", post: "프로젝트 등록하기", primary: "주요 메뉴", language: "언어" },
+        nav: { how: "진행 방식", talent: "인재 참여", login: "로그인", post: "프로젝트 상담하기", primary: "주요 메뉴", language: "언어" },
         hero: {
             pill: "얼리 액세스 · 원격 프로젝트",
-            title: [[{ text: "이력서 말고," }], [{ text: "프로젝트 하나로", strong: true }], [{ text: "결정하세요." }]],
-            lead: "작은 원격 업무부터 함께 해보세요. 결과물과 검토 기준을 정하고, 협업을 이어갈지 결정합니다.",
-            postCta: "프로젝트 등록하기",
+            title: [[{ text: "채용 전에," }], [{ text: "먼저 함께", strong: true }], [{ text: "일해보세요." }]],
+            lead: "작은 유급 프로젝트의 결과물과 협업 과정을 보고, 다음 협업과 채용을 결정합니다.",
+            postCta: "프로젝트 상담하기",
             talentCta: "인재로 참여하기",
+            companyRegister: "기업 계정 만들기",
+            contactNote: "이메일 초안이 열립니다. 가입 없이 문의할 수 있습니다.",
         },
         record: {
             label: "작게 시작하는 구체적인 업무",
             illustration: "업무 브리프 예시",
             title: "캠페인 이미지를 광고 규격 3종으로 제작",
             meta: "디자인 · 원격 · 2주 프로젝트 예시",
-            brief: "기존 캠페인 디자인을 정사각형·세로형·가로형으로 조정합니다. 제공받은 로고, 글꼴, 색상을 일관되게 적용합니다.",
+            brief: "캠페인 디자인 하나를 정사각형·세로형·가로형으로 조정합니다. 세 규격에 같은 시각적 정체성을 유지합니다.",
             outputLabel: "전달할 결과물",
             outputs: ["규격별 이미지 3종", "수정 가능한 원본 파일", "간단한 인수인계 안내"],
-            review: "최종 출력 전에 초안을 확인합니다. 보수, 마감일, 수정 범위는 업무를 시작하기 전에 합의합니다.",
-            rows: [
-                ["업무 자료", "기존 캠페인과 브랜드 파일"],
-                ["초안 검토", "배치와 가독성 확인"],
-                ["최종 전달", "출력 이미지와 원본 파일"],
-                ["다음 결정", "협업 지속 · 채용 · 종료"],
-            ],
+            review: "세로형에서도 제목이 잘 읽히도록 조정해 주세요. 행동 유도 문구 주변에는 여백을 더 남겨주세요.",
+            reviewLabel: "검토 의견 예시",
+            sampleText: "작은 시작.",
+            formats: ["정사각형", "세로형", "가로형"],
         },
         ticker: {
             label: "운영 현황",
@@ -184,14 +188,14 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             ],
         },
         split: {
-            company: { tag: "기업 참여", title: "맡길 업무부터 이야기해 주세요.", body: "작게 나눌 수 있는 업무와 명확한 결과물부터 시작합니다. 현재 파일럿에 적합한지 KONEXA와 먼저 상의하세요.", cta: "프로젝트 등록하기" },
+            company: { tag: "기업 참여", title: "맡길 업무부터 이야기해 주세요.", body: "원하는 결과물, 마감일, 예산을 알려주세요. 현재 파일럿에 적합한 업무인지 함께 상의합니다.", cta: "프로젝트 상담하기" },
             talent: { tag: "인재 참여", title: "어떻게 일하는지 보여주세요.", body: "보유 기술, 참여 가능한 시간, 작업 사례를 프로필에 담아주세요. 향후 프로젝트를 위한 인재를 모집하고 있습니다.", cta: "인재로 참여하기" },
         },
         final: {
             title: [{ text: "프로젝트 하나로 " }, { text: "시작하세요.", strong: true }],
             body: "맡길 업무와 마감일을 알려주세요. 가입 전에 진행 방향부터 함께 상의할 수 있습니다.",
-            post: "프로젝트 등록하기",
-            email: "KONEXA에 이메일 보내기",
+            post: "프로젝트 상담하기",
+            email: "기업 계정 만들기",
         },
         footer: {
             terms: "이용약관",
@@ -199,7 +203,8 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             status: "서비스 상태",
             rights: "KONEXA",
             legalRequest: "이메일로 사본 요청하기",
+            founder: "유재영 · 대표",
         },
-        mobileCta: "프로젝트 등록하기",
+        mobileCta: "프로젝트 상담하기",
     },
 };
