@@ -143,7 +143,7 @@ export default function PendingGoogleRegistration() {
                 <input type="checkbox" disabled={busy} checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#20211f]"/>
                 <span>{label}{required && <strong className="ml-1 text-[#253b4e]">*</strong>}</span>
               </label>))}
-            <p className="text-xs leading-6 text-neutral-600">{signupTransferNotice(locale)}</p>
+            <div className="space-y-3 text-sm leading-7 text-neutral-600">{signupTransferNotice(locale).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>
             <nav className="flex flex-wrap gap-4 text-xs leading-6" aria-label={locale === "ko" ? "정책 공개 검토본" : "Policy review editions"}>
               <a className="underline" href={`/terms?locale=${locale}`} target="_blank" rel="noreferrer">{locale === "ko" ? "이용약관" : "Terms of use"}</a>
               <a className="underline" href={`/privacy?locale=${locale}`} target="_blank" rel="noreferrer">{locale === "ko" ? "개인정보처리방침" : "Privacy policy"}</a>

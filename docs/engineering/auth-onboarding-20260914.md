@@ -192,3 +192,15 @@ create trigger preserve_email_delivery_progress before update on public.app_reco
 for each row when (old.collection_name = 'email_deliveries')
 execute function private.preserve_email_delivery_progress();
 ```
+
+### International-processing and consent follow-up
+
+Resend dashboard confirms auth.konexa.co.kr sends from Tokyo, Japan (ap-northeast-1), while the official security page confirms US storage. Signup notices now separate server processing, email sending/storage, supplier security screening and KONEXA external generative AI analysis, with readable native paragraphs in KO/EN. The legal Resend entity is Plus Five Five, Inc. Render's entity is Render Services, Inc. Public supplier contacts are included. Detailed global support/CDN/log processing countries remain unconfirmed; do not activate registration based on this review notice.
+
+The operator approved three individual enquiries from konexa.corp@gmail.com about physical processing countries, data categories, retention, backup deletion and limiting configurations. No user records or credentials were attached. Sent Gmail threads: Supabase privacy@supabase.io 1a131e9b1979c507; Render privacy@render.com 1a131e9ca5513f25; Resend support@resend.com 1a131e9e54ebf777. Sending an enquiry is not receipt of a supplier answer.
+
+Live negative-auth verification used the real consent_bundle metadata with terms=false and the current review version. Supabase rejected the insert (HTTP 500, unexpected_failure); no synthetic account remained. An initial request used the wrong consents property and entered the intentionally compatible legacy path. That unconfirmed QA account and its two test-owned records were removed after identity/session checks; no customer account was modified. This confirms current-version rejection, not universal legacy rejection or a completed positive signup/login. Global cutover remains disabled until coordinated release. 29 existing signup/landing browser tests passed after the paragraph changes.
+
+Sources: https://resend.com/security ; https://resend.com/legal/privacy-policy ; https://render.com/privacy ; https://supabase.com/legal/privacy-resources/data-residency-and-transfers-faq ; https://law.go.kr/lsLinkCommonInfo.do?lsJoLnkSeq=1033215841 .
+
+Resend replied in thread 1a131e9e54ebf777: public security/legal pages and account documents are the written materials available outside Enterprise; individual line-by-line assessments require an Enterprise agreement. No upgrade, sales introduction or paid commitment was requested. This reply does not enumerate the missing detailed processing countries. Supabase/Render substantive answers were not present at this check.
