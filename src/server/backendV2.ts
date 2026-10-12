@@ -309,6 +309,9 @@ export function registerBackendV2PublicRoutes(app: Express) {
         const body = plainObject(req.body, "registration");
         const role = enumValue(body.role, "role", ["student", "company"] as const);
         const consents = plainObject(body.consents, "consents");
+        if (role === "student" && consents.adultParticipation !== true) {
+          throw new ApiInputError("Talent participants must confirm they are at least 18.", "ADULT_PARTICIPATION_REQUIRED");
+        }
         const profile = body.profile && typeof body.profile === "object" && !Array.isArray(body.profile)
           ? body.profile
           : {};

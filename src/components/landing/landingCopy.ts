@@ -70,8 +70,15 @@ export interface LandingCopy {
         rights: string;
         legalRequest: string;
         founder: string;
+        operatorNotice: string;
     };
     mobileCta: string;
+    pilot: {
+        title: string; intro: string; roles: Array<{ name: string; body: string }>;
+        examplesTitle: string; examples: Array<{ name: string; output: string; materials: string }>;
+        limit: string; participation: string; inquiryTitle: string; inquirySteps: string[];
+        copyEmail: string; copied: string; copyFailed: string;
+    };
 }
 
 export const landingCopy: Record<Locale, LandingCopy> = {
@@ -137,9 +144,29 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             status: "Status",
             rights: "KONEXA",
             legalRequest: "Request a copy by email",
-            founder: "Jay Yoo · Founder",
+            founder: "Jay Yoo · Pre-launch enquiry contact",
+            operatorNotice: "KONEXA is a pre-launch project run by Jay Yoo in an individual capacity. Agreement texts are being finalized; request and review them before signing up. Any paid pilot requires separately agreed contract and payment terms.",
         },
         mobileCta: "Discuss a project",
+        pilot: {
+            title: "A managed project, with clear responsibilities.",
+            intro: "We help shape the brief, connect suitable talent, check progress and record the work. The pilot scope is agreed before any project starts.",
+            roles: [
+                { name: "KONEXA", body: "Supports scoping, matching, progress checks and an evidence-based project record. Availability and fit are confirmed for each enquiry." },
+                { name: "Your company", body: "Provides the materials, agrees on the scope and fee, reviews the work and makes any final hiring decision." },
+                { name: "The talent", body: "Confirms skills and available hours, completes agreed deliverables and responds to review feedback." },
+            ],
+            examplesTitle: "Start with work you can review.",
+            examples: [
+                { name: "Website QA", output: "A reproducible issue list with screenshots and expected behaviour.", materials: "Provide a test site, agreed browsers and test cases. No production credentials in an enquiry." },
+                { name: "Market research", output: "A source-linked comparison of a defined market or competitor set.", materials: "Provide the question, target market, scope and preferred output format." },
+            ],
+            limit: "These are scoping examples, not ready-to-book offers. We confirm a suitable person, hours, fee and payment arrangement before accepting work. Visa, payroll and escrow services are not offered through this pilot enquiry.",
+            participation: "Enquiries are welcome from any country. Each project is reviewed for task fit, working language and payment feasibility. Talent participants must be at least 18.",
+            inquiryTitle: "What happens after you contact us?",
+            inquirySteps: ["We review the task, deliverables, deadline and budget.", "We discuss talent availability, language and payment feasibility.", "Both sides agree on the scope and conditions before any commitment."],
+            copyEmail: "Copy email address", copied: "Email address copied.", copyFailed: "Could not copy. Select the email address below and copy it manually.",
+        },
     },
     ko: {
         meta: {
@@ -203,8 +230,28 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             status: "서비스 상태",
             rights: "KONEXA",
             legalRequest: "이메일로 사본 요청하기",
-            founder: "유재영 · 대표",
+            founder: "유재영 · 예비창업 상담 담당",
+            operatorNotice: "KONEXA는 유재영 개인이 준비하는 예비창업 프로젝트입니다. 가입용 약관 원문은 확정 중이므로 가입 전에 사본을 요청하고 검토해 주세요. 유료 파일럿의 계약·결제 조건은 별도로 합의해야 합니다.",
         },
         mobileCta: "프로젝트 상담하기",
+        pilot: {
+            title: "역할을 명확히 정하고 함께 진행합니다.",
+            intro: "업무 범위 정리, 적합한 인재 연결, 진행 점검, 결과 기록을 지원하는 관리형 파일럿입니다. 시작 전에 지원 범위를 합의합니다.",
+            roles: [
+                { name: "KONEXA", body: "업무 범위 정리·매칭·진행 점검·근거가 남는 결과 기록을 지원합니다. 인재의 참여 가능 여부와 업무 적합성은 건별로 확인합니다." },
+                { name: "기업", body: "업무 자료를 제공하고 범위와 보수에 합의합니다. 결과물을 검토하며 최종 채용 여부는 기업이 결정합니다." },
+                { name: "인재", body: "보유 역량과 참여 시간을 확인하고, 합의한 결과물을 제출하며 검토 의견에 응답합니다." },
+            ],
+            examplesTitle: "검토할 수 있는 작은 업무부터 시작하세요.",
+            examples: [
+                { name: "웹사이트 QA", output: "재현 방법·스크린샷·기대 동작을 정리한 오류 목록", materials: "테스트 사이트, 확인할 브라우저와 시나리오를 준비해 주세요. 상담에 운영 계정 정보는 보내지 마세요." },
+                { name: "시장 조사", output: "출처가 연결된 시장 또는 경쟁사 비교 자료", materials: "확인할 질문, 대상 시장, 조사 범위와 결과물 형식을 준비해 주세요." },
+            ],
+            limit: "업무 범위를 논의하기 위한 예시이며 즉시 구매 가능한 상품이 아닙니다. 담당 인재·참여 시간·보수·결제 방식을 확인한 뒤 진행을 결정합니다. 이 파일럿 상담에서 비자·급여 대행·에스크로 서비스를 제공하지 않습니다.",
+            participation: "국가 제한 없이 문의할 수 있습니다. 업무·소통 언어·결제 가능 여부를 개별 검토합니다. 인재 참여는 만 18세 이상으로 제한합니다.",
+            inquiryTitle: "문의한 뒤에는 어떻게 진행되나요?",
+            inquirySteps: ["업무·결과물·마감일·예산을 확인합니다.", "인재의 참여 가능 여부, 소통 언어, 결제 가능 여부를 함께 검토합니다.", "어떤 약속을 하기 전에 양측이 범위와 조건을 합의합니다."],
+            copyEmail: "이메일 주소 복사", copied: "이메일 주소를 복사했습니다.", copyFailed: "복사하지 못했습니다. 아래 이메일 주소를 선택해 직접 복사해 주세요.",
+        },
     },
 };

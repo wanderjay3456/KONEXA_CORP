@@ -102,6 +102,22 @@ html[lang="ko"] .lv3-h1 { font-size: clamp(2.2rem, 11.8cqw, 4.1rem); line-height
 .lv3-dot-off { border: 1px solid var(--muted); background: transparent; }
 .lv3-ticker-note { margin: 22px 0 0; color: var(--muted); font-size: .82rem; line-height: 1.6; }
 .lv3-section { padding-block: clamp(64px, 8vw, 100px); }
+.lv3-pilot-intro { max-width: 46rem; margin: 20px 0 28px; color: var(--muted); line-height: 1.7; }
+.lv3-responsibilities { margin: 0; }
+.lv3-responsibilities div { display: grid; grid-template-columns: 120px minmax(0,1fr); gap: 24px; padding: 22px 0; border-top: 1px solid var(--line); }
+.lv3-responsibilities dt { font-weight: 600; }
+.lv3-responsibilities dd { margin: 0; max-width: 48rem; color: var(--muted); line-height: 1.7; }
+.lv3-pilot-limit { max-width: 54rem; color: var(--muted); font-size: .9rem; line-height: 1.8; margin: 24px 0 0; }
+.lv3-example-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 40px; margin-top: 30px; }
+.lv3-example-list article { border-top: 1px solid var(--line); padding-top: 22px; }
+.lv3-example-list h3 { font-size: 1.25rem; margin: 0 0 16px; }
+.lv3-example-list p { line-height: 1.7; margin: 10px 0; }
+.lv3-example-materials { color: var(--muted); font-size: .9rem; }
+.lv3-inquiry-title { margin: 30px 0 12px; font-size: 1rem; }
+.lv3-inquiry-steps { padding-left: 20px; max-width: 46rem; color: var(--muted); line-height: 1.8; }
+.lv3-contact-fallback { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 16px; align-items: center; }
+.lv3-contact-fallback button, .lv3-contact-fallback a { display: inline-flex; min-height: 44px; align-items: center; font-size: .9rem; color: var(--forest); text-decoration: underline; text-underline-offset: 4px; }
+.lv3-copy-status { min-height: 1.6em; font-size: .85rem !important; margin-top: 4px !important; }
 .lv3-h2 { max-width: 19em; margin: 0; font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 500; line-height: 1.16; letter-spacing: -.035em; }
 html[lang="ko"] .lv3-h2 { line-height: 1.3; }
 .lv3-steps { margin: 36px 0 0; padding: 0; list-style: none; }
@@ -135,6 +151,7 @@ html[lang="ko"] .lv3-final-title { line-height: 1.3; }
 .lv3-footer a { display: inline-flex; min-height: 44px; align-items: center; padding: 0 12px; border-radius: 8px; }
 .lv3-footer a:hover { color: var(--ink); }
 .lv3-footer p { margin: 0; }
+.lv3-footer .lv3-operator-notice { max-width: 56rem; line-height: 1.8; margin: 0 0 20px; font-size: .82rem; }
 .lv3-contact-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; padding-block: 12px; }
 .lv3-mobile-cta { position: fixed; inset: auto 0 0; z-index: 30; display: none; padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--cream); }
 .lv3-mobile-cta .lv3-btn { width: 100%; }
@@ -150,6 +167,8 @@ html[lang="ko"] .lv3-final-title { line-height: 1.3; }
   .lv3-hero-grid { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: 56px; padding-block: 48px 64px; }
 }
 @media (max-width: 767px) {
+  .lv3-responsibilities div { grid-template-columns: 1fr; gap: 8px; }
+  .lv3-example-list { grid-template-columns: 1fr; gap: 24px; }
   .lv3-mobile-cta { display: block; }
   .lv3-footer { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
 }

@@ -125,6 +125,12 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(() => typeof window !== "undefined" && (location.hash.includes("type=recovery") || location.search.includes("type=recovery")));
     const [activeRegisterRole, setActiveRegisterRole] = useState<UserRole | null>(registrationRoleFromUrl);
     const t = landingCopy[locale];
+    const [copyStatus, setCopyStatus] = useState<"copied" | "failed" | null>(null);
+    const copyEmail = async () => {
+        try { await navigator.clipboard.writeText(CONTACT_EMAIL); setCopyStatus("copied"); }
+        catch { setCopyStatus("failed"); }
+    };
+    useEffect(() => { setCopyStatus(null); }, [locale]);
     useLandingMeta(t.meta);
     useEffect(() => {
         // The forms replace the page, so a CTA far down it must not leave the form scrolled away.
@@ -211,6 +217,13 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
 
           <Ticker copy={t.ticker}/>
 
+          <section className="lv3-section lv3-pilot" aria-labelledby="pilot-title"><div className="lv3-wrap">
+            <h2 id="pilot-title" className="lv3-h2">{t.pilot.title}</h2>
+            <p className="lv3-pilot-intro">{t.pilot.intro}</p>
+            <dl className="lv3-responsibilities">{t.pilot.roles.map(role => <div key={role.name}><dt>{role.name}</dt><dd>{role.body}</dd></div>)}</dl>
+            <p className="lv3-pilot-limit">{t.pilot.participation}</p>
+          </div></section>
+
           <section id="how" className="lv3-section lv3-how">
             <div className="lv3-wrap">
               <Reveal><h2 className="lv3-h2">{t.how.title}</h2></Reveal>
@@ -231,21 +244,32 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
             </div>
           </section>
 
+          <section className="lv3-section lv3-examples" aria-labelledby="examples-title"><div className="lv3-wrap">
+            <h2 id="examples-title" className="lv3-h2">{t.pilot.examplesTitle}</h2>
+            <div className="lv3-example-list">{t.pilot.examples.map(example => <article key={example.name}><h3>{example.name}</h3><p>{example.output}</p><p className="lv3-example-materials">{example.materials}</p></article>)}</div>
+            <p className="lv3-pilot-limit">{t.pilot.limit}</p>
+          </div></section>
+
           <section className="lv3-final">
             <div className="lv3-wrap">
               <Reveal className="lv3-final-inner">
                 <h2 className="lv3-final-title"><FragmentText parts={t.final.title}/></h2>
                 <p>{t.final.body}</p>
+                <h3 className="lv3-inquiry-title">{t.pilot.inquiryTitle}</h3>
+                <ol className="lv3-inquiry-steps">{t.pilot.inquirySteps.map(step => <li key={step}>{step}</li>)}</ol>
                 <div className="lv3-cta-row lv3-cta-center">
                   <a href={consultationHref(locale)} className="lv3-btn lv3-btn-primary">{t.final.post}<ArrowRight aria-hidden="true"/></a>
                   <button type="button" onClick={openCompany} className="lv3-btn lv3-btn-ghost">{t.final.email}</button>
                 </div>
+                <div className="lv3-contact-fallback"><button type="button" onClick={() => void copyEmail()}>{t.pilot.copyEmail}</button><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></div>
+                <p className="lv3-copy-status" role="status" aria-live="polite">{copyStatus === "copied" ? t.pilot.copied : copyStatus === "failed" ? t.pilot.copyFailed : ""}</p>
               </Reveal>
             </div>
           </section>
         </main>
 
         <footer className="lv3-footer">
+          <div className="lv3-wrap"><p className="lv3-operator-notice">{t.footer.operatorNotice}</p></div>
           <div className="lv3-wrap lv3-contact-row"><p>{t.footer.founder}</p><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></div>
           <div className="lv3-wrap lv3-footer-row">
             <nav aria-label="Legal">

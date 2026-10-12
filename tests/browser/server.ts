@@ -19,6 +19,7 @@ const blankSignup = (req: any) => ({ user: { uid: req.user.uid, email: 'signup-q
 app.post('/__qa/signup/reset', (req: any, res) => { signups.set(req.user.uid, blankSignup(req)); res.json({ ok: true }); });
 app.get('/__qa/signup', (req: any, res) => res.json(signups.get(req.user.uid) || blankSignup(req)));
 app.post('/api/auth/google-registration-intents', (req: any, res) => {
+  if (req.body.role === 'student' && req.body.consents?.adultParticipation !== true) return res.status(400).json({error:{code:'ADULT_PARTICIPATION_REQUIRED'}});
   const id = crypto.randomUUID(); intents.set(id, req.body); res.status(201).json({ data: { registrationId: id } });
 });
 app.post('/api/auth/google-registration-complete', (req: any, res) => {

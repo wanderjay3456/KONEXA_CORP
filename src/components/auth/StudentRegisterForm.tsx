@@ -78,13 +78,15 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [googleBusy, setGoogleBusy] = useState(false);
     const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
-    const [agreements, setAgreements] = useState({ terms: false, transaction: false, privacy: false, marketing: false });
+    const [agreements, setAgreements] = useState({ terms: false, transaction: false, privacy: false, marketing: false, adult: false });
     const consentBundle = {
         terms: agreements.terms,
         nonCircumvention: agreements.transaction,
         messageAnalysis: agreements.privacy,
         crossBorderPrivacy: agreements.privacy,
         marketing: agreements.marketing,
+        adultParticipation: agreements.adult,
+        participationPolicyVersion: "2026-10-12",
         documentVersion: "2026-07-27",
     };
     const handleGoogle = async () => {
@@ -109,7 +111,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
         const valid = Boolean(name.trim())
             && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
             && password.length >= 8
-            && agreements.terms && agreements.transaction && agreements.privacy;
+            && agreements.terms && agreements.transaction && agreements.privacy && agreements.adult;
         if (!valid) {
             error(t.required, t.required);
             return;
@@ -180,6 +182,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
                 <label className="block"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.password} *</span><input type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.passwordHint} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]"/></label>
 
                 <div className="space-y-3 rounded-2xl bg-[#f5f7f2] p-4">
+                  <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#3f5d55]"><input type="checkbox" checked={agreements.adult} onChange={event => setAgreements(current => ({...current, adult: event.target.checked}))} className="mt-1 h-4 w-4 accent-[#17342d]"/><span>{locale === "ko" ? "만 18세 이상이며 파일럿 참여 연령 기준을 충족합니다." : "I am at least 18 and meet the pilot participation age requirement."} *</span></label>
                   {([
             ["terms", t.terms, true],
             ["transaction", t.transaction, true],

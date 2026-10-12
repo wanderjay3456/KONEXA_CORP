@@ -195,3 +195,14 @@ test('example brief and pilot limits are readable without animated activity', as
   await page.getByRole('button', {name:'기업 계정 만들기'}).first().click();
   expect(new URL(page.url()).searchParams.get('start')).toBe('company');
 });
+
+test('pilot responsibilities, worldwide enquiries and adult participation policy are visible in both locales', async ({page}) => {
+ for(const locale of ['en','ko']) {
+  await page.goto(`/?landing=1&locale=${locale}`);
+  await expect(page.locator('.lv3-responsibilities')).toBeVisible();
+  await expect(page.locator('.lv3-pilot-limit').first()).toContainText(locale === 'en' ? 'at least 18' : '만 18세');
+  await expect(page.locator('.lv3-example-list article')).toHaveCount(2);
+  await page.getByRole('button',{name:locale === 'en'?'Copy email address':'이메일 주소 복사'}).click();
+  await expect(page.locator('.lv3-copy-status')).toContainText(locale === 'en' ? /copied|Could not copy/ : /복사했습니다|복사하지 못했습니다/);
+ }
+});

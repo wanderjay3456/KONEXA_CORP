@@ -57,12 +57,17 @@ export default function PendingGoogleRegistration() {
         return intent?.role === "company" ? UserRole.COMPANY : UserRole.STUDENT;
     }, []);
     const [role, setRole] = useState<UserRole>(suggestedRole);
+    const [adult, setAdult] = useState(false);
     const [agreements, setAgreements] = useState({ terms: false, transaction: false, privacy: false, marketing: false });
     const [busy, setBusy] = useState(false);
     const submitting = useRef(false);
     const [failure, setFailure] = useState<unknown>(null);
-    const requiredAccepted = agreements.terms && agreements.transaction && agreements.privacy;
+    const requiredAccepted = agreements.terms && agreements.transaction && agreements.privacy && (role !== UserRole.STUDENT || adult);
     const submit = async () => {
+        if (role === UserRole.STUDENT && !adult && agreements.terms && agreements.transaction && agreements.privacy) {
+            setFailure(new Error(locale === "ko" ? "인재 참여는 만 18세 이상만 가능합니다. 연령 확인 항목을 확인해 주세요." : "Talent participants must be at least 18. Please confirm the age requirement."));
+            return;
+        }
         if (!requiredAccepted || submitting.current) {
             if (!requiredAccepted)
                 setFailure(new Error(t.required));
@@ -79,6 +84,7 @@ export default function PendingGoogleRegistration() {
                 crossBorderPrivacy: true,
                 marketing: agreements.marketing,
                 documentVersion: "2026-07-27",
+                ...(role === UserRole.STUDENT ? {adultParticipation: adult, participationPolicyVersion: "2026-10-12"} : {}),
             });
         }
         catch (cause) {
@@ -123,6 +129,7 @@ export default function PendingGoogleRegistration() {
           </fieldset>
 
           <div className="space-y-3 rounded-2xl bg-[#f5f7f2] p-4">
+            {role === UserRole.STUDENT && <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#3f5d55]"><input type="checkbox" disabled={busy} checked={adult} onChange={event => setAdult(event.target.checked)} className="mt-1 h-4 w-4 accent-[#17342d]"/><span>{locale === "ko" ? "만 18세 이상이며 파일럿 참여 연령 기준을 충족합니다." : "I am at least 18 and meet the pilot participation age requirement."} *</span></label>}
             {([
             ["terms", t.terms, true],
             ["transaction", t.transaction, true],
@@ -134,7 +141,7 @@ export default function PendingGoogleRegistration() {
               </label>))}
           </div>
 
-          {failure && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm leading-6 text-red-800">{failure instanceof Error && failure.message === t.required ? t.required : (failure instanceof GoogleRegistrationError && failure.status >= 500) || (failure instanceof Error && ['TimeoutError', 'AbortError'].includes(failure.name)) ? t.retry : authErrorMessage(failure, locale)}</p>}
+          {failure && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm leading-6 text-red-800">{failure instanceof Error && (failure.message === t.required || failure.message.includes("at least 18") || failure.message.includes("만 18세")) ? failure.message : (failure instanceof GoogleRegistrationError && failure.status >= 500) || (failure instanceof Error && ['TimeoutError', 'AbortError'].includes(failure.name)) ? t.retry : authErrorMessage(failure, locale)}</p>}
           <button type="button" disabled={busy} onClick={() => void submit()} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">
             {busy ? t.busy : t.submit}{!busy && <ArrowRight className="h-4 w-4"/>}
           </button>

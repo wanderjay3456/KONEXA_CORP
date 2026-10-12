@@ -532,6 +532,9 @@ export function AppProvider({ children }: {
             if (password.length < 8)
                 throw new Error("비밀번호는 8자 이상이어야 합니다.");
             const requiredConsents = ["terms", "nonCircumvention", "messageAnalysis", "crossBorderPrivacy"];
+            if (role === UserRole.STUDENT && consentBundle?.adultParticipation !== true) {
+                throw new Error("Talent participants must confirm they are at least 18.");
+            }
             if (requiredConsents.some((key) => consentBundle?.[key] !== true)) {
                 throw new Error("필수 약관과 개인정보 고지에 모두 동의해 주세요.");
             }
