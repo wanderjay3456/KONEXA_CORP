@@ -36,6 +36,7 @@ const copy = {
         back: "이전",
         next: "가입 후 필수 프로필 작성으로 이어집니다.",
         safety: "미완성 프로필은 대시보드에 진입할 수 없으며, 필요한 항목을 순서대로 안내합니다.",
+        requestAgreements: "가입 전 동의문 사본 요청하기",
     },
     en: {
         eyebrow: "Create an account in 1 minute",
@@ -63,6 +64,7 @@ const copy = {
         back: "Back",
         next: "Required profile setup follows sign-up.",
         safety: "Incomplete profiles cannot enter the workspace; the guided setup shows every required item in order.",
+        requestAgreements: "Request the agreement texts before signing up",
     }
 } as const;
 export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegisterFormProps) {
@@ -184,6 +186,7 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
             ["privacy", t.privacy, true],
             ["marketing", t.marketing, false],
         ] as const).map(([key, label, required]) => <label key={key} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#3f5d55]"><input type="checkbox" checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#17342d]"/><span>{label}{required && <strong className="ml-1 text-[#4361ee]">*</strong>}</span></label>)}
+                  <a className="inline-flex min-h-11 items-center text-sm font-semibold text-[#324fc0] underline underline-offset-4" href="mailto:konexa.corp@gmail.com?subject=KONEXA%20signup%20agreement%20texts%20request">{t.requestAgreements}</a>
                 </div>
 
                 <button type="submit" disabled={isSubmitting || googleBusy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">

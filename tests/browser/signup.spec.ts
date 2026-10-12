@@ -1,8 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { student, company } from './ids';
 
-for (const role of ['student', 'company'] as const) {
-  test(`${role}: consent completes signup without admin approval and partial profile survives reload`, async ({ page, request }) => {
+for (const scenario of [
+  { role: 'student', country: 'Vietnam' },
+  { role: 'company', country: 'South Korea' },
+  { role: 'company', country: 'United Kingdom' },
+] as const) {
+  const { role, country } = scenario;
+  test(`${role} (${country}): consent completes signup without admin approval and partial profile survives reload`, async ({ page, request }) => {
     const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
     expect((await request.post('/__qa/signup/reset', { data: {}, headers: { 'x-test-actor': role === 'company' ? company : student } })).ok()).toBeTruthy();
     await page.goto(`/?signup=1&role=${role}&locale=en`);
@@ -23,7 +28,7 @@ for (const role of ['student', 'company'] as const) {
     const details: Record<string, string> = role === 'student' ? {
       nationality: 'Vietnam', currentCountry: 'Vietnam', timezone: 'Asia/Ho_Chi_Minh', university: 'QA University', degree: 'Bachelor', major: 'Marketing', graduationYear: '2027',
     } : {
-      businessRegistrationNumber: 'QA-TEST-ONLY', country: 'South Korea', industry: 'Technology', companySize: '1-10', website: 'https://example.invalid', officeLocation: 'QA location',
+      businessRegistrationNumber: 'QA-TEST-ONLY', country, industry: 'Technology', companySize: '1-10', website: 'https://example.invalid', officeLocation: 'QA location',
     };
     for (const [key, value] of Object.entries(details)) await page.locator(`#profile-${key}`).fill(value);
     await page.getByRole('button', { name: 'Save and continue', exact: true }).click();

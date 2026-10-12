@@ -23,6 +23,15 @@ const LINE_STAGGER = 0.15;
  * email request instead of pointing at a page that does not exist. */
 const legalHref = (subject: string) => `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`;
 
+function registrationRoleFromUrl(): UserRole | null {
+    if (typeof window === "undefined") return null;
+    // A password recovery link must always open recovery, even if its redirect
+    // URL still contains the registration entry point.
+    if ((location.hash + location.search).includes("type=recovery")) return null;
+    const start = new URLSearchParams(location.search).get("start");
+    return start === "company" ? UserRole.COMPANY : start === "talent" ? UserRole.STUDENT : null;
+}
+
 function useLandingMeta(meta: LandingCopy["meta"]) {
     useEffect(() => {
         document.title = meta.title;
@@ -109,7 +118,7 @@ function PhotoPanel({ id, tone, tag, title, cta, onClick, photo, locale }: {
 export default function LandingHero({ onEnterApp }: LandingHeroProps) {
     const { locale, setLocale } = useLocale();
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(() => typeof window !== "undefined" && (location.hash.includes("type=recovery") || location.search.includes("type=recovery")));
-    const [activeRegisterRole, setActiveRegisterRole] = useState<UserRole | null>(null);
+    const [activeRegisterRole, setActiveRegisterRole] = useState<UserRole | null>(registrationRoleFromUrl);
     const t = landingCopy[locale];
     useLandingMeta(t.meta);
     useEffect(() => {
@@ -117,8 +126,37 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
         if (activeRegisterRole)
             window.scrollTo({ top: 0, behavior: "instant" });
     }, [activeRegisterRole]);
-    const openCompany = () => setActiveRegisterRole(UserRole.COMPANY);
-    const openTalent = () => setActiveRegisterRole(UserRole.STUDENT);
+    useEffect(() => {
+        const syncRegistration = () => setActiveRegisterRole(registrationRoleFromUrl());
+        window.addEventListener("popstate", syncRegistration);
+        return () => window.removeEventListener("popstate", syncRegistration);
+    }, []);
+    const openRegistration = (role: UserRole) => {
+        if (role !== UserRole.COMPANY && role !== UserRole.STUDENT) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set("start", role === UserRole.COMPANY ? "company" : "talent");
+        window.history.pushState({ ...window.history.state, konexaRegistration: true }, "", url);
+        setActiveRegisterRole(role);
+    };
+    const clearRegistration = () => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("start");
+        const { konexaRegistration: _registration, ...state } = window.history.state || {};
+        window.history.replaceState(state, "", url);
+        setActiveRegisterRole(null);
+    };
+    const cancelRegistration = () => {
+        // CTA entries have a landing entry to return to. A shared direct link
+        // instead stays on KONEXA rather than sending the visitor off-site.
+        if (window.history.state?.konexaRegistration) window.history.back();
+        else clearRegistration();
+    };
+    const finishRegistration = (role: UserRole) => {
+        clearRegistration();
+        onEnterApp(role);
+    };
+    const openCompany = () => openRegistration(UserRole.COMPANY);
+    const openTalent = () => openRegistration(UserRole.STUDENT);
     const lines = t.hero.title.length;
     const afterTitle = 0.1 + lines * LINE_STAGGER + 0.2;
 
@@ -127,8 +165,8 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
       {activeRegisterRole ? <motion.div key="registration" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="konexa-light min-h-screen overflow-x-clip text-[#17342d] selection:bg-[#b9f4d0] selection:text-[#17342d]">
         <motion.main data-no-translate className="min-h-screen bg-[#f7f6f1] text-neutral-900">
           {activeRegisterRole === UserRole.STUDENT
-                ? <StudentRegisterForm onCancel={() => setActiveRegisterRole(null)} onSuccess={() => onEnterApp(UserRole.STUDENT)}/>
-                : <CompanyRegisterForm onCancel={() => setActiveRegisterRole(null)} onSuccess={() => onEnterApp(UserRole.COMPANY)}/>}
+                ? <StudentRegisterForm onCancel={cancelRegistration} onSuccess={() => finishRegistration(UserRole.STUDENT)}/>
+                : <CompanyRegisterForm onCancel={cancelRegistration} onSuccess={() => finishRegistration(UserRole.COMPANY)}/>}
         </motion.main>
       </motion.div> : <motion.div key="landing" className="lv3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
         <main>
@@ -218,7 +256,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
       </motion.div>}
     </AnimatePresence>
     <div className="konexa-light relative z-[60] text-[#17342d] selection:bg-[#b9f4d0] selection:text-[#17342d]">
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={() => setIsAuthModalOpen(false)} onSwitchToRegister={(role) => { setIsAuthModalOpen(false); setActiveRegisterRole(role); }}/>
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={() => setIsAuthModalOpen(false)} onSwitchToRegister={(role) => { setIsAuthModalOpen(false); openRegistration(role); }}/>
     </div>
   </div>;
 }

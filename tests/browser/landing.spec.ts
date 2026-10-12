@@ -82,6 +82,51 @@ test('hero CTAs open the company and talent sign-up forms and can return', async
   expect(errors).toEqual([]);
 });
 
+for (const entry of ['company', 'talent'] as const) {
+  test(`shared ${entry} registration link survives reload and returns without leaving KONEXA`, async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto(`/?landing=1&locale=en&utm_source=outreach&start=${entry}`);
+    const formHeading = entry === 'company' ? /Create the company account now/ : /Create your account now/;
+    await expect(page.getByRole('heading', { name: formHeading })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Request the agreement texts before signing up' })).toHaveAttribute('href', /^mailto:konexa\.corp@gmail\.com\?subject=/);
+    if (entry === 'company') await expect(page.getByText(/After sign-up, you will need your headquarters country/)).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('heading', { name: formHeading })).toBeVisible();
+    // A direct entry must not skip agreements or submit an account request.
+    for (const box of await page.getByRole('checkbox').all()) await expect(box).not.toBeChecked();
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading.en);
+    expect(new URL(page.url()).searchParams.has('start')).toBe(false);
+    expect(new URL(page.url()).searchParams.get('utm_source')).toBe('outreach');
+    expect(errors).toEqual([]);
+  });
+}
+
+test('browser Back and Forward restore the registration entry point', async ({ page }) => {
+  const errors: string[] = [];
+  await open(page, 'en', errors);
+  await page.getByRole('main').getByRole('button', { name: 'Post a project' }).first().click();
+  await expect(page.getByRole('heading', { name: /Create the company account now/ })).toBeVisible();
+  expect(new URL(page.url()).searchParams.get('start')).toBe('company');
+  await page.goBack();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading.en);
+  await page.goForward();
+  await expect(page.getByRole('heading', { name: /Create the company account now/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading.en);
+  expect(new URL(page.url()).searchParams.has('start')).toBe(false);
+  expect(errors).toEqual([]);
+});
+
+test('unknown entry points do not open forms and recovery takes precedence', async ({ page }) => {
+  await page.goto('/?landing=1&locale=en&start=admin');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading.en);
+  await page.goto('/?landing=1&locale=en&start=company#type=recovery');
+  await expect(page.locator('#auth-modal-overlay')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Create the company account now/ })).toHaveCount(0);
+});
+
 test('footer links resolve and the mobile CTA appears only on small screens', async ({ page }) => {
   const errors: string[] = [];
   await page.setViewportSize({ width: 390, height: 780 });

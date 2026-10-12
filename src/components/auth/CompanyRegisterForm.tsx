@@ -35,6 +35,8 @@ const copy = {
         back: "이전",
         next: "가입 후 기업 검증 프로필 작성으로 이어집니다.",
         safety: "미완성 기업 프로필은 공고를 게시할 수 없으며, 필수 정보와 서류를 순서대로 안내합니다.",
+        preparation: "가입 후에는 본사 국가, 현지 기업 등록번호, 기업 등록 증빙 서류와 담당자 정보를 입력합니다. 해외 기업의 서류 요건이 불확실하면 가입 전에 KONEXA에 문의해 주세요.",
+        requestAgreements: "가입 전 동의문 사본 요청하기",
     },
     en: {
         eyebrow: "Create a company account in 1 minute",
@@ -62,6 +64,8 @@ const copy = {
         back: "Back",
         next: "Required company verification follows sign-up.",
         safety: "Incomplete company profiles cannot publish opportunities; the guided setup covers each required detail and document.",
+        preparation: "After sign-up, you will need your headquarters country, local business registration number, registration document, and contact details. If you are unsure about documents for an overseas company, contact KONEXA before signing up.",
+        requestAgreements: "Request the agreement texts before signing up",
     }
 } as const;
 export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegisterFormProps) {
@@ -157,6 +161,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
               <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[.12em] text-[#b9f4d0]"><Sparkles className="h-4 w-4"/>{t.eyebrow}</span>
               <h1 className="mt-5 break-keep font-display text-3xl font-bold leading-tight tracking-[-.04em]">{t.title}</h1>
               <p className="mt-5 text-sm leading-7 text-white/75">{t.lead}</p>
+              <p className="mt-5 text-sm leading-7 text-white/75">{t.preparation}</p>
               <p className="mt-8 flex items-start gap-2 text-xs leading-5 text-white/65"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#b9f4d0]"/>{t.safety}</p>
             </aside>
 
@@ -180,6 +185,7 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
             ["privacy", t.privacy, true],
             ["marketing", t.marketing, false],
         ] as const).map(([key, label, required]) => <label key={key} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#3f5d55]"><input type="checkbox" checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#17342d]"/><span>{label}{required && <strong className="ml-1 text-[#4361ee]">*</strong>}</span></label>)}
+                  <a className="inline-flex min-h-11 items-center text-sm font-semibold text-[#324fc0] underline underline-offset-4" href="mailto:konexa.corp@gmail.com?subject=KONEXA%20signup%20agreement%20texts%20request">{t.requestAgreements}</a>
                 </div>
 
                 <button type="submit" disabled={isSubmitting || googleBusy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">
