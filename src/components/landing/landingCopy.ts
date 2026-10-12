@@ -145,7 +145,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             rights: "KONEXA",
             legalRequest: "Request a copy by email",
             founder: "Jay Yoo · Pre-launch enquiry contact",
-            operatorNotice: "KONEXA is a pre-launch project run by Jay Yoo in an individual capacity. Agreement texts are being finalized; request and review them before signing up. Any paid pilot requires separately agreed contract and payment terms.",
+            operatorNotice: "KONEXA is a pre-launch project run by Jay Yoo in an individual capacity. Read the public review editions of our policies below. A paid pilot requires its own written agreement.",
         },
         mobileCta: "Discuss a project",
         pilot: {
@@ -231,7 +231,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             rights: "KONEXA",
             legalRequest: "이메일로 사본 요청하기",
             founder: "유재영 · 예비창업 상담 담당",
-            operatorNotice: "KONEXA는 유재영 개인이 준비하는 예비창업 프로젝트입니다. 가입용 약관 원문은 확정 중이므로 가입 전에 사본을 요청하고 검토해 주세요. 유료 파일럿의 계약·결제 조건은 별도로 합의해야 합니다.",
+            operatorNotice: "KONEXA는 유재영 개인이 준비하는 예비창업 프로젝트입니다. 아래에서 정책 공개 검토본을 읽을 수 있습니다. 유료 파일럿은 별도 서면 계약을 체결한 뒤 진행합니다.",
         },
         mobileCta: "프로젝트 상담하기",
         pilot: {

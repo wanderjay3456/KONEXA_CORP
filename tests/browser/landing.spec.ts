@@ -89,7 +89,7 @@ for (const entry of ['company', 'talent'] as const) {
     await page.goto(`/?landing=1&locale=en&utm_source=outreach&start=${entry}`);
     const formHeading = entry === 'company' ? /Create the company account now/ : /Create your account now/;
     await expect(page.getByRole('heading', { name: formHeading })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Request the agreement texts before signing up' })).toHaveAttribute('href', /^mailto:konexa\.corp@gmail\.com\?subject=/);
+    await expect(page.getByRole('link', { name: 'Read the public policy review editions' })).toHaveAttribute('href', '/terms?locale=en');
     if (entry === 'company') await expect(page.getByText(/After sign-up, you will need your headquarters country/)).toBeVisible();
     await page.reload();
     await expect(page.getByRole('heading', { name: formHeading })).toBeVisible();
@@ -132,8 +132,8 @@ test('footer links resolve and the mobile CTA appears only on small screens', as
   await page.setViewportSize({ width: 390, height: 780 });
   await open(page, 'en', errors);
   await expect(page.getByRole('link', { name: 'Status' })).toHaveAttribute('href', '/status');
-  await expect(page.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', /^mailto:konexa\.corp@gmail\.com/);
-  await expect(page.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', /^mailto:konexa\.corp@gmail\.com/);
+  await expect(page.getByRole('link', { name: 'Terms', exact: true })).toHaveAttribute('href', '/terms?locale=en');
+  await expect(page.getByRole('link', { name: 'Privacy', exact: true })).toHaveAttribute('href', '/privacy?locale=en');
   await expect(page.getByRole('link', { name: 'Discuss a project' }).first()).toHaveAttribute('href', /^mailto:konexa\.corp@gmail\.com\?subject=.*&body=/);
   await expect(page.locator('.lv3-mobile-cta')).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -205,4 +205,44 @@ test('pilot responsibilities, worldwide enquiries and adult participation policy
   await page.getByRole('button',{name:locale === 'en'?'Copy email address':'이메일 주소 복사'}).click();
   await expect(page.locator('.lv3-copy-status')).toContainText(locale === 'en' ? /copied|Could not copy/ : /복사했습니다|복사하지 못했습니다/);
  }
+});
+
+for (const locale of ['ko', 'en'] as const) {
+  test(`public policies ${locale}: direct links, content, refresh and text reflow`, async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.setViewportSize({ width: 360, height: 780 });
+    for (const policy of ['terms', 'privacy', 'project-terms']) {
+      await page.goto(`/${policy}?locale=${locale}`);
+      await expect(page.locator('.lv3-policy h1')).toHaveText(locale === 'ko' ? ({terms:'이용약관', privacy:'개인정보처리방침', 'project-terms':'계약·결제·환불 조건'}[policy]!) : ({terms:'Terms of use', privacy:'Privacy policy', 'project-terms':'Contracts, payments & refunds'}[policy]!));
+      await expect(page.locator('.lv3-policy-version')).toContainText('2026-10-12');
+      await expect(page.locator('.lv3-policy-notice')).toBeVisible();
+      await expect(page.locator('.lv3-policy article section')).not.toHaveCount(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+      await page.locator('.lv3-policy article').evaluate(node => { (node as HTMLElement).style.letterSpacing = '.12em'; (node as HTMLElement).style.wordSpacing = '.16em'; (node as HTMLElement).style.lineHeight = '2'; });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+      await page.reload();
+      await expect(page.locator('html')).toHaveAttribute('lang', locale);
+    }
+    const text = await page.locator('.lv3-policy article').innerText();
+    expect(text).toMatch(locale === 'ko' ? /착수 전 취소.*전액 환불/ : /before work starts.*full refund/);
+    expect(text).toContain(locale === 'ko' ? '수행하지 않은 부분은 환불' : 'Unperformed work is refunded');
+    await page.locator('.lv3-policy-layout aside nav').first().getByRole('link', {name:locale === 'ko' ? '개인정보처리방침' : 'Privacy policy',exact:true}).click();
+    await expect(page.locator('.lv3-policy article')).toContainText(locale === 'ko' ? '상담 종료 후 90일' : '90 days after the enquiry closes');
+    await expect(page.locator('.lv3-policy-notice')).toContainText(locale === 'ko' ? '아직 검증되지 않았습니다' : 'remain unverified');
+    await page.getByRole('link', {name:locale === 'ko' ? '← 홈으로' : '← Back to home'}).click();
+    await expect(page.getByRole('heading', {level:1})).toHaveText(heading[locale]);
+    expect(errors).toEqual([]);
+  });
+}
+test('example deliverables can be inspected with the keyboard without fake live state', async ({page}) => {
+  await page.goto('/?landing=1&locale=en');
+  const details=page.locator('.lv3-brief-details');
+  await expect(details).not.toHaveAttribute('open', '');
+  await page.locator('.lv3-brief-details summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Three resized assets',{exact:true})).toBeVisible();
+  await expect(page.getByText('Example review note',{exact:true})).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Three resized assets',{exact:true})).toBeHidden();
 });

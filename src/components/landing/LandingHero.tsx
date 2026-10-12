@@ -10,6 +10,7 @@ import LandingVisual from "./LandingVisual";
 import { CONTACT_EMAIL, type Fragment, type LandingCopy, landingCopy } from "./landingCopy";
 import { type LandingPhoto, landingPhotos } from "./landingPhotos";
 import { usePauseOffscreen } from "./usePauseOffscreen";
+import { publicPolicies, POLICY_VERSION, type PolicyKey } from "../../config/compliancePolicy";
 import "./landing-v3.css";
 
 interface LandingHeroProps {
@@ -19,9 +20,7 @@ interface LandingHeroProps {
 const EASE = [0.22, 1, 0.36, 1] as const;
 const LINE_STAGGER = 0.08;
 
-/** There is no public Terms or Privacy page yet. Until one ships, these open an
- * email request instead of pointing at a page that does not exist. */
-const legalHref = (subject: string) => `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`;
+export const policyHref = (key: PolicyKey, locale: Locale) => `/${key}?locale=${locale}`;
 const consultationHref = (locale: Locale) => {
     const subject = locale === "ko" ? "KONEXA 프로젝트 상담" : "KONEXA project enquiry";
     const body = locale === "ko" ? "맡길 업무:\n원하는 결과물:\n마감일:\n예산 범위:\n" : "Task:\nExpected deliverables:\nDeadline:\nBudget range:\n";
@@ -50,7 +49,26 @@ function useLandingMeta(meta: LandingCopy["meta"]) {
 }
 
 function Wordmark() {
-    return <span className="lv3-wordmark" aria-label="KONEXA">KONE<b>X</b>A</span>;
+    return <span className="lv3-wordmark" aria-label="KONEXA"><svg className="lv3-span-mark" viewBox="0 0 40 32" fill="none" aria-hidden="true"><path d="M3 24V15a12 12 0 0 1 24 0v9M13 24v-9a12 12 0 0 1 24 0v9" stroke="currentColor" strokeWidth="4"/><path d="M13 15v9" stroke="var(--cream)" strokeWidth="7"/><path d="M13 15v9" stroke="currentColor" strokeWidth="4"/></svg>KONEXA</span>;
+}
+
+/** One document screen shared by all public policies; no separate page files. */
+export function PolicyPage({ policy }: { policy: PolicyKey }) {
+    const { locale, setLocale } = useLocale();
+    const document = publicPolicies[locale][policy];
+    useLandingMeta({ title: `${document.title} | KONEXA`, description: document.summary });
+    useEffect(() => {
+        const language = new URLSearchParams(location.search).get("locale");
+        if (language === "ko" || language === "en") setLocale(language);
+    }, [setLocale]);
+    const home = `/?landing=1&locale=${locale}`;
+    return <div className="lv3 lv3-policy" data-no-translate>
+      <header className="lv3-wrap lv3-header"><a className="lv3-brand" href={home}><Wordmark /></a><div className="lv3-lang" role="group" aria-label={locale === "ko" ? "언어" : "Language"}>{(["ko", "en"] as const).map(language => <button key={language} aria-pressed={locale === language} onClick={() => { const url = new URL(location.href); url.searchParams.set("locale", language); history.replaceState(history.state, "", url); setLocale(language); }}>{language.toUpperCase()}</button>)}</div></header>
+      <main className="lv3-wrap lv3-policy-layout">
+        <aside><a className="lv3-policy-back" href={home}>← {locale === "ko" ? "홈으로" : "Back to home"}</a><nav aria-label={locale === "ko" ? "정책 문서" : "Policy documents"}>{(["terms", "privacy", "project-terms"] as const).map(key => <a key={key} href={policyHref(key, locale)} aria-current={policy === key ? "page" : undefined}>{publicPolicies[locale][key].title}</a>)}</nav><nav className="lv3-policy-toc" aria-label={locale === "ko" ? "목차" : "Contents"}>{document.sections.map((section, index) => <a key={section.title} href={`#section-${index + 1}`}><span>{String(index + 1).padStart(2, "0")}</span>{section.title}</a>)}</nav></aside>
+        <article><p className="lv3-policy-version">{locale === "ko" ? "공개 검토본 · 개정일" : "Public review edition · Updated"} {POLICY_VERSION}</p><h1>{document.title}</h1><p className="lv3-policy-summary">{document.summary}</p><div className="lv3-policy-notice"><strong>{locale === "ko" ? "서비스 공개 전 확인사항" : "Before public activation"}</strong><p>{document.notice}</p></div>{document.sections.map((section, index) => <section id={`section-${index + 1}`} key={section.title}><h2><span>{String(index + 1).padStart(2, "0")}</span>{section.title}</h2>{section.paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}{section.items && <ul>{section.items.map(item => <li key={item}>{item}</li>)}</ul>}</section>)}<p className="lv3-policy-contact">{locale === "ko" ? "정책 문의·권리 행사" : "Policy questions and privacy requests"}: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p></article>
+      </main>
+    </div>;
 }
 
 /** Section content rises once as it scrolls into view. */
@@ -173,7 +191,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
 
     return <div id="landing-master">
     <AnimatePresence mode="wait">
-      {activeRegisterRole ? <motion.div key="registration" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="konexa-light min-h-screen overflow-x-clip text-[#17342d] selection:bg-[#b9f4d0] selection:text-[#17342d]">
+      {activeRegisterRole ? <motion.div key="registration" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="konexa-light min-h-screen overflow-x-clip text-[#20211f] selection:bg-[#dbe3ff] selection:text-[#20211f]">
         <motion.main data-no-translate className="min-h-screen bg-[#f7f6f1] text-neutral-900">
           {activeRegisterRole === UserRole.STUDENT
                 ? <StudentRegisterForm onCancel={cancelRegistration} onSuccess={() => finishRegistration(UserRole.STUDENT)}/>
@@ -217,11 +235,14 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
 
           <Ticker copy={t.ticker}/>
 
-          <section className="lv3-section lv3-pilot" aria-labelledby="pilot-title"><div className="lv3-wrap">
+          <section className="lv3-section lv3-pilot" aria-labelledby="pilot-title"><div className="lv3-wrap lv3-pilot-grid">
+            <div>
             <h2 id="pilot-title" className="lv3-h2">{t.pilot.title}</h2>
             <p className="lv3-pilot-intro">{t.pilot.intro}</p>
+            </div><div>
             <dl className="lv3-responsibilities">{t.pilot.roles.map(role => <div key={role.name}><dt>{role.name}</dt><dd>{role.body}</dd></div>)}</dl>
             <p className="lv3-pilot-limit">{t.pilot.participation}</p>
+            </div>
           </div></section>
 
           <section id="how" className="lv3-section lv3-how">
@@ -248,6 +269,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
             <h2 id="examples-title" className="lv3-h2">{t.pilot.examplesTitle}</h2>
             <div className="lv3-example-list">{t.pilot.examples.map(example => <article key={example.name}><h3>{example.name}</h3><p>{example.output}</p><p className="lv3-example-materials">{example.materials}</p></article>)}</div>
             <p className="lv3-pilot-limit">{t.pilot.limit}</p>
+            <a className="lv3-policy-link" href={policyHref("project-terms", locale)}>{locale === "ko" ? "계약·결제·환불 조건 읽기" : "Read contract, payment and refund conditions"}<ArrowRight aria-hidden="true"/></a>
           </div></section>
 
           <section className="lv3-final">
@@ -273,12 +295,14 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
           <div className="lv3-wrap lv3-contact-row"><p>{t.footer.founder}</p><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></div>
           <div className="lv3-wrap lv3-footer-row">
             <nav aria-label="Legal">
-              <a href={legalHref("KONEXA Terms of Service request")} title={t.footer.legalRequest}>{t.footer.terms}</a>
-              <a href={legalHref("KONEXA Privacy Policy request")} title={t.footer.legalRequest}>{t.footer.privacy}</a>
+              <a href={policyHref("terms", locale)}>{t.footer.terms}</a>
+              <a href={policyHref("privacy", locale)}>{t.footer.privacy}</a>
+              <a href={policyHref("project-terms", locale)}>{locale === "ko" ? "계약·결제·환불" : "Contracts & refunds"}</a>
               <a href="/status">{t.footer.status}</a>
             </nav>
             <p>© {new Date().getFullYear()} {t.footer.rights}</p>
           </div>
+          <div className="lv3-wrap lv3-footer-signature" aria-hidden="true">KONEXA<span>Work, together.</span></div>
         </footer>
 
         <div className="lv3-mobile-cta">
@@ -286,7 +310,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
         </div>
       </motion.div>}
     </AnimatePresence>
-    <div className="konexa-light relative z-[60] text-[#17342d] selection:bg-[#b9f4d0] selection:text-[#17342d]">
+    <div className="konexa-light relative z-[60] text-[#20211f] selection:bg-[#dbe3ff] selection:text-[#20211f]">
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={() => setIsAuthModalOpen(false)} onSwitchToRegister={(role) => { setIsAuthModalOpen(false); openRegistration(role); }}/>
     </div>
   </div>;

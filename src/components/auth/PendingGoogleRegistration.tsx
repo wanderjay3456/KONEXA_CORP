@@ -95,19 +95,19 @@ export default function PendingGoogleRegistration() {
             setBusy(false);
         }
     };
-    return (<main data-no-translate className="min-h-screen bg-[#f7f6f1] px-4 py-8 text-[#17342d] sm:px-8 sm:py-12">
+    return (<main data-no-translate className="min-h-screen bg-[#f7f7f2] px-4 py-8 text-[#20211f] sm:px-8 sm:py-12">
       <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-        <button type="button" onClick={() => void logoutUser()} className="inline-flex items-center gap-2 text-sm font-bold text-[#48645d]">
+        <button type="button" onClick={() => void logoutUser()} className="inline-flex items-center gap-2 text-sm font-bold text-[#5b5d56]">
           <LogOut className="h-4 w-4"/>{t.logout}
         </button>
-        <div role="group" aria-label="Language" className="flex rounded-full border border-[#17342d]/10 bg-white p-1">
-          {(["ko", "en"] as const).map((item) => (<button key={item} type="button" aria-pressed={locale === item} onClick={() => setLocale(item)} className={`rounded-full px-3 py-1.5 text-[11px] font-black uppercase ${locale === item ? "bg-[#17342d] text-white" : "text-[#647a74]"}`}>{item}</button>))}
+        <div role="group" aria-label="Language" className="flex rounded-full border border-[#20211f]/10 bg-white p-1">
+          {(["ko", "en"] as const).map((item) => (<button key={item} type="button" aria-pressed={locale === item} onClick={() => setLocale(item)} className={`rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase ${locale === item ? "bg-[#20211f] text-white" : "text-[#5b5d56]"}`}>{item}</button>))}
         </div>
       </div>
 
-      <section className="mx-auto mt-6 max-w-3xl overflow-hidden rounded-[2rem] border border-[#17342d]/10 bg-white shadow-[0_30px_90px_rgba(23,52,45,.1)]">
-        <div className="bg-[#17342d] px-6 py-8 text-white sm:px-10">
-          <p className="text-xs font-black uppercase tracking-[.14em] text-[#b9f4d0]">{t.eyebrow}</p>
+      <section className="mx-auto mt-6 max-w-3xl overflow-hidden rounded-xl border border-[#20211f]/10 bg-white shadow-[0_30px_90px_rgba(23,52,45,.1)]">
+        <div className="bg-[#20211f] px-6 py-8 text-white sm:px-10">
+          <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#dbe3ff]">{t.eyebrow}</p>
           <h1 className="mt-4 max-w-2xl break-keep font-display text-3xl font-bold leading-tight tracking-[-.035em] sm:text-4xl">{t.title}</h1>
           <p className="mt-4 max-w-2xl break-keep text-sm leading-7 text-white/75">{t.lead}</p>
           {currentUser?.email && <p className="mt-5 inline-flex rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/80">{currentUser.email}</p>}
@@ -115,37 +115,43 @@ export default function PendingGoogleRegistration() {
 
         <div className="space-y-7 p-6 sm:p-10">
           <fieldset disabled={busy}>
-            <legend className="text-base font-black">{t.role}</legend>
+            <legend className="text-base font-semibold">{t.role}</legend>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {([
             [UserRole.STUDENT, GraduationCap, t.student, t.studentHelp],
             [UserRole.COMPANY, Building2, t.company, t.companyHelp],
-        ] as const).map(([value, Icon, label, help]) => (<button key={value} type="button" aria-pressed={role === value} onClick={() => setRole(value)} className={`rounded-2xl border p-4 text-left transition ${role === value ? "border-[#4361ee] bg-[#eef1ff]" : "border-[#17342d]/12 hover:border-[#17342d]/30"}`}>
-                  <Icon className="h-5 w-5 text-[#4361ee]"/>
-                  <span className="mt-3 block text-sm font-black">{label}</span>
-                  <span className="mt-1 block text-xs leading-5 text-[#687d77]">{help}</span>
+        ] as const).map(([value, Icon, label, help]) => (<button key={value} type="button" aria-pressed={role === value} onClick={() => setRole(value)} className={`rounded-2xl border p-4 text-left transition ${role === value ? "border-[#244bd7] bg-[#eef1ff]" : "border-[#20211f]/12 hover:border-[#20211f]/30"}`}>
+                  <Icon className="h-5 w-5 text-[#244bd7]"/>
+                  <span className="mt-3 block text-sm font-semibold">{label}</span>
+                  <span className="mt-1 block text-xs leading-5 text-[#5b5d56]">{help}</span>
                 </button>))}
             </div>
           </fieldset>
 
-          <div className="space-y-3 rounded-2xl bg-[#f5f7f2] p-4">
-            {role === UserRole.STUDENT && <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#3f5d55]"><input type="checkbox" disabled={busy} checked={adult} onChange={event => setAdult(event.target.checked)} className="mt-1 h-4 w-4 accent-[#17342d]"/><span>{locale === "ko" ? "만 18세 이상이며 파일럿 참여 연령 기준을 충족합니다." : "I am at least 18 and meet the pilot participation age requirement."} *</span></label>}
+          <div className="space-y-3 rounded-2xl bg-[#f3f4ee] p-4">
+            {role === UserRole.STUDENT && <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#41433e]"><input type="checkbox" disabled={busy} checked={adult} onChange={event => setAdult(event.target.checked)} className="mt-1 h-4 w-4 accent-[#20211f]"/><span>{locale === "ko" ? "만 18세 이상이며 파일럿 참여 연령 기준을 충족합니다." : "I am at least 18 and meet the pilot participation age requirement."} *</span></label>}
             {([
             ["terms", t.terms, true],
             ["transaction", t.transaction, true],
             ["privacy", t.privacy, true],
             ["marketing", t.marketing, false],
-        ] as const).map(([key, label, required]) => (<label key={key} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#3f5d55]">
-                <input type="checkbox" disabled={busy} checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#17342d]"/>
-                <span>{label}{required && <strong className="ml-1 text-[#4361ee]">*</strong>}</span>
+        ] as const).map(([key, label, required]) => (<label key={key} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#41433e]">
+                <input type="checkbox" disabled={busy} checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#20211f]"/>
+                <span>{label}{required && <strong className="ml-1 text-[#244bd7]">*</strong>}</span>
               </label>))}
+            <nav className="flex flex-wrap gap-4 text-xs leading-6" aria-label={locale === "ko" ? "정책 공개 검토본" : "Policy review editions"}>
+              <a className="underline" href={`/terms?locale=${locale}`} target="_blank" rel="noreferrer">{locale === "ko" ? "이용약관" : "Terms of use"}</a>
+              <a className="underline" href={`/privacy?locale=${locale}`} target="_blank" rel="noreferrer">{locale === "ko" ? "개인정보처리방침" : "Privacy policy"}</a>
+              <a className="underline" href={`/project-terms?locale=${locale}`} target="_blank" rel="noreferrer">{locale === "ko" ? "계약·결제·환불" : "Contracts & refunds"}</a>
+            </nav>
+            <p className="text-xs leading-6 text-neutral-600">{locale === "ko" ? "공개 검토본입니다. 정식 시행 전 동의 화면과 국외이전 상세 고지를 확정해야 합니다. 기존 동의 버전은 자동 변경되지 않습니다." : "Review editions. Consent screens and transfer disclosures must be finalized before formal commencement. Existing consent versions are not silently changed."}</p>
           </div>
 
           {failure && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm leading-6 text-red-800">{failure instanceof Error && (failure.message === t.required || failure.message.includes("at least 18") || failure.message.includes("만 18세")) ? failure.message : (failure instanceof GoogleRegistrationError && failure.status >= 500) || (failure instanceof Error && ['TimeoutError', 'AbortError'].includes(failure.name)) ? t.retry : authErrorMessage(failure, locale)}</p>}
-          <button type="button" disabled={busy} onClick={() => void submit()} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">
+          <button type="button" disabled={busy} onClick={() => void submit()} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#20211f] px-5 py-3.5 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
             {busy ? t.busy : t.submit}{!busy && <ArrowRight className="h-4 w-4"/>}
           </button>
-          <p className="flex items-center justify-center gap-2 text-center text-xs text-[#6b7d78]"><ShieldCheck className="h-4 w-4 text-[#2f6d58]"/>{t.safety}</p>
+          <p className="flex items-center justify-center gap-2 text-center text-xs text-[#5b5d56]"><ShieldCheck className="h-4 w-4 text-[#244bd7]"/>{t.safety}</p>
         </div>
       </section>
     </main>);

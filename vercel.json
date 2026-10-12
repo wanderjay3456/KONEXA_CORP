@@ -5,6 +5,9 @@
       "source": "/api/(.*)",
       "destination": "/api"
     },
+    { "source": "/terms/:path*", "destination": "/index.html" },
+    { "source": "/privacy/:path*", "destination": "/index.html" },
+    { "source": "/project-terms/:path*", "destination": "/index.html" },
     {
       "source": "/status",
       "destination": "/index.html"

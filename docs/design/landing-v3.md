@@ -1,70 +1,31 @@
-# Landing v3 — short, impact, motion
+# KONEXA landing and policy review edition
 
-## 현재 수정안 (2026-10-12, PR 검토 중)
+Current implementation: PR #67, 2026-10-12. This replaces the historical green/globe/ticker specification.
 
-후속 우선순위 적용: 대표가 관리형 파일럿·국가 제한 없는 개별 검토·만18세 이상·개인 예비창업 상담을 확인했다. 현재 사이트는 역할 분담, 검토 가능한 업무 예시, 문의 이후 절차, 이메일 복사 대안을 설명한다. 정적 검색/공유 문구와 기존 `public/og.png`는 현재 메시지로 교체한다. 신규 인재의 연령 자기 신고는 이메일/Google 완료 흐름과 Google intent API에 반영한다. 정식 법적 원문과 실제 결제/역량 검증을 완료로 표시하지 않는다.
+The landing is an editorial B2B introduction to managed project pilots: charcoal #20211f, ivory #f7f7f2 and cobalt #244bd7, system fonts, compact navigation, a scoped-work specimen, a dark process section, asymmetric responsibilities and a large closing wordmark. The Shared Span mark consists of two connected arches: separate participants joined through a common piece of work, rather than a letter monogram. Its geometry is inline SVG in the existing component. There are no added image assets, font requests or external tracking providers.
 
-추가 승인 요청을 반영한 후속 수정: 첫 화면은 "채용 전에, 먼저 함께 일해보세요" / "Work together. Then decide."로 변경한다. 주 CTA는 프로젝트 상담 이메일 초안(업무·결과물·마감일·예산)이며, 기업 가입은 별도 보조 버튼으로 유지한다. 업무 예시에 직접 제작한 규격 3종의 광고 시안과 검토 의견을 넣고, 실제 고객 작업으로 표시하지 않는다. 푸터에 대표와 이메일 연락처를 표시한다. 새 로고는 별도로 제안한 래스터 이미지이며 아직 사이트의 워드마크를 교체하지 않았다.
+References reviewed: Instrument (typographic scale and visual ownership), Worksome (service sequence and company/talent paths), Linear (hierarchy). This is an original composition, not a copy or official implementation of those brands' design systems. https://www.instrument.com/ ; https://www.worksome.com/ ; https://linear.app/
 
-아래 초기 승인 스펙의 지구본·무한 티커·진행률 애니메이션은 현재 수정안에서 제거했다. 기존 워드마크, 녹색 팔레트, H1, KO/EN, 앵커, 가입·로그인·비밀번호 복구 경로는 유지한다. 밝은 단일 배경에서 구체적인 광고 규격 작업의 업무 브리프를 예시로 표시하며, 결과물·검토 기준·협업 이후 선택을 설명한다. 기업·인재 패널은 불필요한 빈 사진 공간 대신 참여 안내를 담는다.
+Korean uses keep-all wrapping, balanced headings, readable measure, generous line height and separated sections. Language, registration links/history, login/recovery, enquiry email drafts and accessible reduced-motion behavior remain covered by browser checks.
 
-운영 현황은 정적 목록이다. 기업·인재 가입은 가능, 프로젝트 게시는 파일럿 검토 필요, 에스크로는 준비 중으로 표시한다. 공개 법적 문서와 실제 해외 프로젝트·결제 검증은 미완료다. 구형 발표자료의 인재 수·가격·파트너·실적은 현재 사실로 재사용하지 않는다. 모션은 진입·스크롤 공개의 일회성 전환만 유지하며 reduced-motion을 존중한다.
+## Public policies in the existing files
 
-이하 내용은 2026-10-08 승인 당시의 기록이다. 현재 구현은 위 수정안을 기준으로 검토한다.
+- Data: src/config/compliancePolicy.ts; presentation: exported PolicyPage in LandingHero.tsx.
+- Direct routes: /terms, /privacy, /project-terms, including locale selection and reload. App routes and Vercel rewrites handle them before authentication.
+- All three are explicitly public review editions, not retrospectively accepted contracts. Consent document versions remain unchanged pending formal commencement and reconciliation of consent screens.
+- Operator confirmed by Jay: Yoo Jaeyeong, individual/pre-startup, South Korea operating/contracting base. Managed scope, global case-by-case enquiries, talent 18+.
+- Commercial principles confirmed: per-project written quote with currency/taxes/fees; start only after contract and payment feasibility; full pre-start refund; after start, accepted work and pre-approved non-recoverable actual expenses only; unperformed portion refunded; statutory rights prevail.
+- Retention confirmed: enquiry closure +90 days; account until closure, ordinary data removal within 30 days; security records up to 90 days; statutory transaction records separately retained only when applicable. These are operational commitments; automated deletion is not claimed to exist.
+- Old fixed hiring rates and 90-day guarantees are removed from displayed policy/conversion pages. The unused automatic fee quotation UI, writer and historic rate constants are removed. Existing historical records are preserved.
 
-승인: 대표 Jay Yoo, 2026-10-08 (Claude 디자인 캔버스 "KONEXA 사이트 개편안" 버전 6: 데스크톱 EN + 모바일 KO).
-범위: 랜딩(`/`)만. 인증·결제·대시보드·API·DB·환경변수·`vercel.json`은 변경하지 않는다.
+## Concrete activation gates
 
-## 구성 (5개 섹션)
+Read-only checks confirmed a healthy Supabase project in ap-northeast-2 and Vercel email/Gemini variable names (no values decrypted or exposed). Before production activation, verify the linked project's public URL, actual SMTP/email processor, overseas access/processing countries and provider retention, Gemini billing/training terms and opt-out, backups and deletion process. Then finish the legally required transfer details/separate consent, publish commencement dates, and update consent versions deliberately. Do not treat the review edition as a complete international-transfer notice or silently transfer existing consent to it.
 
-| # | 섹션 | 배경 | 요점 |
-| --- | --- | --- | --- |
-| 1 | Hero | deep forest | 워드마크 `KONE[X]A`, 헤더(How it works · For talent · Log in · KO/EN · Post a project), pill "EARLY ACCESS · REMOTE PROJECTS", H1, 부제, CTA 2개, 노트, SVG 지구본 + Project Record 카드(Illustration/예시 라벨) |
-| 2 | 운영 현황 티커 | forest | Company accounts / Project posts / Talent profiles — live, Escrow payments — in preparation, No fake listings, No inflated numbers |
-| 3 | How it works | cream | "One project ends the hiring gamble." Scope it · See the work · Decide (01·02·03 violet) |
-| 4 | 2분할 패널 | cream | For companies / For talent. 높이 540px(모바일 340px), radius 28, 하단 스크림 위 텍스트 |
-| 5 | Final CTA + 푸터 | deep forest | "Start with one project." Post a project · Email KONEXA. 푸터 Terms · Privacy · Status · © KONEXA |
+Paid contracts additionally require lawful business/service eligibility, party notification details, tax treatment, an actual payment route and hosting-plan commercial eligibility. This PR does not activate payment, electronic signatures, escrow or a business registration.
 
-모바일: 하단 고정 CTA(프로젝트 등록하기). FAQ·리뷰·얼리버드·파트너·공개 공고 미리보기는 랜딩에서 제외했다(컴포넌트 파일은 유지).
+Primary policy references: PIPC 2026-04-24 updated privacy guidance (https://pipc.go.kr/np/cop/bbs/selectBoardArticle.do?bbsId=BS074&nttId=12021), the current Personal Information Protection Act and applicable E-Commerce Consumer Protection Act/Enforcement Decree. Mandatory consumer/privacy protections are not waived by project terms.
 
-## 연결
+## Verification
 
-- Post a project → `CompanyRegisterForm`, Join as talent → `StudentRegisterForm`(기존 `activeRegisterRole` 흐름).
-- Log in → `AuthModal`(`type=recovery` 해시/쿼리 시 자동 오픈 유지). `onEnterApp`은 가입 성공 시 호출.
-- KO/EN은 `useLocale`. 문구는 `landingCopy.ts`(KO/EN 구조 동일 — `tests/landingCopy.test.ts`가 검증).
-- `<title>`과 meta description/og/twitter는 `LandingHero`가 로케일에 맞춰 갱신한다. `index.html` 정적 값은 KO·EN 병기.
-- Status → `/status`(기존 라우트).
-
-## 모션 (`motion/react` + CSS keyframes, transform·opacity만)
-
-| 대상 | 동작 |
-| --- | --- |
-| 진입 | H1 줄 단위 마스크 슬라이드업(1s, ease `[.22,1,.36,1]`, 0.15s 간격) → 부제·CTA·노트 rise(26px→0). 섹션은 `whileInView` once |
-| 지구본 | 자오선 6개 `scaleX 1→0.02→1`(14s, 위상차) · 아크 3개 stroke-dash 드로잉(7s, 2.3s 간격) + 끝점 펄스(2.8s) |
-| 카드 | breathe ±12px(7s) · sheen(6s) · 행 4개 순차 체크 + 진행바(8s 주기) |
-| 티커 | 36s linear 무한 |
-| 사진 | Ken Burns `scale 1→1.07`(16s alternate) — 사진이 있을 때만 |
-
-- 예외: 아크 드로잉은 스펙대로 `stroke-dashoffset`을 쓴다(작은 SVG path 3개).
-- `prefers-reduced-motion`: CSS 반복 애니메이션 전부 정지, 진입 애니메이션 생략, 티커는 정지 대신 정적 목록으로 표시.
-- 화면 밖 반복 애니메이션은 `usePauseOffscreen`(IntersectionObserver)이 `data-paused="true"`를 달아 일시정지한다.
-
-## 디자인 토큰
-
-`CLAUDE.md` 표 참고. 폰트는 기존 스택 유지(웹폰트 추가 없음 → 성능 영향 없음).
-
-## 사진
-
-`landingPhotos.ts`가 비어 있으면 단색 패널(forest / ink)로 렌더링한다. 추가 절차와 출처 기록은 `photo-credits.md`.
-
-## 수용 기준 확인 방법
-
-- `npm run lint` · `npm test` · `npm run build` · `npx playwright test`
-- `tests/browser/landing.spec.ts`: 360·390·768·1440px × EN/KO에서 가로 스크롤 0, 터치 타깃 ≥44px, 콘솔 에러 0, CTA→가입 폼, KO/EN 전환·메타, 모바일 CTA, reduced-motion, 근거 없는 수치 없음.
-- 대비 ≥4.5:1(큰 글자 ≥3:1)과 LCP 요소(이미지 아님)는 빌드 결과물을 열어 계산한 값으로 확인했다.
-- 배포 후: `/` 와 `/api/health/ready`.
-
-## 알려진 제한
-
-- 사진 미추가(다운로드 불가) — 단색 패널로 배포.
-- 공개 Terms/Privacy 페이지가 저장소에 없다. 푸터의 Terms·Privacy는 `konexa.corp@gmail.com` 으로 사본을 요청하는 메일 링크다. 정식 페이지가 생기면 `LandingHero.tsx`의 `legalHref` 를 해당 경로로 교체한다.
+Use npm run lint, npm test, npm run build and npx playwright test. Landing checks cover both languages at 360/390/768/1440px, targets >=44px, no overflow, real signup/login/recovery links and no fabricated proof. Policy checks cover direct routes, navigation/reload, agreed refund/retention wording, review status and increased text spacing. Runtime financial/consent/backend deployment is not asserted by local fixture tests.

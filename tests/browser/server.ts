@@ -49,7 +49,7 @@ const { default: express } = await import('express');
 const shell = express(); shell.use(express.raw({ type: '*/*', limit: '1mb' }));
 shell.use('/assets', express.static(path.join(root, 'dist/assets')));
 shell.use(express.static(path.join(root, 'public')));
-shell.get('/', (_req, res) => res.type('html').send('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>KONEXA local workflow QA</title><link rel="stylesheet" href="/qa.css"></head><body style="margin:24px"><div id="root"></div><script type="module" src="/qa.js"></script></body></html>'));
+shell.get(['/', '/terms', '/privacy', '/project-terms'], (_req, res) => res.type('html').send('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>KONEXA local workflow QA</title><link rel="stylesheet" href="/qa.css"></head><body style="margin:24px"><div id="root"></div><script type="module" src="/qa.js"></script></body></html>'));
 shell.get('/qa.css', (_req, res) => {
   const assets = path.join(root, 'dist/assets');
   const css = existsSync(assets) ? readdirSync(assets).find(name => /^index-.*\.css$/.test(name)) : null;

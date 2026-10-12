@@ -55,7 +55,7 @@ The production team was freshly confirmed to be on Vercel **Hobby** during relea
 
 These are not authentication bugs and must not be described as resolved by this release:
 
-1. The repository currently contains policy summaries, not a fully finalized publicly readable set of terms/privacy documents. Operator identity, actual processors/cross-border destinations, retention/deletion periods and contact/rights procedures must be finalized before collecting real student identity documents at scale.
+1. Public KO/EN review editions now exist at /terms, /privacy and /project-terms. Jay confirmed the individual operator, South Korea base, retention and pilot/refund principles. Actual processor/transfer destinations, Gemini plan/training, backup/deletion execution and consent-screen reconciliation remain production activation gates; the review date is not a formal commencement or new consent version.
 2. Check that the hosting plan permits commercial use; the preceding audit identified a Vercel Hobby plan. No paid upgrade is silently authorized by this code change.
 3. Payment, escrow and electronic signature remain subject to the separately agreed provider/onboarding gates. Profile registration does not authorize a project to bypass those gates.
 4. Supabase leaked-password protection is a paid-plan capability and is not misrepresented as enabled. Authentication, email confirmation and RLS remain enforced without it.

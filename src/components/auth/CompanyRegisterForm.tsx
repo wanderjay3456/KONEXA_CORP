@@ -36,7 +36,7 @@ const copy = {
         next: "가입 후 기업 검증 프로필 작성으로 이어집니다.",
         safety: "미완성 기업 프로필은 공고를 게시할 수 없으며, 필수 정보와 서류를 순서대로 안내합니다.",
         preparation: "가입 후에는 본사 국가, 현지 기업 등록번호, 기업 등록 증빙 서류와 담당자 정보를 입력합니다. 해외 기업의 서류 요건이 불확실하면 가입 전에 KONEXA에 문의해 주세요.",
-        requestAgreements: "가입 전 동의문 사본 요청하기",
+        requestAgreements: "정책 공개 검토본 읽기",
     },
     en: {
         eyebrow: "Create a company account in 1 minute",
@@ -65,7 +65,7 @@ const copy = {
         next: "Required company verification follows sign-up.",
         safety: "Incomplete company profiles cannot publish opportunities; the guided setup covers each required detail and document.",
         preparation: "After sign-up, you will need your headquarters country, local business registration number, registration document, and contact details. If you are unsure about documents for an overseas company, contact KONEXA before signing up.",
-        requestAgreements: "Request the agreement texts before signing up",
+        requestAgreements: "Read the public policy review editions",
     }
 } as const;
 export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegisterFormProps) {
@@ -137,62 +137,62 @@ export default function CompanyRegisterForm({ onCancel, onSuccess }: CompanyRegi
         }
     };
     if (emailConfirmationRequired) {
-        return (<main className="grid min-h-screen place-items-center bg-[#f7f6f1] px-5">
-        <section className="w-full max-w-lg rounded-[2rem] border border-[#17342d]/10 bg-white p-8 text-center shadow-[0_30px_90px_rgba(23,52,45,.1)] sm:p-12">
+        return (<main className="grid min-h-screen place-items-center bg-[#f7f7f2] px-5">
+        <section className="w-full max-w-lg rounded-xl border border-[#20211f]/10 bg-white p-8 text-center shadow-[0_30px_90px_rgba(23,52,45,.1)] sm:p-12">
           <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#dff8ea] text-[#23644e]"><Mail className="h-6 w-6"/></span>
-          <h1 className="mt-6 break-keep font-display text-3xl font-bold tracking-[-.04em] text-[#17342d]">{t.confirmationTitle}</h1>
+          <h1 className="mt-6 break-keep font-display text-3xl font-bold tracking-[-.04em] text-[#20211f]">{t.confirmationTitle}</h1>
           <p className="mt-4 leading-7 text-[#557069]">{t.confirmationBody}</p>
-          <button type="button" onClick={onCancel} className="mt-8 rounded-full bg-[#17342d] px-6 py-3 text-sm font-bold text-white">{t.login}</button>
+          <button type="button" onClick={onCancel} className="mt-8 rounded-full bg-[#20211f] px-6 py-3 text-sm font-bold text-white">{t.login}</button>
         </section>
       </main>);
     }
-    return (<main data-no-translate className="min-h-screen bg-[#f7f6f1] px-4 py-6 sm:px-8 sm:py-10">
+    return (<main data-no-translate className="min-h-screen bg-[#f7f7f2] px-4 py-6 sm:px-8 sm:py-10">
       <div className="mx-auto max-w-4xl">
         <div className="flex items-center justify-between gap-4">
-          <button type="button" onClick={onCancel} className="inline-flex items-center gap-2 text-sm font-bold text-[#48645d]"><ArrowLeft className="h-4 w-4"/>{t.back}</button>
-          <div role="group" aria-label="Language" className="flex rounded-full border border-[#17342d]/10 bg-white p-1">
-            {(["ko", "en"] as const).map((item) => <button key={item} type="button" aria-pressed={locale === item} onClick={() => setLocale(item)} className={`rounded-full px-3 py-1.5 text-[11px] font-black uppercase ${locale === item ? "bg-[#17342d] text-white" : "text-[#647a74]"}`}>{item}</button>)}
+          <button type="button" onClick={onCancel} className="inline-flex items-center gap-2 text-sm font-bold text-[#5b5d56]"><ArrowLeft className="h-4 w-4"/>{t.back}</button>
+          <div role="group" aria-label="Language" className="flex rounded-full border border-[#20211f]/10 bg-white p-1">
+            {(["ko", "en"] as const).map((item) => <button key={item} type="button" aria-pressed={locale === item} onClick={() => setLocale(item)} className={`rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase ${locale === item ? "bg-[#20211f] text-white" : "text-[#5b5d56]"}`}>{item}</button>)}
           </div>
         </div>
 
-        <section className="mt-5 overflow-hidden rounded-[2rem] border border-[#17342d]/10 bg-white shadow-[0_30px_90px_rgba(23,52,45,.09)]">
+        <section className="mt-5 overflow-hidden rounded-xl border border-[#20211f]/10 bg-white shadow-[0_30px_90px_rgba(23,52,45,.09)]">
           <div className="grid lg:grid-cols-[300px_minmax(0,1fr)]">
-            <aside className="bg-[#17342d] p-7 text-white sm:p-10">
-              <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[.12em] text-[#b9f4d0]"><Sparkles className="h-4 w-4"/>{t.eyebrow}</span>
+            <aside className="bg-[#20211f] p-7 text-white sm:p-10">
+              <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[.12em] text-[#dbe3ff]"><Sparkles className="h-4 w-4"/>{t.eyebrow}</span>
               <h1 className="mt-5 break-keep font-display text-3xl font-bold leading-tight tracking-[-.04em]">{t.title}</h1>
               <p className="mt-5 text-sm leading-7 text-white/75">{t.lead}</p>
               <p className="mt-5 text-sm leading-7 text-white/75">{t.preparation}</p>
-              <p className="mt-8 flex items-start gap-2 text-xs leading-5 text-white/65"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#b9f4d0]"/>{t.safety}</p>
+              <p className="mt-8 flex items-start gap-2 text-xs leading-5 text-white/65"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#dbe3ff]"/>{t.safety}</p>
             </aside>
 
             <div className="p-6 sm:p-10">
-              <button type="button" disabled={googleBusy || isSubmitting} onClick={() => void handleGoogle()} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-[#4361ee]/30 bg-[#eef1ff] px-4 py-3.5 text-sm font-black text-[#324fc0] disabled:cursor-wait disabled:opacity-60">
-                <span aria-hidden="true" className="text-base font-black">G</span>{googleBusy ? t.googleBusy : t.google}
+              <button type="button" disabled={googleBusy || isSubmitting} onClick={() => void handleGoogle()} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-[#244bd7]/30 bg-[#eef1ff] px-4 py-3.5 text-sm font-semibold text-[#324fc0] disabled:cursor-wait disabled:opacity-60">
+                <span aria-hidden="true" className="text-base font-semibold">G</span>{googleBusy ? t.googleBusy : t.google}
               </button>
-              <p className="mt-2 text-center text-xs leading-5 text-[#6e817b]">{t.googleHelp}</p>
+              <p className="mt-2 text-center text-xs leading-5 text-[#5b5d56]">{t.googleHelp}</p>
 
-              <div className="my-6 flex items-center gap-3 text-xs font-semibold text-[#81918c]"><span className="h-px flex-1 bg-[#17342d]/10"/>{t.divider}<span className="h-px flex-1 bg-[#17342d]/10"/></div>
+              <div className="my-6 flex items-center gap-3 text-xs font-semibold text-[#71746a]"><span className="h-px flex-1 bg-[#20211f]/10"/>{t.divider}<span className="h-px flex-1 bg-[#20211f]/10"/></div>
 
               <form onSubmit={submitEmail} className="space-y-5">
-                <label className="block"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.company} *</span><input autoComplete="organization" value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder={t.companyPlaceholder} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]"/></label>
-                <label className="block"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.email} *</span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]"/></label>
-                <label className="block"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.password} *</span><input type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.passwordHint} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]"/></label>
+                <label className="block"><span className="mb-2 block text-sm font-bold text-[#20211f]">{t.company} *</span><input autoComplete="organization" value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder={t.companyPlaceholder} className="w-full rounded-xl border border-[#20211f]/15 px-4 py-3 outline-none focus:border-[#244bd7]"/></label>
+                <label className="block"><span className="mb-2 block text-sm font-bold text-[#20211f]">{t.email} *</span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-xl border border-[#20211f]/15 px-4 py-3 outline-none focus:border-[#244bd7]"/></label>
+                <label className="block"><span className="mb-2 block text-sm font-bold text-[#20211f]">{t.password} *</span><input type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.passwordHint} className="w-full rounded-xl border border-[#20211f]/15 px-4 py-3 outline-none focus:border-[#244bd7]"/></label>
 
-                <div className="space-y-3 rounded-2xl bg-[#f5f7f2] p-4">
+                <div className="space-y-3 rounded-2xl bg-[#f3f4ee] p-4">
                   {([
             ["terms", t.terms, true],
             ["transaction", t.transaction, true],
             ["privacy", t.privacy, true],
             ["marketing", t.marketing, false],
-        ] as const).map(([key, label, required]) => <label key={key} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#3f5d55]"><input type="checkbox" checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#17342d]"/><span>{label}{required && <strong className="ml-1 text-[#4361ee]">*</strong>}</span></label>)}
-                  <a className="inline-flex min-h-11 items-center text-sm font-semibold text-[#324fc0] underline underline-offset-4" href="mailto:konexa.corp@gmail.com?subject=KONEXA%20signup%20agreement%20texts%20request">{t.requestAgreements}</a>
+        ] as const).map(([key, label, required]) => <label key={key} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#41433e]"><input type="checkbox" checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#20211f]"/><span>{label}{required && <strong className="ml-1 text-[#244bd7]">*</strong>}</span></label>)}
+                  <a className="inline-flex min-h-11 items-center text-sm font-semibold text-[#324fc0] underline underline-offset-4" href={`/terms?locale=${locale}`} target="_blank" rel="noreferrer">{t.requestAgreements}</a><div className="flex flex-wrap gap-4 text-xs leading-6"><a href={`/privacy?locale=${locale}`} target="_blank" rel="noreferrer" className="underline">{locale === "ko" ? "개인정보처리방침" : "Privacy policy"}</a><a href={`/project-terms?locale=${locale}`} target="_blank" rel="noreferrer" className="underline">{locale === "ko" ? "계약·결제·환불" : "Contracts & refunds"}</a></div><p className="text-xs leading-6 text-neutral-600">{locale === "ko" ? "공개 검토본입니다. 기존 동의 버전은 자동 변경되지 않으며 정식 시행 전 동의 화면과 국외이전 고지를 확정해야 합니다." : "Review editions. Existing consent versions are not silently changed; consent screens and transfer disclosures must be finalized before formal commencement."}</p>
                 </div>
 
-                <button type="submit" disabled={isSubmitting || googleBusy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">
+                <button type="submit" disabled={isSubmitting || googleBusy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#20211f] px-5 py-3.5 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">
                   {isSubmitting ? t.submitting : t.submit}{!isSubmitting && <ArrowRight className="h-4 w-4"/>}
                 </button>
               </form>
-              <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#6b7d78]"><Building2 className="h-4 w-4"/>{t.next}</p>
+              <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#5b5d56]"><Building2 className="h-4 w-4"/>{t.next}</p>
             </div>
           </div>
         </section>
