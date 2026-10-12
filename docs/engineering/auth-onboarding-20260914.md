@@ -148,3 +148,47 @@ revoke all on function private.guard_rules_pilot_consent() from public,anon,auth
 Read-only current dashboard checks confirmed Supabase Auth custom SMTP enabled at smtp.resend.com:587. Render My Workspace is Hobby, the service is Free, no payment card is registered, current and projected charges are USD 0. The actual Hobby log retention is therefore seven days. No card, paid plan or additional resource was added.
 
 The user approved Supabase/Resend runtime-key connection and authentication verification in the free scope. Vercel sensitive environment variables return metadata without recoverable values. A project-matched historical local Supabase key was tested with a zero-row request and returned 401; it was not transferred. The current Supabase key was transferred directly through the official dashboard into the approved Render environment. The user identified konexa.corp@gmail.com as the Resend owner and explicitly approved a new auth.konexa.co.kr sending-only key, KONEXA Render Pilot 2026-10-12. That key was generated and saved to Render after checking the destination provider format; existing keys remain. Public Supabase URL/publishable configuration is set on Render; operational APIs remain blocked by PILOT_PREVIEW_ONLY=true. SUPABASE_SECRET_KEY, RESEND_API_KEY and EMAIL_FROM are saved on the approved Render service. Supabase allows https://konexa-rules-pilot.onrender.com/** as an additive authentication redirect; the existing production Site URL is unchanged. The deployed readiness probe confirms database schema access. A Resend webhook targets the approved Render /api/webhooks/resend endpoint for sent, delivered, failed, bounced and complained events only; its signing secret is saved on Render. Do not confuse configured secrets with actual email delivery or completed login verification. Never paste values into chat, source, issue or PR. RESEND_WEBHOOK_SECRET must be configured before claiming notification-event reconciliation. Keep preview mode on until authenticated-flow checks, final transfer disclosure and coordinated signup cutover are complete.
+
+### Delivery event order verified on the migration server
+
+Synthetic provider test reached Resend and both signed sent/delivered events returned HTTP 200 from Render. The test exposed out-of-order state regression in the previous client-side merge. The additive database trigger below preserves terminal delivery progress and supplier event timestamps under row-level concurrent upserts, without changing customer records. Rollback-only SQL assertions cover reversed events, older final events, newer complaints and metadata preservation. Application retries without a supplier event timestamp remain possible.
+
+Applied migration: preserve_email_delivery_progress.
+
+```sql
+create or replace function private.preserve_email_delivery_progress()
+returns trigger language plpgsql set search_path = '' as $$
+declare
+  old_status text := old.data->>'status';
+  next_status text := new.data->>'status';
+  old_time timestamptz;
+  next_time timestamptz;
+  keep_progress boolean := false;
+begin
+  if old.collection_name <> 'email_deliveries' then return new; end if;
+  new.data := old.data || new.data;
+  if old.data ? 'lastEventAt' then
+    keep_progress := old_status in ('delivered','bounced','complained','suppressed','failed')
+      and coalesce(next_status,old_status) in ('sending','sent','scheduled','queued','delivery_delayed');
+    begin
+      old_time := (old.data->>'lastEventAt')::timestamptz;
+      next_time := (new.data->>'lastEventAt')::timestamptz;
+      keep_progress := keep_progress or (old_time is not null and next_time is not null and next_time < old_time);
+      if next_time = old_time then
+        keep_progress := keep_progress or
+          coalesce(array_position(array['sending','scheduled','sent','delivery_delayed','delivered','failed','bounced','suppressed','complained'],old_status),0)
+          > coalesce(array_position(array['sending','scheduled','sent','delivery_delayed','delivered','failed','bounced','suppressed','complained'],coalesce(next_status,old_status)),0);
+      end if;
+    exception when invalid_datetime_format or datetime_field_overflow then null;
+    end;
+  end if;
+  if keep_progress then
+    new.data := new.data || jsonb_build_object('status',old_status,'lastEventAt',old.data->'lastEventAt');
+  end if;
+  return new;
+end $$;
+revoke all on function private.preserve_email_delivery_progress() from public, anon, authenticated;
+create trigger preserve_email_delivery_progress before update on public.app_records
+for each row when (old.collection_name = 'email_deliveries')
+execute function private.preserve_email_delivery_progress();
+```
