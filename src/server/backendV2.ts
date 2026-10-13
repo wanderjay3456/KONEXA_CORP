@@ -1,3 +1,4 @@
+import { SIGNUP_CONSENT_VERSION } from '../config/compliancePolicy';
 import crypto from "node:crypto";
 import { drainOutbox } from './outboxDrain';
 import { deferNotificationWork } from "./deferredWork";
@@ -309,11 +310,16 @@ export function registerBackendV2PublicRoutes(app: Express) {
         const body = plainObject(req.body, "registration");
         const role = enumValue(body.role, "role", ["student", "company"] as const);
         const consents = plainObject(body.consents, "consents");
+        if (role === "student" && consents.adultParticipation !== true) {
+          throw new ApiInputError("Talent participants must confirm they are at least 18.", "ADULT_PARTICIPATION_REQUIRED");
+        }
         const profile = body.profile && typeof body.profile === "object" && !Array.isArray(body.profile)
           ? body.profile
           : {};
         if (
-          consents.terms !== true
+          consents.dataCollection !== true
+          || consents.documentVersion !== SIGNUP_CONSENT_VERSION
+          || consents.terms !== true
           || consents.nonCircumvention !== true
           || consents.messageAnalysis !== true
           || consents.crossBorderPrivacy !== true

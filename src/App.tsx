@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useState } from "react";
 import { ToastProvider, useToast } from "./components/ui/Toast";
 import { AppProvider, useApp } from "./context/AppContext";
 import { UserRole } from "./types";
-import LandingHero from "./components/landing/LandingHero";
+import LandingHero, { PolicyPage } from "./components/landing/LandingHero";
 import Navbar from "./components/layout/Navbar";
 import Sidebar from "./components/layout/Sidebar";
 import { StatusPage } from "./components/status/StatusPage";
@@ -117,6 +117,8 @@ function AppContent() {
 }
 
 export default function App() {
+  const policy = window.location.pathname.replace(/\/$/, "").slice(1);
+  if (policy === "terms" || policy === "privacy" || policy === "project-terms") return <LocaleProvider><PolicyPage policy={policy} /></LocaleProvider>;
   if (window.location.pathname.replace(/\/$/, "") === "/status") {
     return <StatusPage />;
   }

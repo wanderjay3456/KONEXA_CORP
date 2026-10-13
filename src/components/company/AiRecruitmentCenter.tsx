@@ -3,7 +3,6 @@ import { AlertCircle, BriefcaseBusiness, Check, RefreshCw, ShieldCheck, Sparkles
 import { useApp } from "../../context/AppContext";
 import { maskedTalentName } from "../../lib/offPlatformGuard";
 import { useToast } from "../ui/Toast";
-import AiCoachPanel from '../ai/AiCoachPanel';
 import AssessmentHistoryStatus from '../ai/AssessmentHistoryStatus';
 import { useAssessmentHistory } from '../../lib/useAssessmentHistory';
 import { useLocale } from '../../i18n/LocaleContext';
@@ -31,6 +30,8 @@ interface TalentMatch {
     employabilityScore: number;
     suitabilityScore: number;
     confidence: number;
+    evidenceCoverage?: number;
+    scoreBreakdown?: { skillCoverage: number; roleAlignment: number; declaredConditions: number };
     matchingFactors: string[];
     explanation: string;
     strengths: string[];
@@ -105,7 +106,7 @@ export default function AiRecruitmentCenter({ onNavigate }: AiRecruitmentCenterP
             if (requestRef.current !== request)
                 return;
             if (!response.ok)
-                throw new Error(payload.error || t("AI 인재 매칭을 실행하지 못했습니다.", "Talent matching could not be completed."));
+                throw new Error(payload.error || t("인재 조건 매칭을 실행하지 못했습니다.", "Talent matching could not be completed."));
             const nextMatches = Array.isArray(payload.matches) ? payload.matches : [];
             setMatches(nextMatches);
             setActiveId(nextMatches[0]?.id || "");
@@ -132,15 +133,15 @@ export default function AiRecruitmentCenter({ onNavigate }: AiRecruitmentCenterP
         }
     };
     if (!companyProfile?.verified || companyProfile.verifiedStatus !== "Verified") {
-        return <div data-no-translate className="space-y-6"><AiCoachPanel contextKey="company:planning"/><div className="mx-auto max-w-3xl rounded-3xl border border-neutral-200 bg-white p-10 text-center">
+        return <div data-no-translate className="space-y-6"><div className="mx-auto max-w-3xl rounded-3xl border border-neutral-200 bg-white p-10 text-center">
       <ShieldCheck className="mx-auto h-9 w-9 text-neutral-300"/>
-      <h1 className="mt-4 text-2xl font-black text-neutral-950">{t("기업 인증 후 AI 매칭을 사용할 수 있습니다", "Verify your company to access talent matching")}</h1>
+      <h1 className="mt-4 text-2xl font-black text-neutral-950">{t("기업 인증 후 조건 매칭을 사용할 수 있습니다", "Verify your company to access talent matching")}</h1>
       <p className="mt-2 text-sm leading-6 text-neutral-500">{t("인재 정보는 인증된 기업에만 제공되며, 연락처는 계약 전까지 공개되지 않습니다.", "Talent information is available to verified companies. Contact details remain private until the contract stage.")}</p>
       <button onClick={() => onNavigate("identity")} className="mt-6 rounded-xl bg-neutral-950 px-5 py-3 text-sm font-bold text-white">{t("기업 인증 진행하기", "Verify company")}</button>
     </div></div>;
     }
     if (!ownedProjects.length) {
-        return <div data-no-translate className="space-y-6"><AiCoachPanel contextKey="company:planning"/><div className="mx-auto max-w-3xl rounded-3xl border border-neutral-200 bg-white p-10 text-center">
+        return <div data-no-translate className="space-y-6"><div className="mx-auto max-w-3xl rounded-3xl border border-neutral-200 bg-white p-10 text-center">
       <BriefcaseBusiness className="mx-auto h-9 w-9 text-neutral-300"/>
       <h1 className="mt-4 text-2xl font-black text-neutral-950">{t("먼저 실제 공고를 등록해 주세요", "Post a project to start matching")}</h1>
       <p className="mt-2 text-sm leading-6 text-neutral-500">{t("공고의 업무 범위와 요구 역량을 기준으로 등록 조건을 충족한 인재를 비교합니다.", "Matching compares eligible profiles against your project scope and required skills. Profile information still needs human verification.")}</p>
@@ -149,7 +150,7 @@ export default function AiRecruitmentCenter({ onNavigate }: AiRecruitmentCenterP
     }
     return <div data-no-translate className="mx-auto max-w-7xl space-y-6 pb-12">
     <header className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-      <div><span className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">Evidence-based AI matching</span><h1 className="mt-2 text-3xl font-black tracking-tight text-neutral-950">{t("AI 인재 매칭", "AI talent matching")}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500">{t("등록된 공고와 실제 인재 프로필을 비교합니다. 업무 조건으로 후보를 좁힌 뒤 AI가 근거를 정리합니다. 점수는 채용 확률이 아니며 최종 판단은 운영자와 기업이 합니다.", "Compare your project with real talent profiles. Work requirements narrow the shortlist, then AI summarizes the evidence. Scores are not hiring probabilities; your company and KONEXA make the final decision.")}</p></div>
+      <div><span className="text-xs font-bold uppercase tracking-[0.18em] text-teal-700">Explainable talent matching</span><h1 className="mt-2 text-3xl font-black tracking-tight text-neutral-950">{t("인재 조건 매칭", "Talent matching")}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-500">{t("등록된 공고와 실제 인재 프로필을 비교합니다. 역량 70점·직무 10점·기재된 조건 20점으로 산정 근거를 공개합니다. 점수는 채용 확률이 아니며 최종 판단은 운영자와 기업이 합니다.", "Compare your project with real talent profiles. A published rubric assigns 70 points to skill coverage, 10 to role alignment and 20 to declared conditions. Scores are not hiring probabilities; your company and KONEXA make the final decision.")}</p></div>
       <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
         <select value={projectId} disabled={loading || history.loading} onChange={(event) => setProjectId(event.target.value)} className="min-w-64 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm outline-none disabled:opacity-60">
           {ownedProjects.map((project) => <option key={project.id} value={project.id}>{project.title}</option>)}
@@ -158,10 +159,10 @@ export default function AiRecruitmentCenter({ onNavigate }: AiRecruitmentCenterP
       </div>
     </header>
 
-    <AiCoachPanel contextKey={projectId ? `company:${projectId}` : "company:planning"}/>
+
     <AssessmentHistoryStatus {...history} createdAt={history.rows[0]?.created_at} onReload={history.reload}/>
     {stale && <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">{t('공고·인재 정보 또는 분석 기준이 변경되었습니다. 아래는 이전 분석이며, 현재 후보를 확인하려면 다시 분석해 주세요.', 'Project, candidate information or matching rules have changed. These are earlier results; run matching again before making a decision.')}</p>}
-    {coverage && <p className="text-sm leading-6 text-neutral-600">{t(`검토 대상 ${coverage.scanned}명 · 조건 검토 후 ${coverage.eligible}명 · 이번 AI 분석 ${matches.length}명. 누락된 정보와 실제 역량은 면접·프로젝트로 확인해 주세요.`, `${coverage.scanned} profiles reviewed · ${coverage.eligible} meet known conditions · ${matches.length} analyzed by AI. Confirm missing information and skills through interviews or projects.`)}</p>}
+    {coverage && <p className="text-sm leading-6 text-neutral-600">{t(`검토 대상 ${coverage.scanned}명 · 조건 검토 후 ${coverage.eligible}명 · 이번 조건 분석 ${matches.length}명. 누락된 정보와 실제 역량은 면접·프로젝트로 확인해 주세요.`, `${coverage.scanned} profiles reviewed · ${coverage.eligible} meet known conditions · ${matches.length} ranked by declared conditions. Confirm missing information and skills through interviews or projects.`)}</p>}
     {loadError && <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0"/><div><b>{t("분석을 완료하지 못했습니다.", "Analysis could not be completed.")}</b><p className="mt-1">{loadError}</p></div></div>}
     {!loading && !loadError && matches.length === 0 && <div className="rounded-3xl border border-dashed border-neutral-300 bg-white p-10 text-center"><Target className="mx-auto h-8 w-8 text-neutral-300"/><h2 className="mt-4 text-lg font-black">{ran ? t("현재 조건에 맞는 분석 후보가 없습니다", "No candidates currently meet these conditions") : t("공고를 선택하고 실제 인재 분석을 실행해 주세요", "Select a project and analyze talent")}</h2><p className="mt-2 text-sm text-neutral-500">{t("정보 열람 동의·프로필 완성·계정 상태와 업무 조건을 확인합니다. 후보가 없으면 가상 인재나 점수를 생성하지 않습니다.", "Matching checks visibility consent, profile completion, account status and work requirements. It never invents candidates or scores when none are available.")}</p></div>}
 
@@ -176,7 +177,8 @@ export default function AiRecruitmentCenter({ onNavigate }: AiRecruitmentCenterP
       </aside>
 
       <main className="space-y-6 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm md:p-8">
-        <section className="flex flex-col justify-between gap-4 border-b border-neutral-100 pb-6 sm:flex-row"><div><span className="text-xs font-bold uppercase tracking-wider text-neutral-400">AI match for {activeProject?.title}</span><h2 className="mt-2 text-2xl font-black">{maskedTalentName(activeMatch.id)}</h2><p className="mt-2 text-sm leading-6 text-neutral-600">{activeMatch.explanation || t("설명 가능한 분석 결과가 없습니다.", "No explanation is available.")}</p></div><div className="rounded-2xl bg-neutral-100 p-4"><span className="text-xs text-neutral-600">{t("확인할 정보", "Items to verify")}</span><b className="mt-1 block text-xl">{activeMatch.missingEvidence?.length ?? '—'}</b></div></section>
+        <section className="flex flex-col justify-between gap-4 border-b border-neutral-100 pb-6 sm:flex-row"><div><span className="text-xs font-bold uppercase tracking-wider text-neutral-400">Match for {activeProject?.title}</span><h2 className="mt-2 text-2xl font-black">{maskedTalentName(activeMatch.id)}</h2><p className="mt-2 text-sm leading-6 text-neutral-600">{activeMatch.explanation || t("설명 가능한 분석 결과가 없습니다.", "No explanation is available.")}</p></div><div className="rounded-2xl bg-neutral-100 p-4"><span className="text-xs text-neutral-600">{t("확인할 정보", "Items to verify")}</span><b className="mt-1 block text-xl">{activeMatch.missingEvidence?.length ?? '—'}</b></div></section>
+        {activeMatch.scoreBreakdown && <section className="rounded-2xl bg-neutral-50 p-5"><h3 className="font-semibold">{t('조건 일치 점수', 'Declared-condition score')} {activeMatch.suitabilityScore}/100</h3><p className="mt-2 text-sm leading-7">{t('역량', 'Skills')} {activeMatch.scoreBreakdown.skillCoverage}/70 · {t('직무', 'Role')} {activeMatch.scoreBreakdown.roleAlignment}/10 · {t('기재된 조건', 'Declared conditions')} {activeMatch.scoreBreakdown.declaredConditions}/20</p><p className="mt-2 text-sm leading-7">{t('정보 기재율', 'Evidence coverage')} {activeMatch.evidenceCoverage ?? activeMatch.confidence}%. {t('채용 확률이나 검증된 실력이 아닙니다. 미기재 항목은 별도 확인합니다.', 'This is neither a hiring probability nor verified ability. Missing information requires review.')}</p></section>}
         {activeMatch.criteria && <MatchCriteria criteria={activeMatch.criteria}/>}
         <section className="grid gap-5 md:grid-cols-2"><div><h3 className="flex items-center gap-2 text-sm font-black"><Check className="h-4 w-4 text-emerald-600"/>{t("근거에 나타난 강점", "Evidence-based strengths")}</h3><ul className="mt-3 space-y-2 text-sm leading-6 text-neutral-600">{activeMatch.strengths.length ? activeMatch.strengths.map((item) => <li key={item}>• {item}</li>) : <li>{t("충분한 근거가 없습니다.", "Not enough evidence is available.")}</li>}</ul></div><div><h3 className="flex items-center gap-2 text-sm font-black"><AlertCircle className="h-4 w-4 text-amber-600"/>{t("확인할 점", "Points to verify")}</h3><ul className="mt-3 space-y-2 text-sm leading-6 text-neutral-600">{activeMatch.weaknesses.length ? activeMatch.weaknesses.map((item) => <li key={item}>• {item}</li>) : <li>{t("추가로 제시된 항목이 없습니다. 최종 확인은 필요합니다.", "No additional items were suggested. Final verification is still required.")}</li>}</ul></div></section>
         <section><h3 className="text-sm font-black">{t("매칭 근거", "Matching evidence")}</h3><div className="mt-3 flex flex-wrap gap-2">{activeMatch.matchingFactors.map((factor) => <span key={factor} className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-700">{factor}</span>)}</div></section>

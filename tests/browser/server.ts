@@ -12,6 +12,7 @@ const bundled = await build({ entryPoints: [path.join(root, 'tests/browser/ui.ts
 } }] });
 const { app, state } = aiFixture();
 registerDeliveryFixture(app);
+app.get('/api/public/runtime-mode', (_req, res) => res.json({ previewOnly: false, externalAiEnabled: false }));
 // Explicitly local-only signup store. Never connected to Supabase or email.
 const signups = new Map<string, any>();
 const intents = new Map<string, any>();
@@ -19,11 +20,12 @@ const blankSignup = (req: any) => ({ user: { uid: req.user.uid, email: 'signup-q
 app.post('/__qa/signup/reset', (req: any, res) => { signups.set(req.user.uid, blankSignup(req)); res.json({ ok: true }); });
 app.get('/__qa/signup', (req: any, res) => res.json(signups.get(req.user.uid) || blankSignup(req)));
 app.post('/api/auth/google-registration-intents', (req: any, res) => {
+  if (req.body.role === 'student' && req.body.consents?.adultParticipation !== true) return res.status(400).json({error:{code:'ADULT_PARTICIPATION_REQUIRED'}});
   const id = crypto.randomUUID(); intents.set(id, req.body); res.status(201).json({ data: { registrationId: id } });
 });
 app.post('/api/auth/google-registration-complete', (req: any, res) => {
   const intent = intents.get(req.body.registrationId);
-  if (!intent || !['student', 'company'].includes(intent.role) || !['terms', 'nonCircumvention', 'messageAnalysis', 'crossBorderPrivacy'].every(key => intent.consents?.[key] === true)) return res.status(400).json({ error: { code: 'CONSENT_REQUIRED' } });
+  if (!intent || !['student', 'company'].includes(intent.role) || !['dataCollection', 'terms', 'nonCircumvention', 'messageAnalysis', 'crossBorderPrivacy'].every(key => intent.consents?.[key] === true)) return res.status(400).json({ error: { code: 'CONSENT_REQUIRED' } });
   const value = signups.get(req.user.uid) || blankSignup(req);
   value.user = { ...value.user, role: intent.role, onboardingStatus: 'complete' };
   signups.set(req.user.uid, value); intents.delete(req.body.registrationId);
@@ -48,7 +50,7 @@ const { default: express } = await import('express');
 const shell = express(); shell.use(express.raw({ type: '*/*', limit: '1mb' }));
 shell.use('/assets', express.static(path.join(root, 'dist/assets')));
 shell.use(express.static(path.join(root, 'public')));
-shell.get('/', (_req, res) => res.type('html').send('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>KONEXA local workflow QA</title><link rel="stylesheet" href="/qa.css"></head><body style="margin:24px"><div id="root"></div><script type="module" src="/qa.js"></script></body></html>'));
+shell.get(['/', '/terms', '/privacy', '/project-terms'], (_req, res) => res.type('html').send('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>KONEXA local workflow QA</title><link rel="stylesheet" href="/qa.css"></head><body style="margin:24px"><div id="root"></div><script type="module" src="/qa.js"></script></body></html>'));
 shell.get('/qa.css', (_req, res) => {
   const assets = path.join(root, 'dist/assets');
   const css = existsSync(assets) ? readdirSync(assets).find(name => /^index-.*\.css$/.test(name)) : null;

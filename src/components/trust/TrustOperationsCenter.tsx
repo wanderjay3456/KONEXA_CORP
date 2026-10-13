@@ -1,15 +1,15 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  AlertTriangle, BriefcaseBusiness, Check, ChevronRight, CircleDollarSign, FileSignature,
+  AlertTriangle, Check, ChevronRight, CircleDollarSign, FileSignature,
   Fingerprint, Flag, LockKeyhole, RefreshCw, Scale, ShieldCheck, Star, UserRoundSearch,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { UserRole } from "../../types";
 import {
-  contactReleaseStages, contractDocuments, feePolicy, legalSources, platformBenefits, privacyNotice, providerPlan, riskRules,
+  contactReleaseStages, contractDocuments, legalSources, platformBenefits, privacyNotice, providerPlan, riskRules,
 } from "../../config/compliancePolicy";
 import {
-  createHiringOffer, createProjectContract, loadTrustSnapshot, recordConsent,
+  createProjectContract, loadTrustSnapshot, recordConsent,
   reportDispute, requestIntroduction, submitTransactionReview, type TrustSnapshot,
 } from "../../lib/trustOperations";
 import { useToast } from "../ui/Toast";
@@ -56,9 +56,6 @@ export default function TrustOperationsCenter({ initialSection = 'contracts' }: 
   const [existingRelationship, setExistingRelationship] = useState(false);
   const [selectedRelationship, setSelectedRelationship] = useState("");
   const [jobTitle, setJobTitle] = useState("");
-  const [salary, setSalary] = useState(0);
-  const [location, setLocation] = useState("");
-  const [managementFees, setManagementFees] = useState(0);
   const [scope, setScope] = useState("");
   const [excludedWork, setExcludedWork] = useState("");
   const [monthlyAmount, setMonthlyAmount] = useState(0);
@@ -104,10 +101,6 @@ export default function TrustOperationsCenter({ initialSection = 'contracts' }: 
   const signupConsent = snapshot.consents.some((item) => item.stage === "signup");
   const introductionConsent = snapshot.consents.some((item) => item.stage === "introduction");
   const privacyConsent = snapshot.consents.some((item) => item.stage === "message_analysis" || item.stage === "cross_border_privacy");
-  const quote = useMemo(() => {
-    const credit = Math.min(Math.round(managementFees * feePolicy.projectFeeCreditRate), feePolicy.projectFeeCreditCapKrw);
-    return { credit, total: Math.max(0, Math.round(salary * feePolicy.directHireRate) - credit) };
-  }, [salary, managementFees]);
 
   const requireSignedIn = () => {
     if (!currentUser || currentUser.email === "guest@konexa.dev") {
@@ -142,24 +135,6 @@ export default function TrustOperationsCenter({ initialSection = 'contracts' }: 
     }
   };
 
-  const handleOffer = async () => {
-    if (!selectedIntro) return error("소개 선택 필요", "먼저 소개 요청을 생성하거나 선택해 주세요.");
-    try {
-      const result = await createHiringOffer({
-        relationshipId: selectedIntro.id,
-        talentId: asText(selectedIntro.talentId),
-        jobTitle,
-        annualSalaryKrw: salary,
-        location,
-        employmentType: "정규직",
-        projectManagementFeesKrw: managementFees,
-      });
-      success("채용 제안 초안 저장", `예상 소개요금 ${won.format(result.quotedFee)}이 기록되었습니다. E-7은 사전 적합성 검토 항목으로만 표시됩니다.`);
-      await refresh();
-    } catch (cause) {
-      error("채용 제안 저장 실패", cause instanceof Error ? cause.message : "다시 시도해 주세요.");
-    }
-  };
 
   const handleContract = async () => {
     if (!selectedIntro) return error("소개 선택 필요", "먼저 소개 요청을 생성하거나 선택해 주세요.");
@@ -360,28 +335,7 @@ export default function TrustOperationsCenter({ initialSection = 'contracts' }: 
               </div>
             </section>
 
-            {activeRole === UserRole.COMPANY && (
-              <section className="grid gap-6 lg:grid-cols-2">
-                <div className="rounded-3xl border border-neutral-200 bg-white p-6">
-                  <div className="flex items-center gap-2"><BriefcaseBusiness className="h-5 w-5" /><h2 className="font-black">이 인재에게 채용 제안하기</h2></div>
-                  <div className="mt-4 space-y-3">
-                    <select value={selectedRelationship} onChange={(e) => setSelectedRelationship(e.target.value)} className="h-11 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-xs"><option value="">소개관계 선택</option>{snapshot.introductions.map((item) => <option key={item.id} value={item.id}>{asText(item.talentId)} · {asText(item.status)}</option>)}</select>
-                    <input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} className="h-11 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-xs" aria-label="직무" />
-                    <div className="grid grid-cols-2 gap-3"><input type="number" value={salary} onChange={(e) => setSalary(Number(e.target.value))} className="h-11 rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-xs" aria-label="연봉" /><input value={location} onChange={(e) => setLocation(e.target.value)} className="h-11 rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-xs" aria-label="근무지" /></div>
-                    <input type="number" value={managementFees} onChange={(e) => setManagementFees(Number(e.target.value))} className="h-11 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 text-xs" aria-label="기납부 프로젝트 관리수수료" placeholder="기납부 프로젝트 관리수수료" />
-                    <div className="rounded-2xl bg-neutral-50 p-4 text-xs"><div className="flex justify-between"><span className="text-neutral-500">기본 채용수수료(연봉 10%)</span><b>{won.format(Math.round(salary * feePolicy.directHireRate))}</b></div><div className="mt-2 flex justify-between"><span className="text-neutral-500">프로젝트 수수료 차감</span><b>-{won.format(quote.credit)}</b></div><div className="mt-3 flex justify-between border-t border-neutral-200 pt-3 text-sm"><span className="font-bold">예상 소개요금</span><b>{won.format(quote.total)}</b></div></div>
-                    <p className="text-[11px] leading-5 text-amber-700">E-7 직무·전공 사전 적합성만 점검하며 비자 발급을 보장하지 않습니다. 최종 검토는 행정사·출입국 전문가가 수행해야 합니다.</p>
-                    <button onClick={handleOffer} className="h-11 w-full rounded-xl bg-neutral-950 text-xs font-bold text-white">채용 제안 초안 저장</button>
-                  </div>
-                </div>
-
-                <div className="rounded-3xl border border-neutral-200 bg-white p-6">
-                  <div className="flex items-center gap-2"><CircleDollarSign className="h-5 w-5" /><h2 className="font-black">국내 PG/에스크로 상태</h2></div>
-                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-900"><b>{providerPlan.paymentOrchestration} 기본안</b><br />PG 후보: {providerPlan.pgEscrowCandidate}<br />프로젝트 대금은 월 100% 선결제하고 등록 PG/에스크로에서 보호합니다. KONEXA 데이터베이스에는 결제참조번호·상태·정산증빙만 저장합니다. 가맹점 계약이 완료되기 전에는 결제 완료로 처리하거나 연락처를 공개하지 않습니다.</div>
-                  <div className="mt-4 space-y-2 text-xs">{snapshot.payments.length ? snapshot.payments.map((item) => <div key={item.id} className="flex justify-between rounded-xl border border-neutral-200 p-3"><span>{asText(item.relationshipId)}</span><b>{asText(item.status)}</b></div>) : <p className="text-neutral-400">확인된 결제기록이 없습니다.</p>}</div>
-                </div>
-              </section>
-            )}
+            {activeRole === UserRole.COMPANY && <section className="rounded-xl border border-neutral-200 bg-white p-6"><div className="flex items-center gap-2"><CircleDollarSign className="h-5 w-5"/><h2 className="font-semibold">계약·결제 준비 상태</h2></div><p className="mt-4 text-sm leading-7 text-neutral-600">가격·통화·세금·수수료는 프로젝트별 서면 견적에 따릅니다. 현재 자동 수수료 견적·결제·에스크로는 제공하지 않습니다. 유료 거래 전에는 실제 계약 당사자와 지급 방식, 필요한 등록·신고 요건을 확인해야 합니다.</p><a href="/project-terms" target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-11 items-center text-sm text-blue-700 underline">계약·결제·환불 조건 읽기</a></section>}
           </div>
         )}
 
@@ -486,7 +440,7 @@ export default function TrustOperationsCenter({ initialSection = 'contracts' }: 
           <div className="space-y-6">
             <section className="grid gap-4 md:grid-cols-2">{contractDocuments.map((doc) => <div key={doc.title} className="rounded-3xl border border-neutral-200 bg-white p-5"><FileSignature className="h-5 w-5" /><h3 className="mt-3 font-black">{doc.title}</h3><p className="mt-2 text-xs leading-5 text-neutral-500">{doc.purpose}</p><ol className="mt-4 space-y-2">{doc.clauses.map((clause, index) => <li key={clause} className="flex gap-2 text-[11px] leading-5 text-neutral-600"><span className="font-mono font-black text-neutral-400">{index + 1}.</span><span>{clause}</span></li>)}</ol></div>)}</section>
             <section className="grid gap-6 lg:grid-cols-2">
-              <div className="rounded-3xl border border-neutral-200 bg-white p-6"><h2 className="font-black">전환수수료 운영기준</h2><div className="mt-4 space-y-3 text-xs leading-5 text-neutral-600"><p><b>프로젝트 진행 중</b> 플랫폼 외 거래 금지</p><p><b>종료 후 {feePolicy.conversionWindowMonths}개월</b> 정상 전환수수료 적용</p><p><b>직접채용</b> 연봉의 10%</p><p><b>프리랜서·용역</b> 6개월 계약금액의 15~20% 이내에서 실제 정상 수수료 기준</p><p><b>예외</b> 소개 전 기존 인연 증빙 및 독립 공개채용은 사실관계 검토</p><p className="rounded-xl bg-amber-50 p-3 text-amber-800">고정 벌금이나 학생 대상 거액 위약금 대신 기업이 원래 지급했어야 할 합리적 서비스 수수료를 정산하는 구조입니다. 최종 약관은 한국 변호사 검토가 필요합니다.</p></div></div>
+              <div className="rounded-3xl border border-neutral-200 bg-white p-6"><h2 className="font-black">프로젝트별 서면 조건</h2><p className="mt-4 text-sm leading-7 text-neutral-600">가격·통화·세금·수수료는 프로젝트별로 합의합니다. 과거의 고정 요율·전환 기간·90일 보증은 현재 기본 조건이 아닙니다. 계약과 결제 가능 여부를 확인한 뒤 착수하며, 미수행분 환불과 법정 권리를 우선합니다.</p><a className="mt-4 inline-flex min-h-11 items-center text-sm text-blue-700 underline" href="/project-terms" target="_blank" rel="noreferrer">계약·결제·환불 원문 읽기</a></div>
               <div className="rounded-3xl border border-neutral-200 bg-white p-6"><h2 className="font-black">플랫폼 안에서 제공되는 보호</h2><div className="mt-4 grid gap-2 sm:grid-cols-2">{platformBenefits.map((benefit) => <div key={benefit} className="flex gap-2 rounded-xl bg-neutral-50 p-3 text-xs leading-5 text-neutral-600"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />{benefit}</div>)}</div></div>
             </section>
             <section className="rounded-3xl border border-neutral-200 bg-white p-6"><h2 className="font-black">법적 근거와 검토 상태</h2><p className="mt-2 text-xs leading-5 text-neutral-500">사이트는 과도한 위약금, 비자 보장, 자체 에스크로 보관을 피하도록 설계되었습니다. 아래 자료는 운영 기준의 근거이며 계약서 확정 전 직업안정법상 등록·요금 기준과 개인정보 국외이전 구조를 변호사·노무사·행정사와 검토해야 합니다.</p><div className="mt-4 flex flex-wrap gap-2">{legalSources.map((source) => <a key={source.label} href={source.href} target="_blank" rel="noreferrer" className="rounded-full border border-neutral-200 px-3 py-2 text-[11px] font-bold hover:bg-neutral-50">{source.label}</a>)}</div></section>

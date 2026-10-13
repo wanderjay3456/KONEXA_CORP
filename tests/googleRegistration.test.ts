@@ -34,3 +34,17 @@ test('wrong-role completion is not treated as success', async () => {
 test('non-JSON server failure keeps an actionable status rather than exposing HTML', async () => {
   await assert.rejects(submitGoogleRegistration('student', {}, {}, (async () => new Response('<html>upstream unavailable</html>', { status: 503 })) as typeof fetch), (error: unknown) => error instanceof GoogleRegistrationError && error.status === 503 && !error.message.includes('<html>'));
 });
+
+test('public signup API rejects missing, false or non-boolean adult declarations before database access', async () => {
+ const {default: express} = await import('express');
+ const {registerBackendV2PublicRoutes} = await import('../src/server/backendV2');
+ const app=express();app.use(express.json());registerBackendV2PublicRoutes(app);
+ const server=app.listen(0,'127.0.0.1');await new Promise<void>(resolve=>server.once('listening',resolve));
+ const port=(server.address() as {port:number}).port;
+ try {
+  for(const adultParticipation of [undefined,false,'true']) {
+   const response=await fetch(`http://127.0.0.1:${port}/api/auth/google-registration-intents`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:'student',consents:{terms:true,nonCircumvention:true,messageAnalysis:true,crossBorderPrivacy:true,documentVersion:'2026-07-27',adultParticipation}})});
+   assert.equal(response.status,400);assert.equal((await response.json()).error.code,'ADULT_PARTICIPATION_REQUIRED');
+  }
+ } finally {server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));}
+});

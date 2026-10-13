@@ -1,6 +1,6 @@
 import { addDoc, collection, getDocs, query, where } from "./supabaseStore";
 import { auth, db } from "./supabaseAuth";
-import { COMPLIANCE_VERSION, feePolicy } from "../config/compliancePolicy";
+import { COMPLIANCE_VERSION } from "../config/compliancePolicy";
 
 export interface TrustRecord {
   id: string;
@@ -239,38 +239,6 @@ export async function requestIntroduction(input: { talentId: string; projectId?:
     "relationship",
   );
   return relationship.id;
-}
-
-export async function createHiringOffer(input: {
-  relationshipId: string;
-  talentId: string;
-  jobTitle: string;
-  annualSalaryKrw: number;
-  location: string;
-  employmentType: string;
-  projectManagementFeesKrw: number;
-}) {
-  const user = requireUser();
-  const credit = Math.min(Math.round(input.projectManagementFeesKrw * feePolicy.projectFeeCreditRate), feePolicy.projectFeeCreditCapKrw);
-  const quotedFee = Math.max(0, Math.round(input.annualSalaryKrw * feePolicy.directHireRate) - credit);
-  const offer = await addDoc(collection(db, "hiring_offers"), {
-    userId: user.uid,
-    companyId: user.uid,
-    talentId: input.talentId,
-    relationshipId: input.relationshipId,
-    jobTitle: input.jobTitle,
-    annualSalaryKrw: input.annualSalaryKrw,
-    location: input.location,
-    employmentType: input.employmentType,
-    visaAssessment: "precheck_required",
-    visaDisclaimer: "E-7 발급을 보장하지 않으며 행정사·출입국 전문가의 최종 검토가 필요합니다.",
-    baseFeeRate: feePolicy.directHireRate,
-    projectCreditKrw: credit,
-    quotedFeeKrw: quotedFee,
-    status: "draft",
-    createdAt: Date.now(),
-  });
-  return { id: offer.id, quotedFee, credit };
 }
 
 export async function createProjectContract(input: {

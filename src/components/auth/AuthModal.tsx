@@ -14,7 +14,7 @@ interface AuthModalProps {
     onSwitchToRegister: (role: UserRole) => void;
 }
 const inputClass = "h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base text-neutral-900 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 disabled:bg-neutral-100";
-const primaryClass = "flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#284e44] disabled:cursor-wait disabled:opacity-60";
+const primaryClass = "flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#20211f] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#284e44] disabled:cursor-wait disabled:opacity-60";
 export default function AuthModal({ isOpen, onClose, onSuccess, initialTab = "login", onSwitchToRegister }: AuthModalProps) {
     const { loginUser, googleLogin, resetPassword } = useApp();
     const { locale, setLocale } = useLocale();

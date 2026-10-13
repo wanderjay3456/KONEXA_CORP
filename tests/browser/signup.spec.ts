@@ -1,16 +1,21 @@
 import { test, expect } from '@playwright/test';
 import { student, company } from './ids';
 
-for (const role of ['student', 'company'] as const) {
-  test(`${role}: consent completes signup without admin approval and partial profile survives reload`, async ({ page, request }) => {
+for (const scenario of [
+  { role: 'student', country: 'Vietnam' },
+  { role: 'company', country: 'South Korea' },
+  { role: 'company', country: 'United Kingdom' },
+] as const) {
+  const { role, country } = scenario;
+  test(`${role} (${country}): consent completes signup without admin approval and partial profile survives reload`, async ({ page, request }) => {
     const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
     expect((await request.post('/__qa/signup/reset', { data: {}, headers: { 'x-test-actor': role === 'company' ? company : student } })).ok()).toBeTruthy();
     await page.goto(`/?signup=1&role=${role}&locale=en`);
     await expect(page.getByText('sign up without admin approval', { exact: false })).toBeVisible();
     await page.getByRole('button', { name: 'Finish sign-up and complete profile' }).click();
-    await expect(page.getByRole('alert')).toHaveText('Please accept all three required agreements.');
+    await expect(page.getByRole('alert')).toHaveText('Please accept all required agreements.');
     for (const box of await page.getByRole('checkbox').all()) await expect(box).not.toBeChecked();
-    for (let index = 0; index < 3; index++) await page.getByRole('checkbox').nth(index).check();
+    for (let index = 0; index < (role === 'student' ? 5 : 4); index++) await page.getByRole('checkbox').nth(index).check();
     await page.getByRole('button', { name: 'Finish sign-up and complete profile' }).click();
     await expect(page.getByText('You are signed up—no admin approval needed.', { exact: false })).toBeVisible();
     const label = role === 'student' ? 'Full name' : 'Company name';
@@ -23,7 +28,7 @@ for (const role of ['student', 'company'] as const) {
     const details: Record<string, string> = role === 'student' ? {
       nationality: 'Vietnam', currentCountry: 'Vietnam', timezone: 'Asia/Ho_Chi_Minh', university: 'QA University', degree: 'Bachelor', major: 'Marketing', graduationYear: '2027',
     } : {
-      businessRegistrationNumber: 'QA-TEST-ONLY', country: 'South Korea', industry: 'Technology', companySize: '1-10', website: 'https://example.invalid', officeLocation: 'QA location',
+      businessRegistrationNumber: 'QA-TEST-ONLY', country, industry: 'Technology', companySize: '1-10', website: 'https://example.invalid', officeLocation: 'QA location',
     };
     for (const [key, value] of Object.entries(details)) await page.locator(`#profile-${key}`).fill(value);
     await page.getByRole('button', { name: 'Save and continue', exact: true }).click();
@@ -55,12 +60,23 @@ for (const role of ['student', 'company'] as const) {
 test('transient signup failure keeps consent choices and succeeds on retry', async ({ page, request }) => {
   expect((await request.post('/__qa/signup/reset', { data: {}, headers: { 'x-test-actor': student } })).ok()).toBeTruthy();
   await page.goto('/?signup=1&locale=ko');
-  for (let index = 0; index < 3; index++) await page.getByRole('checkbox').nth(index).check();
+  for (let index = 0; index < 5; index++) await page.getByRole('checkbox').nth(index).check();
   await page.route('**/api/auth/google-registration-complete', route => route.fulfill({ status: 500, json: { error: { code: 'BACKEND_ERROR', message: 'Google registration could not be completed.' } } }), { times: 1 });
   await page.getByRole('button', { name: '가입 완료하고 프로필 작성' }).click();
   await expect(page.getByRole('alert')).toContainText('재가입할 필요는 없습니다.');
-  for (let index = 0; index < 3; index++) await expect(page.getByRole('checkbox').nth(index)).toBeChecked();
-  await expect(page.getByRole('checkbox').nth(3)).not.toBeChecked();
+  for (let index = 0; index < 5; index++) await expect(page.getByRole('checkbox').nth(index)).toBeChecked();
+  await expect(page.getByRole('checkbox').nth(5)).not.toBeChecked();
   await page.getByRole('button', { name: '가입 완료하고 프로필 작성' }).click();
   await expect(page.getByRole('button', { name: '임시저장', exact: true })).toBeVisible();
+});
+
+test('talent age declaration is required before the Google signup completion request', async ({page,request}) => {
+ expect((await request.post('/__qa/signup/reset',{data:{},headers:{'x-test-actor':student}})).ok()).toBeTruthy();
+ await page.goto('/?signup=1&role=student&locale=en');
+ let requests = 0; page.on('request', r => {if(r.url().includes('google-registration-intents')) requests++;});
+ for(let i=1;i<=4;i++) await page.getByRole('checkbox').nth(i).check();
+ await page.getByRole('button',{name:'Finish sign-up and complete profile'}).click();
+ await expect(page.getByRole('alert')).toContainText('at least 18');
+ expect(requests).toBe(0);
+ await expect(page.getByRole('checkbox').first()).not.toBeChecked();
 });

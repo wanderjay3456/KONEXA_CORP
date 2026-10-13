@@ -1,106 +1,161 @@
+export const POLICY_VERSION = "2026-10-12";
+export const SIGNUP_CONSENT_VERSION = '2026-10-12-rules-pilot';
+export const signupTransferNotice = (locale: string): string[] => locale === 'ko' ? [
+    '계정·프로필·파일과 인증 정보는 Supabase 서울에 저장됩니다. 미국 Supabase Inc.와 싱가포르 Supabase Pte. Ltd.(privacy@supabase.io)의 지원, 유럽 로그 및 글로벌 CDN 처리가 별도로 발생할 수 있습니다.',
+    '무료 이전 서버는 Render Services, Inc.(미국, privacy@render.com)의 싱가포르 서버에 있습니다. 가입·프로필·파일 요청을 서버가 처리하며 기술 로그의 공급사 보유기간은 7일입니다. 현재 미리보기에서는 회원 서비스가 차단되어 있습니다.',
+    '계정 확인·로그인·알림 메일의 수신 주소, 인증 링크, 내용과 발송 기록은 Resend로 전달됩니다. 현재 발송 지역은 일본 도쿄이며 저장 지역은 미국입니다. 이메일·로그는 30일, 백업은 7일 보관합니다. 외부 생성형 AI를 통한 이력서 분석은 꺼져 있습니다. 공급업체의 보안·스팸 검사는 별도 처리입니다.',
+    '이전 시점은 해당 계정·서비스 요청 시이며 전송은 암호화된 네트워크를 사용합니다. 동의를 거부하면 계정 서비스를 이용하기 어렵지만 이메일 상담은 가능합니다. 철회·정정·삭제 문의: konexa.corp@gmail.com. 수탁자의 상세 지원·로그 처리 국가가 미확정이므로 현재 고지는 정식 가입 활성화를 위한 완결된 동의문이 아닙니다.',
+] : [
+    'Accounts, profiles, files and authentication data are stored in Supabase Seoul. Support by US Supabase Inc. and Singapore Supabase Pte. Ltd. (privacy@supabase.io), European logs and global CDN processing may also apply.',
+    'The free migration server runs in Singapore through Render Services, Inc. (United States; privacy@render.com). It handles account, profile and file requests; supplier technical logs are retained for seven days. Member services are currently blocked in this preview.',
+    'Resend receives email addresses, authentication links, message content and delivery records for account confirmation, sign-in and notifications. The current sending region is Tokyo, Japan; stored data is held in the United States. Emails and logs are retained for 30 days, and backups for seven days. External generative AI resume analysis is disabled. Supplier security and spam screening are separate processing.',
+    'Transfers occur when you make the relevant account or service request, over encrypted networks. Refusing consent prevents account-service use; email enquiries remain available. For withdrawal, correction or deletion, contact konexa.corp@gmail.com. Detailed supplier support and log-processing countries remain unconfirmed, so this notice is not a complete consent for activating registration.',
+];
+// The public review edition is not silently substituted for a signed agreement.
 export const COMPLIANCE_VERSION = "2026-07-15";
-
+export type PolicyKey = "terms" | "privacy" | "project-terms";
+interface PolicyDocument {
+    title: string;
+    summary: string;
+    notice: string;
+    sections: Array<{
+        title: string;
+        paragraphs: string[];
+        items?: string[];
+    }>;
+}
+export const publicPolicies: Record<"ko" | "en", Record<PolicyKey, PolicyDocument>> = {
+    ko: {
+        terms: {
+            title: "이용약관",
+            summary: "KONEXA의 초기 서비스 범위와 회원의 권리·책임을 안내합니다. 가입만으로 유료 프로젝트 계약이 체결되지는 않습니다.",
+            notice: "이 문서는 공개 검토본입니다. 운영자와 파일럿 기본 조건은 확정했지만, 가입 동의문·국외이전 상세 고지와 실제 처리 흐름의 일치 여부를 확인한 뒤 정식 시행일을 별도로 공지합니다. 기존 회원의 동의를 이 문서에 대한 동의로 간주하지 않습니다.",
+            sections: [
+                { title: "운영자와 적용 범위", paragraphs: ["KONEXA는 대한민국을 운영·계약 기준 국가로 하는 예비창업 프로젝트입니다. 운영 및 상담 담당자는 유재영 개인이며, 현재 등록된 법인이나 개인사업자라고 표시하지 않습니다. 연락처는 konexa.corp@gmail.com입니다.", "이 약관은 웹사이트의 계정·프로필·상담 및 프로젝트 운영 지원에 적용합니다. 유료 업무에는 당사자·범위·대금·일정이 명시된 별도 서면 계약이 필요합니다. 그 계약과 이 약관이 충돌하면 해당 거래의 개별 합의를 우선하되 강행법규와 법정 권리를 제한하지 않습니다."] },
+                { title: "서비스 범위", paragraphs: ["KONEXA는 업무 범위 정리, 적합한 인재 연결, 진행 점검과 결과 기록을 지원합니다. 구체적인 지원 범위와 담당자의 참여 가능 여부는 프로젝트마다 확인합니다.", "계정 생성이나 프로필 등록이 프로젝트 배정, 특정 수입 또는 채용을 의미하지는 않습니다. 최종 채용 여부는 기업이 결정합니다. 고용주 대행, 급여·비자 대행, 자금 보관 및 에스크로는 현재 파일럿에 포함되지 않습니다."] },
+                { title: "가입과 참여", paragraphs: ["인재 참여는 만 18세 이상으로 제한합니다. 연령 확인 체크는 본인의 진술이며 신분증을 통한 연령 검증을 뜻하지 않습니다. 기업 회원은 해당 기업을 대표하거나 계정을 운영할 권한이 있어야 합니다.", "국가 제한 없이 문의할 수 있으나 업무 내용, 소통 언어, 계약 및 결제 가능 여부를 개별 검토합니다. 회원은 정확한 정보를 제공하고 계정 접근 정보를 보호하며, 도용이 의심되면 운영자에게 알립니다."] },
+                { title: "회원의 의무와 이용 제한", paragraphs: ["허위 경력·사업자 정보, 타인 계정 이용, 권리 침해, 불법 업무 의뢰, 괴롭힘, 평가 조작과 악성 코드 배포를 금지합니다. 기업 자료와 상대방의 개인정보는 합의한 업무 목적에 필요한 범위에서만 처리합니다.", "KONEXA는 구체적인 위반 또는 보안 문제가 확인된 경우 사유와 범위를 알리고 해당 기능을 제한할 수 있습니다. 긴급 보안 조치 후에는 가능한 한 신속히 사유를 안내합니다. 회원은 이메일로 소명하거나 이의를 제기할 수 있습니다."] },
+                { title: "소개와 별도 계약", paragraphs: ["소개·연락처 공유 범위는 당사자의 동의와 프로젝트 조건에 따라 정합니다. 소개만으로 플랫폼 외 거래 금지, 12개월 전환 수수료 또는 연봉에 비례한 요금이 자동 발생하지 않습니다.", "소개 요금이나 채용 전환 조건을 적용하려면 관련 업무를 적법하게 제공할 수 있는지 먼저 확인하고, 적용 대상·요율·예외·기간을 별도 서면으로 합의해야 합니다. 과거 사업계획서의 고정 요율이나 90일 보증은 현재 기본 조건이 아닙니다."] },
+                { title: "결과물·기밀·기록", paragraphs: ["작업 전부터 보유한 자료와 새로 제작한 결과물의 권리는 구분합니다. 이전되는 권리, 이전 시점, 사용 허락, 오픈소스·외부 자료·AI 사용 범위는 프로젝트 계약에 명시합니다. 포트폴리오 공개는 상대방의 기밀과 저작권을 침해하지 않아야 하며 별도 허락을 받습니다.", "성과 기록에는 실제로 제출·검토한 결과와 확인 가능한 근거만 반영합니다. 기록이 학력·자격·신원 인증이나 특정 고용 결과를 보증하지 않습니다. 오류가 있으면 정정과 이의를 요청할 수 있습니다."] },
+                { title: "탈퇴·서비스 변경·책임", paragraphs: ["탈퇴와 계정·프로필 삭제는 이메일로 요청할 수 있습니다. 진행 중인 계약, 정당한 분쟁 또는 법정 보관 의무가 있으면 필요한 기록만 목적과 기간을 설명하고 별도 보관합니다.", "서비스 중단이나 중요한 변경은 웹사이트 또는 등록된 연락처로 안내합니다. 책임은 실제 역할, 귀책사유와 적용 법령에 따라 판단합니다. 법정 권리, 고의·중과실에 대한 책임을 포괄적으로 배제하지 않습니다."] },
+                { title: "분쟁과 약관 변경", paragraphs: ["분쟁 발생 시 계약·범위·검토 의견·지급 기록을 바탕으로 먼저 협의합니다. 운영자의 검토는 법원의 판단이나 법정 구제 절차를 대신하지 않습니다. 대한민국 법령을 기준으로 작성하되 이용자에게 적용되는 강행법규를 배제하지 않으며, 관할은 법령과 적법한 개별 합의에 따릅니다.", "중요한 약관 변경은 적용 전에 변경 내용과 시행일을 안내합니다. 별도 동의가 필요한 변경은 다시 동의를 받으며 소급하여 유료 의무를 부과하지 않습니다."] },
+            ],
+        },
+        privacy: {
+            title: "개인정보처리방침",
+            summary: "어떤 정보를 왜 처리하는지, 얼마나 보관하는지, 정정·삭제를 어떻게 요청하는지 설명합니다.",
+            notice: "공개 검토본입니다. Supabase 서울 저장과 Resend 알림 처리·보관 조건을 확인했고 공개 파일럿의 외부 AI는 비활성화했습니다. Render 무료 미리보기의 싱가포르 실행 지역을 확인했습니다. 수탁자별 상세 국가와 운영 전환 조건을 확인한 뒤 시행일을 공지합니다. 기존 회원의 동의를 자동 변경하지 않습니다.",
+            sections: [
+                { title: "현재 확인된 처리·보관 경로", paragraphs: ["외부 생성형 AI는 공개 파일럿에서 비활성화합니다. 이력서 PDF는 서버에서 텍스트를 추출하고, 기재 역량과 업무 조건은 규칙으로 분류·비교합니다. 결과는 자기 기재 정보의 일치도이며 채용 확률이나 실력 인증이 아닙니다. 정정 및 사람의 재검토를 요청할 수 있습니다.", "Supabase 프로젝트의 데이터베이스·인증·파일 저장 위치는 서울(ap-northeast-2)입니다. Marketplace 계약 경로의 Supabase Inc.(미국), 지원 경로의 Supabase Pte. Ltd.(싱가포르), 유럽 로그 및 글로벌 CDN 처리가 별도로 발생할 수 있습니다. 서울 저장만으로 국외 처리가 없다고 주장하지 않습니다. 프로젝트 삭제 시 공급사 고객 데이터 삭제 기준은 30일 이내이며, 개인 회원 탈퇴와 프로젝트 전체 삭제는 다릅니다.", "알림·인증 이메일의 수탁자는 Plus Five Five, Inc.(Resend, 미국, support@resend.com)입니다. 대시보드에서 auth.konexa.co.kr의 발송 지역을 일본 도쿄(ap-northeast-1)로 확인했으며, Resend의 저장 지역은 미국입니다. 수신 이메일·알림 내용·발송 기록을 서비스 알림 목적으로 HTTPS 전송합니다. 이메일·로그는 30일, 백업은 7일 보관합니다. 서비스 종료 후 잔여 고객 데이터의 공급사 삭제 기준은 90일 이내입니다. 현재 Supabase 인증 이메일 설정에서 사용자 정의 SMTP 사용, smtp.resend.com, 포트 587을 확인했습니다. 실제 인증 이메일의 Resend 서명과 AWS 전달 헤더도 확인했습니다. Supabase에서 Resend로 전달되는 수신 주소와 인증 링크·메일 내용은 계정 확인·로그인·비밀번호 재설정 목적에 사용됩니다.", "기존 운영 웹/API는 Vercel 구성입니다. 무료 Render 이전 미리보기는 싱가포르 실행 지역에 배포했으며 실제 회원 데이터 처리와 가입을 차단했습니다. 공개 페이지 요청의 IP·시각·오류 같은 기술 정보는 호스팅 처리 대상일 수 있습니다. Render의 공개 하위수탁자 목록은 AWS·GCP·Cloudflare·ClickHouse(법인 소재 국가 미국)입니다. 법인 국가가 모든 물리적 처리 지역을 뜻하지는 않습니다. Render 작업 공간은 Hobby, 서버는 Free, 등록된 결제 카드는 없고 확인 시점의 청구액은 0달러입니다. 공식 Hobby 로그 보유기간은 7일입니다. 개인정보 반환·삭제는 공급사 DPA에 따른 서면 요청 및 법정 예외 기준을 따르며 임의의 즉시 삭제 기한을 약속하지 않습니다. 실제 하위 처리국의 범위와 신규 동의 적용을 확인하기 전 운영 이전이 완료됐다고 표시하지 않습니다. 거부·철회·정정·삭제 요청은 konexa.corp@gmail.com으로 접수하며 계정 서비스 대신 이메일 상담을 이용할 수 있습니다."] },
+                { title: "처리자와 권리 행사 창구", paragraphs: ["개인정보 처리 및 문의 담당자는 대한민국 기준으로 KONEXA를 준비하는 유재영 개인입니다. 열람·정정·삭제·처리정지·동의 철회와 계정 탈퇴는 konexa.corp@gmail.com으로 요청할 수 있습니다.", "권리 행사에 필요한 최소한의 본인 확인 후 적용 법령의 기한에 따라 처리 결과를 안내합니다. 요청을 제한하거나 기록을 계속 보관해야 하는 경우 근거·범위·기간과 이의 제기 방법을 설명합니다. 신분증이나 비밀번호를 일반 상담 이메일로 보내지 마세요."] },
+                { title: "처리 항목과 목적", paragraphs: ["문의와 가입, 프로필 입력, 업무 진행, 파일 제출 및 기능 이용 과정에서 필요한 정보를 직접 제공받거나 생성합니다. 목적에 맞는 최소 정보만 요청하며 선택 정보는 제공하지 않아도 기본 상담이 가능합니다."], items: ["상담: 이름·연락처, 소속, 업무 내용·결과물·일정·예산. 문의 응답과 파일럿 적합성 검토에 사용합니다.", "계정: 이메일, 인증 식별자, 계정 유형, 가입·동의 이력과 인재의 성인 참여 확인. 계정 인증과 이용 관리에 사용합니다. 비밀번호는 인증 서비스가 처리하며 운영자에게 원문으로 제공하지 않습니다.", "프로필: 기업명·소재 국가·담당자·사업 정보 또는 인재의 기술·언어·시간·작업 사례·학력 정보. 매칭 및 프로필 관리에 사용합니다. 이력서·증빙·영상 파일에는 추가 개인정보가 포함될 수 있습니다.", "업무 기록: 메시지, 제출 파일, 계약·변경·검토·분쟁·성과 기록. 협업 지원과 합의 확인에 사용합니다.", "기술·안전 기록: 접속 시각, IP·요청 정보, 오류 및 연락처 패턴 탐지 기록. 기능 제공, 장애 대응과 보안에 사용합니다.", "규칙 기반 검토: 기재된 역량·희망 직무·업무 조건과 PDF 텍스트의 역량 근거. 분류·조건 비교 및 산정 내역에 사용하며 외부 AI 모델에 전달하지 않습니다. 기밀·민감정보·고유식별정보를 입력하지 마세요."] },
+                { title: "처리 근거와 선택권", paragraphs: ["상담 응답·계정·합의된 업무에 필요한 처리는 동의, 계약 체결 전 요청 또는 이행, 법령상 의무 등 해당 처리에 적용되는 적법한 근거에 따라 수행합니다. 필요한 정보를 제공하지 않으면 해당 기능을 제공하기 어려울 수 있으며 그 영향을 수집 화면에 안내합니다.", "마케팅은 별도 선택 동의를 받은 경우에만 수행하며 철회할 수 있습니다. 프로필의 선택 항목, AI 기능, 제3자 제공과 국외이전에 별도 동의가 필요한 경우 각각 목적·항목·기간 및 거부 시 영향을 먼저 알립니다. 이용약관 확인이 국외이전이나 AI 학습에 대한 포괄 동의를 대신하지 않습니다."] },
+                { title: "보유 기간과 파기", paragraphs: ["아래 기간은 운영자가 준수할 보유 기준입니다. 자동 삭제가 이미 구현되었다는 의미는 아니며, 요청 처리와 정기 점검을 통해 이행해야 합니다.", "보관 목적이 끝나면 전자파일은 복구하기 어렵게 삭제하고 종이 기록은 분쇄합니다. 법령상 보관이나 진행 중인 분쟁에 필요한 기록은 일반 이용 데이터에서 분리해 접근을 제한합니다. 서비스 공급업체의 백업 잔존 기간은 공개 전 확인 대상이며 즉시 백업에서 완전히 지워진다고 약속하지 않습니다."], items: ["상담 기록: 상담 종료 후 90일. 계약으로 전환된 자료는 해당 계약 기록 기준으로 관리합니다.", "계정·프로필 및 일반 이용 데이터: 탈퇴까지. 탈퇴 후 일반 데이터는 30일 이내 삭제합니다.", "보안·오류 기록: 생성 후 최대 90일. 구체적인 사고 조사에 필요한 기록은 사유와 기간을 별도 안내합니다.", "계약·결제 기록: 해당 거래에 적용되는 법령상 의무 기간. 대한민국 전자상거래법상 보존 의무가 적용되는 경우 계약·청약철회와 대금결제·공급 기록 5년, 소비자 불만·분쟁 기록 3년, 표시·광고 기록 6개월을 해당 범위에서 분리 보관합니다."] },
+                { title: "제공·위탁·국외이전 확인 현황", paragraphs: ["업무 상대방에게 정보를 제공할 때는 제공받는 자, 목적, 항목, 기간 및 적법한 근거를 확인합니다. 공개 프로필과 비공개 증빙의 공개 범위는 구분하고, 자료를 다른 목적으로 판매하거나 공개하지 않습니다.", "현재 확인된 공급업체와 보관 경로는 위 상세 항목을 참조하세요. 결제·전자서명 공급업체를 활성 수탁자로 표시하지 않습니다.", "서울 리전만으로 해외 지원 인력이나 공급업체의 국외 접근이 없다고 판단하지 않습니다. 서비스 활성화 전에 수탁자 정식명칭·연락처, 이전 국가, 이전 항목·목적·시점·방법, 보유 기간, 법적 근거, 거부 방법과 영향을 실제 구성에 맞게 확정해 공개합니다. 미확정 내역을 임의로 국가명이나 기간으로 채우지 않습니다."] },
+                { title: "메시지 안전 분석과 AI", paragraphs: ["메시지의 전화번호·이메일·일부 SNS 식별자 패턴을 탐지하는 안전 기능과 생성형 AI 기능은 구분합니다. 패턴 위험 기록에는 메시지 원문 대신 탐지 종류와 관련 기록 ID를 남기는 구조이며 원래 협업 메시지 저장과는 별개입니다.", "외부 생성형 AI 분석은 비활성화했지만, Resend는 일부 이메일을 자체 운영하는 RunPod 인프라에서 보안·스팸 검사할 수 있다고 고지합니다. 일반 Emails API 발송은 Anthropic에 보내지 않으며 공급사는 고객 콘텐츠를 모델 학습에 사용하지 않는다고 설명합니다. 이는 KONEXA의 이력서 분석과 다른 처리입니다. AI의 입력·맥락·생성 결과, 실제 공급업체, 국외 처리, 요금제에 따른 학습 이용 및 거부 방법은 해당 기능 공개 전에 확인해 안내합니다. AI 결과만으로 채용·계정 제재·분쟁 결과를 확정하지 않습니다. 오류나 불공정한 결과는 운영자에게 정정·검토를 요청할 수 있습니다."] },
+                { title: "저장 장치와 보호 조치", paragraphs: ["언어 설정과 로그인 유지에 브라우저 저장소·인증 기술을 사용합니다. 브라우저 설정에서 삭제할 수 있으나 로그인 유지나 설정 저장이 제한될 수 있습니다. 별도 광고 추적 기능을 도입하면 목적과 선택권을 추가로 안내합니다.", "인증, 역할별 접근 제어, 비공개 파일 저장 및 제한된 유효시간의 파일 링크를 사용하도록 구성되어 있습니다. 이러한 구성만으로 모든 보안 조치의 실제 운영이 검증된 것은 아닙니다. 실제 권한·로그·백업·삭제 절차를 정기 점검하고 유출이 확인되면 적용 법령에 따라 통지·신고합니다."] },
+                { title: "구제와 변경 안내", paragraphs: ["개인정보 침해 신고·상담은 개인정보침해신고센터(privacy.kisa.or.kr), 분쟁조정은 개인정보분쟁조정위원회(kopico.go.kr)를 통해 신청할 수 있습니다. 이용자에게 적용되는 다른 법정 구제 절차도 제한하지 않습니다.", "처리 항목·목적·제공받는 자 또는 권리 행사에 중요한 변경이 있으면 개정 내용과 시행일을 사전에 안내하고 필요한 동의를 다시 받습니다. 이 문서의 개정일은 정식 시행일과 구분합니다."] },
+            ],
+        },
+        "project-terms": {
+            title: "계약·결제·환불 조건",
+            summary: "시작하기 전에 합의할 조건과 취소 시 정산 원칙입니다. 홈페이지에서 자동 결제되거나 유료 계약이 성립하지 않습니다.",
+            notice: "유재영이 확정한 파일럿 기본 원칙을 반영한 공개 검토본입니다. 실제 유료 거래 전에는 서비스 제공의 법적 요건, 계약 당사자 정보, 지급·세금 처리와 선택한 결제 수단을 확인하고 프로젝트별 계약을 체결합니다. 아직 결제나 에스크로 서비스를 활성화했다는 뜻은 아닙니다.",
+            sections: [
+                { title: "계약이 성립하는 시점", paragraphs: ["상담, 회원가입, 인재 소개 또는 웹사이트의 확인 버튼만으로 유료 계약이 체결되지는 않습니다. 기업·인재·KONEXA가 맡을 역할과 계약 당사자를 명확히 적고, 해당 당사자가 프로젝트별 서면 조건에 동의해야 합니다.", "실제 계약에는 각 당사자의 성명 또는 정식 상호·연락처·통지 주소 및 필요한 법적 정보를 기재합니다. KONEXA는 현재 유재영 개인의 예비창업 프로젝트이며 법인·등록 사업자로 서명하지 않습니다. 법령상 등록·신고 등 필요한 요건을 충족하기 전에는 해당 서비스를 판매하지 않습니다."] },
+                { title: "반드시 정할 내용", paragraphs: ["작업을 시작하기 전에 다음 내용을 견적·업무 명세와 계약에 함께 확정합니다. 정하지 않은 추가 업무나 비용은 일방적으로 부과하지 않습니다."], items: ["당사자별 역할, 포함·제외 업무, 결과물 형식·수량과 전달 방법", "일정·체크포인트, 참여 시간, 기업 자료 제공 기한과 지연 시 일정 조정", "가격·통화·세금·송금 및 결제 수수료, 지급 대상·수단·기한", "검수 기준·기간, 수정 범위·횟수, 결함 수정과 범위 변경의 구분", "기밀·개인정보·접근 권한, 외부 자료·AI·오픈소스 사용과 지식재산권", "취소·중도 종료·인수인계·환불과 분쟁·통지 절차"] },
+                { title: "가격과 결제", paragraphs: ["가격은 프로젝트별 서면 견적으로 정합니다. 통화, 세금 포함 여부와 양측의 은행·결제·환전 수수료 부담을 계약 전에 안내합니다. 연봉 10%, 15~20% 전환 수수료, 100% 선결제 같은 과거 계획의 숫자가 자동 적용되지 않습니다.", "계약과 결제 가능 여부를 확인한 뒤 착수합니다. 선금·마일스톤·후불 여부, 대금 확보 확인 기준 및 인재 정산일은 해당 계약에 명시합니다. 현재 홈페이지에서는 카드 결제·자동 청구·에스크로를 제공하지 않으며, 사이트의 기록이 실제 송금·자금 보관·정산을 대신하지 않습니다."] },
+                { title: "검수와 범위 변경", paragraphs: ["기업은 합의된 기간에 구체적인 검수 기준과 근거를 제시합니다. 인재는 합의 범위의 수정과 인수인계에 대응합니다. 답변이 없다는 이유만으로 자동 수락하거나 임의의 전액 환불 불가 조건을 적용하지 않습니다.", "추가 업무, 결과물 수량 또는 일정을 바꾸려면 변경 내용과 비용을 서면으로 합의한 후 진행합니다. 기업 자료 지연이나 불가피한 중단에 따른 일정 변경도 당사자에게 알리고 합의합니다."] },
+                { title: "취소와 환불", paragraphs: ["착수 전 취소는 이미 지급한 대금을 전액 환불합니다. 착수 여부와 날짜를 계약 기록에서 확인할 수 있도록 정합니다.", "착수 후 취소는 합의된 검수 기준에 따라 수락된 작업의 대금과 사전에 승인한 회수 불가능한 실비만 정산합니다. 수행하지 않은 부분은 환불합니다. 예를 들어 총 3개 결과물 중 1개만 수락했다면, 그 1개의 합의 대금과 승인된 실비를 제외한 금액을 돌려주는 방식입니다. 수락하지 않은 작업의 품질·범위에 다툼이 있으면 근거를 확인하며 운영자 판단만으로 대금을 확정하지 않습니다.", "환불 요청은 프로젝트명·취소 사유·관련 검수 기록을 첨부해 konexa.corp@gmail.com으로 접수합니다. 반환 금액·근거·수단·예정일을 서면으로 안내하고, 적용 법령상 환급 기한을 준수합니다. 법정 청약철회·환불 권리는 이 원칙보다 우선합니다. 사전 승인 실비 조건도 법정 권리를 제한하는 근거로 사용하지 않습니다."] },
+                { title: "결과물 권리와 종료", paragraphs: ["새 결과물에 대한 권리 이전과 대금 지급의 관계는 계약에 명시합니다. 기존 자료·외부 라이선스·오픈소스는 자동 이전 대상에서 제외하고 목록과 사용 조건을 전달합니다. 대금 분쟁 중에도 기업 기밀이나 개인정보를 임의 공개하지 않습니다.", "종료 시 합의된 결과물과 작업 기록을 인계하고, 필요 없는 접근 권한과 업무 자료 사본을 회수·삭제합니다. 성과 공개와 포트폴리오 사용은 별도로 허락받습니다."] },
+                { title: "분쟁·채용 전환", paragraphs: ["분쟁 시 합의한 범위, 제출 버전, 검토 의견, 수락·지급 기록을 모아 당사자가 먼저 협의합니다. KONEXA는 기록 정리와 소통을 지원하며 일방적으로 법적 책임이나 강제 환불을 결정하는 기관이 아닙니다.", "프로젝트 이후 채용·후속 용역은 별도 계약입니다. 90일 채용 보증, 재추천 크레딧 또는 고정 전환 요금은 현재 기본 제공 조건이 아닙니다. 필요하면 적법한 제공 가능 여부를 확인하고 별도 서면 조건을 합의합니다."] },
+            ],
+        },
+    },
+    en: {
+        terms: {
+            title: "Terms of use",
+            summary: "The scope of KONEXA's early service and the responsibilities of its members. Registration does not create a paid project contract.",
+            notice: "Public review edition. The operator and pilot principles are confirmed. Formal commencement will be announced after the consent screens, transfer disclosures and actual processing flows have been reconciled. Existing consent is not treated as consent to this edition.",
+            sections: [
+                { title: "Operator and scope", paragraphs: ["KONEXA is a pre-launch project operated by Jay Yoo (유재영) in an individual capacity, with South Korea as its operating and contracting base. It is not presented as an incorporated company or registered sole trader. Contact: konexa.corp@gmail.com.", "These terms cover accounts, profiles, enquiries and project coordination. Paid work requires a separate written agreement identifying the parties, scope, price and schedule. Specific agreed terms take precedence for that transaction, subject to mandatory law and statutory rights."] },
+                { title: "What KONEXA does", paragraphs: ["KONEXA supports scoping, matching, progress checks and evidence-based project records. Support and talent availability are confirmed for each project.", "An account or profile does not promise work, income or hiring. The company makes the final hiring decision. Employer-of-record, payroll, visa services, custody of funds and escrow are outside the current pilot."] },
+                { title: "Eligibility and accounts", paragraphs: ["Talent must be at least 18. The age checkbox is self-attestation, not identity-document verification. Company members must have authority to represent or operate their company's account.", "Enquiries are welcome from any country, with task, language, contracting and payment feasibility reviewed individually. Members must provide accurate information, protect their account and report suspected misuse."] },
+                { title: "Conduct and restrictions", paragraphs: ["False credentials, impersonation, unlawful work, rights infringement, harassment, manipulated reviews and malicious code are prohibited. Use company materials and personal information only as needed for the agreed work.", "KONEXA may restrict affected functions for a specific violation or security issue, explaining the reason and scope. Urgent security action is followed by notice as soon as reasonably possible. Members may respond or appeal by email."] },
+                { title: "Introductions and separate agreements", paragraphs: ["Sharing contacts requires an agreed purpose and appropriate permission. An introduction does not automatically create a non-circumvention obligation, a 12-month fee window or a salary-based charge.", "Any introduction or conversion fee requires confirmation that the service can lawfully be provided and a separate written agreement covering scope, rate, exceptions and duration. Historic rates and 90-day guarantees are not current default terms."] },
+                { title: "Work, confidentiality and records", paragraphs: ["Pre-existing assets and newly created work are distinguished. Rights, transfer timing, licences and external, open-source or AI materials are specified in the project agreement. Portfolio publication requires permission and must respect confidentiality and copyright.", "Work records reflect submitted and reviewed work supported by evidence. They do not certify identity, qualifications or employment outcomes. Members may request corrections or review."] },
+                { title: "Closure, changes and responsibility", paragraphs: ["Account and profile deletion may be requested by email. Records necessary for an ongoing contract, dispute or statutory retention are segregated, with purpose and period explained.", "Material changes and interruptions are notified on the website or to registered contacts. Responsibility follows the actual role, fault and applicable law. Statutory rights and liability for intentional or grossly negligent acts are not waived wholesale."] },
+                { title: "Disputes and amendments", paragraphs: ["Parties first discuss disputes using scope, submission, review and payment records. KONEXA's review does not replace courts or statutory remedies. These terms are drafted around South Korean law without excluding applicable mandatory protections. Jurisdiction follows applicable law and lawful specific agreement.", "Material amendments are announced with their commencement date before application. Fresh consent is obtained where required; paid obligations are not imposed retrospectively."] },
+            ],
+        },
+        privacy: {
+            title: "Privacy policy",
+            summary: "The information processed, its purposes and retention, and how to request access, correction or deletion.",
+            notice: "Public review edition. Supabase's Seoul region and Vercel email/Gemini configuration are verified. Resend notification delivery and its retention are now verified; external generative AI is disabled. Hosting migration still requires activation verification. This document must not be used as a complete international-transfer consent until the details and required separate consent flow are confirmed.",
+            sections: [
+                { title: "Verified processing and retention paths", paragraphs: ["External generative AI is disabled for the public pilot. Resume PDF text is read on the server, and declared skills and work conditions are categorized and compared by rules. Results describe declared alignment, not hiring probability or certified ability. You may request correction and human review.", "Database, Auth and file data reside in Supabase Seoul (ap-northeast-2). The Marketplace contracting route involves US Supabase Inc.; support may involve Singapore Supabase Pte. Ltd., European logs and global CDN processing. Seoul storage does not mean there is no international processing. Supplier deletion after project deletion is within 30 days; individual account closure is a distinct operation.", "The email processor is Plus Five Five, Inc. (Resend, United States; support@resend.com). The auth.konexa.co.kr dashboard confirms Tokyo, Japan (ap-northeast-1) as the sending region; Resend stores data in the United States. Recipient email, notification content and delivery records are transmitted over HTTPS for service notifications. Emails/logs are retained 30 days and backups 7 days. After service termination, the supplier deletes remaining customer data within 90 days. Current Supabase Auth settings confirm custom SMTP at smtp.resend.com on port 587. Actual authentication emails also contain Resend signatures and AWS delivery headers. Recipient addresses, authentication links and email content are passed from Supabase to Resend for confirmation, sign-in and password reset.", "The existing operational website/API uses Vercel. An isolated free Render preview is deployed in Singapore, with member-data processing and signup blocked. Page-request IP addresses, times and errors may be processed by hosting. Render lists AWS, GCP, Cloudflare and ClickHouse as US corporate subprocessors; corporate countries do not establish all physical processing destinations. The workspace is Hobby and the server Free, with no payment card and USD 0 charges at verification. Official Hobby log retention is seven days. Supplier return/deletion follows written requests and applicable DPA/legal exceptions; no immediate deletion deadline is invented. Subprocessor-country scope and new consent application must be checked before operational migration is described as complete. Approved runtime keys and email signatures are connected to Render, and synthetic sent/delivered events were recorded without customer data. This is distinct from a completed member signup or sign-in. Refusal, withdrawal, correction and deletion requests go to konexa.corp@gmail.com; email enquiries remain available instead of account services."] },
+                { title: "Controller and requests", paragraphs: ["Jay Yoo (유재영), operating KONEXA in an individual capacity with a South Korean base, handles privacy requests at konexa.corp@gmail.com. You may request access, correction, deletion, restriction, withdrawal of consent or account closure.", "We verify identity using the minimum necessary information and respond within applicable legal deadlines. Any refusal or continued retention is explained with its basis, scope, period and appeal route. Do not email identity documents or passwords in a general enquiry."] },
+                { title: "Information and purposes", paragraphs: ["Information is provided or generated through enquiries, accounts, profiles, work, uploads and feature use. We request only what is needed. Optional profile information is not required for a basic enquiry."], items: ["Enquiries: name, contact details, organisation, task, deliverables, timing and budget, to respond and assess pilot fit.", "Accounts: email, authentication identifiers, role, registration/consent records and adult-participation attestation, for authentication and account management. The authentication service handles passwords; the operator does not receive plaintext passwords.", "Profiles: company identity/country/contact/business details, or talent skills/languages/availability/work samples/education, for matching and profile management. Resumes, evidence and videos may contain additional personal information.", "Work records: messages, files, agreements, changes, reviews, disputes and evidence records, for collaboration and confirmation of agreed work.", "Technical/safety records: access times, IP/request data, errors and contact-pattern flags, for operation, troubleshooting and security.", "Rules-based review: declared skills, target roles, work conditions and skill excerpts from PDF text are used for categorisation and explainable comparisons. They are not sent to external AI models. Do not submit confidential or sensitive data or unique identity numbers."] },
+                { title: "Bases and choices", paragraphs: ["Processing for enquiries, accounts and agreed work uses the lawful basis applicable to that processing, such as consent, requested pre-contractual steps, contract performance or legal obligations. Required-information screens explain the effect of refusal.", "Marketing requires a separate optional consent that can be withdrawn. Where separate consent is required for optional information, AI, third-party disclosure or international transfers, purpose, data, period and refusal effects are disclosed first. Agreeing to terms does not substitute for blanket transfer or AI-training consent."] },
+                { title: "Retention and deletion", paragraphs: ["These are operator-approved retention commitments, not a claim that automated deletion already exists. They must be implemented through request handling and regular review.", "When the purpose ends, electronic records are deleted so recovery is difficult; paper is shredded. Statutory or justified dispute records are segregated with restricted access. Supplier backup persistence must be verified before public activation; immediate removal from all backups is not promised."], items: ["Enquiries: 90 days after the enquiry closes. Materials forming a contract follow the contract-record rule.", "Accounts, profiles and ordinary usage data: until account closure, with ordinary data deleted within 30 days after closure.", "Security/error records: up to 90 days from creation, with specific incident retention separately explained.", "Contract/payment records: only for periods required by applicable law. Where South Korean e-commerce retention duties apply, relevant contract/cancellation and payment/supply records are kept for five years, consumer complaint/dispute records for three years, and advertising records for six months, separately from ordinary usage data."] },
+                { title: "Sharing, processors and transfers", paragraphs: ["Sharing with a work counterpart requires a defined recipient, purpose, data, period and lawful basis. Public profiles and private evidence have different access scopes. Data is not sold or published for unrelated purposes.", "Verified supplier and retention paths are listed above. Payment and signature suppliers are not described as active processors.", "A Seoul region does not prove there is no overseas supplier/support access. Before activation, disclose verified legal supplier names/contacts, countries, data, purposes, transfer timing/methods, retention, legal basis, refusal method and effects. Unknown details are not filled with guessed countries or durations."] },
+                { title: "Message safety and AI", paragraphs: ["Phone, email and selected social-identifier pattern checks are distinct from generative AI. Risk flags are designed to store pattern type and related record identifiers rather than duplicate the message text; this is separate from storage of the original collaboration message.", "External generative AI analysis is disabled, but Resend discloses security screening of a small sample of emails on dedicated RunPod infrastructure it operates. Normal Emails API sending is not sent to Anthropic, and the supplier states that customer content is not used for model training. This is distinct from KONEXA resume analysis. Before an AI feature is made public, verify and disclose inputs/context/outputs, provider, international processing, plan-specific training use and opt-out options. AI output alone does not determine hiring, sanctions or disputes. You may request human review or correction."] },
+                { title: "Storage and safeguards", paragraphs: ["Browser storage and authentication technologies support language preferences and login persistence. You can clear them in browser settings, which may end your session or reset preferences. Any future advertising tracking requires additional purpose and choice disclosure.", "The application is configured for authentication, role-based access, private files and time-limited file links. Configuration does not prove all operational controls are verified. Permissions, logs, backup and deletion must be regularly checked; confirmed breaches are notified/reported as required by law."] },
+                { title: "Remedies and changes", paragraphs: ["South Korean privacy reporting/advice is available at privacy.kisa.or.kr and dispute mediation at kopico.go.kr. Other applicable statutory remedies remain available.", "Material processing or rights changes are announced with their commencement date and fresh consent where required. This edition's revision date is distinct from formal commencement."] },
+            ],
+        },
+        "project-terms": {
+            title: "Contracts, payments & refunds",
+            summary: "What must be agreed before work starts, and how cancellation is settled. The homepage does not create a paid contract or charge you automatically.",
+            notice: "Public review edition reflecting Jay Yoo's approved pilot principles. Before a paid transaction, verify legal eligibility to provide the service, party details, payment/tax treatment and payment method, then execute a project agreement. Payment and escrow services are not described as activated.",
+            sections: [
+                { title: "When a contract is formed", paragraphs: ["An enquiry, account, introduction or website confirmation button does not by itself form a paid contract. Identify the company, talent and KONEXA roles and legal parties; the relevant parties must agree to project-specific written conditions.", "The actual agreement includes each party's name/legal business name, contacts, notification address and necessary legal details. KONEXA is currently Jay Yoo's pre-launch project, not an incorporated or registered business signatory. Any service requiring registration or other legal prerequisites is not sold before those requirements are met."] },
+                { title: "Required project details", paragraphs: ["Confirm these in the quotation, scope and contract before work starts. Additional work or costs are not imposed unilaterally."], items: ["Roles, included/excluded work, deliverable formats/counts and handover", "Schedule/checkpoints, hours, client-material deadlines and delay adjustments", "Price/currency/taxes/transfer and payment fees, recipients/methods/deadlines", "Acceptance criteria/window, revision scope/counts, defects versus scope changes", "Confidentiality/data/access, AI/external/open-source use and intellectual property", "Cancellation, early termination, handover, refunds, notices and disputes"] },
+                { title: "Price and payment", paragraphs: ["Price is quoted in writing for each project. Currency, tax treatment and allocation of bank/payment/FX fees are disclosed before agreement. Historic salary-based rates, conversion percentages or full advance-payment plans do not apply automatically.", "Work starts after agreement and payment feasibility are confirmed. Advance, milestone or post-payment arrangements, funding-confirmation criteria and talent-payment dates are stated in the contract. The current website does not provide card checkout, automatic billing or escrow; a platform record does not replace an actual transfer, custody or settlement."] },
+                { title: "Acceptance and changes", paragraphs: ["The company provides specific acceptance feedback against the agreed criteria within the agreed window. Talent handles agreed revisions and handover. Silence does not automatically mean acceptance or create a blanket no-refund condition.", "Additional work, quantities or deadlines require written agreement on the change and fee before proceeding. Client-material delays and unavoidable interruptions are communicated and schedule changes agreed."] },
+                { title: "Cancellation and refunds", paragraphs: ["Cancellation before work starts receives a full refund of amounts paid. The commencement criteria and date are recorded in the contract.", "After work starts, settlement includes only work accepted against the agreed criteria and pre-approved, non-recoverable actual expenses. Unperformed work is refunded. For example, if one of three deliverables is accepted, only the agreed price of that deliverable and approved actual expenses are deducted. Disputes over unaccepted work are reviewed against evidence; KONEXA does not determine payment solely by unilateral decision.", "Email the project name, cancellation reason and relevant review records to konexa.corp@gmail.com. Refund amount, basis, method and expected date are confirmed in writing, within applicable legal deadlines. Statutory withdrawal and refund rights take precedence, including over any expense-deduction term."] },
+                { title: "Rights and closure", paragraphs: ["The relationship between payment and transfer of new work rights is stated in the contract. Pre-existing assets, external licences and open-source work are identified with their use conditions rather than automatically transferred. Confidentiality and privacy remain protected during payment disputes.", "On closure, hand over agreed work and records and revoke unnecessary access/remove working copies. Publication and portfolio use require separate permission."] },
+                { title: "Disputes and hiring", paragraphs: ["Parties discuss disputes using scope, versions, feedback, acceptance and payment records. KONEXA supports documentation and communication; it is not an authority that unilaterally imposes legal liability or compulsory refunds.", "Hiring and subsequent freelance work require separate agreements. No default 90-day hiring guarantee, replacement credit or fixed conversion fee is included. Any such arrangement requires lawful service eligibility and separate written terms."] },
+            ],
+        },
+    },
+};
 export const providerPlan = {
-  paymentOrchestration: "PortOne V2",
-  pgEscrowCandidate: "KG이니시스 에스크로(가맹점 사전계약 및 서비스형 거래 지원 확인 필요)",
-  identityVerification: "PortOne V2 본인인증",
-  electronicSignature: "모두싸인 API",
-  fundCustodyRule: "KONEXA는 고객 자금을 직접 보관하지 않고 PG/에스크로 거래 상태만 기록",
+    paymentOrchestration: "PortOne V2",
+    pgEscrowCandidate: "KG이니시스 에스크로(가맹점 사전계약 및 서비스형 거래 지원 확인 필요)",
+    identityVerification: "PortOne V2 본인인증",
+    electronicSignature: "모두싸인 API",
+    fundCustodyRule: "KONEXA는 고객 자금을 직접 보관하지 않고 PG/에스크로 거래 상태만 기록",
 } as const;
-
 export const contactReleaseStages = [
-  { label: "탐색", detail: "직무·전공·학년·기술·언어·검증점수·수행평가만 공개", state: "연락처 비공개" },
-  { label: "소개 요청", detail: "기업 확인 및 별도 이탈거래 약정 동의", state: "연락처 비공개" },
-  { label: "계약·결제", detail: "양측 전자서명과 등록 PG의 대금 확보 확인", state: "공개 자격 확인" },
-  { label: "협업", detail: "계약 당사자에게 필요한 범위의 연락처만 공개", state: "감사기록 유지" },
+    { label: "탐색", detail: "직무·전공·학년·기술·언어·검증점수·수행평가만 공개", state: "연락처 비공개" },
+    { label: "소개 요청", detail: "기업 확인 및 별도 이탈거래 약정 동의", state: "연락처 비공개" },
+    { label: "계약·결제", detail: "양측 전자서명과 등록 PG의 대금 확보 확인", state: "공개 자격 확인" },
+    { label: "협업", detail: "계약 당사자에게 필요한 범위의 연락처만 공개", state: "감사기록 유지" },
 ] as const;
-
 export const platformBenefits = [
-  "등록 PG/에스크로를 통한 대금보호 및 단계별 정산",
-  "표준 프로젝트 계약·NDA·지식재산권 이전 기록",
-  "업무범위·변경요청·검수기간 관리",
-  "분쟁 접수와 관리자 조정 기록",
-  "대체 인재 및 커뮤니케이션 지원",
-  "검증된 거래의 상호평가",
-  "플랫폼 완료 프로젝트의 Work Passport 반영",
-  "채용 후 90일 재추천 크레딧 정책",
-  "E-7 직무·전공 사전 적합성 점검",
-  "결제·정산·송금 증빙 보관",
+    "업무 범위와 검수 기준의 사전 합의 지원",
+    "참여 가능 여부를 확인한 인재 연결",
+    "진행 점검과 변경 요청 기록",
+    "제출 결과물과 검토 의견 정리",
+    "종료·인수인계와 이의 제기 지원",
 ] as const;
-
-export const contractDocuments = [
-  {
-    title: "플랫폼 이용약관",
-    purpose: "계정, 금지행위, 메시지 분석, 플랫폼 책임 범위",
-    clauses: [
-      "회원가입 시 최신 약관 버전과 동의시각을 감사기록으로 보관합니다.",
-      "프로젝트 진행 중 플랫폼 밖 계약·결제와 계약 전 연락처 교환을 금지합니다.",
-      "연락처 패턴 탐지 목적·범위·보유기록을 고지하고 메시지 원문은 위험기록에 복사하지 않습니다.",
-      "본인·학력·사업자 정보의 허위 제출, 평가 조작, 보복 리뷰, 관계회사·제3자를 통한 우회를 금지합니다.",
-      "플랫폼 밖 거래에는 대금보호·분쟁조정·대체인재·Work Passport 등 플랫폼 보호가 적용되지 않습니다.",
-      "법령상 강행규정, 신고·수사 협조, 개인정보 권리와 분쟁 절차를 우선 적용합니다.",
-    ],
-  },
-  {
-    title: "기업용 프로젝트 계약서",
-    purpose: "범위, 마일스톤, 선결제, 검수, 변경요청, 지식재산권",
-    clauses: [
-      "포함 결과물·제외 업무·주당 예상시간·수정 횟수·검수기간을 프로젝트별로 확정합니다.",
-      "월 비용은 등록 PG/에스크로로 100% 선결제하고 미확보 시 업무를 시작하거나 계속하지 않습니다.",
-      "추가 업무는 변경요청서와 추가금액 승인 후 착수하며 기업 자료 지연만큼 일정이 자동 연장됩니다.",
-      "출퇴근·휴가·전속근무 등 인사명령을 금지하고 결과물 중심으로 요청합니다.",
-      "NDA와 최소권한을 적용하고 운영서버·민감정보 접근은 별도 승인과 종료 시 회수기록을 남깁니다.",
-      "대금 완납 후 새 결과물 권리를 이전하되 기존 저작물·오픈소스·AI 산출물은 별도 목록으로 관리합니다.",
-    ],
-  },
-  {
-    title: "인재용 프로젝트 참여계약서",
-    purpose: "결과물, 일정, 보안, AI·오픈소스 공개, 중도이탈 절차",
-    clauses: [
-      "결과물·마일스톤·주간 보고·검수 대응과 합의된 수정 횟수를 준수합니다.",
-      "AI 사용 범위, 외부 자료, 오픈소스 라이선스와 기존 포트폴리오 자산을 사전에 공개합니다.",
-      "기업정보를 최소 범위로 처리하고 재사용·외부반출을 금지하며 종료 즉시 접근권한과 사본을 정리합니다.",
-      "중도이탈 사유를 즉시 통지하고 인수인계에 협조하며 학생에게 정액 거액 위약금을 부과하지 않습니다.",
-      "플랫폼 안에서 확인된 결과물 제출·평가만 Work Passport 경력으로 반영합니다.",
-      "분쟁·안전·부당지시가 있으면 업무를 확대하지 않고 KONEXA 관리자 절차로 신고합니다.",
-    ],
-  },
-  {
-    title: "채용전환·소개요금 약정서",
-    purpose: "12개월 전환수수료, 기존 인연 예외, 관계회사·우회계약 신고",
-    clauses: [
-      "KONEXA 최초 소개일로부터 12개월 이내 채용·용역·프리랜서·우회계약 체결 사실을 기업이 신고합니다.",
-      "기업 관계회사·대표자 개인·외주업체·제3자를 통한 계약도 동일한 전환으로 봅니다.",
-      "직접채용 소개요금 기준은 연봉의 10%이며 프로젝트 관리수수료 50%, 최대 100만원을 공제합니다.",
-      "프리랜서·용역 전환은 실제 정상 플랫폼 수수료 범위에서 계약금액의 15~20% 기준을 개별 견적합니다.",
-      "소개 전 기존 인연을 객관적으로 증빙하거나 독립 공개채용 지원으로 확인되면 예외 심사합니다.",
-      "소개요금은 근로계약 체결 이후 관련 법령·고시와 확정 계약서에 따라 청구하며 과도한 벌금으로 운영하지 않습니다.",
-    ],
-  },
-] as const;
-
-export const feePolicy = {
-  directHireRate: 0.1,
-  freelanceRateMin: 0.15,
-  freelanceRateMax: 0.2,
-  conversionWindowMonths: 12,
-  projectFeeCreditRate: 0.5,
-  projectFeeCreditCapKrw: 1_000_000,
-} as const;
-
+// The policy workspace uses the same current documents as the public pages.
+export const contractDocuments = (["terms", "privacy", "project-terms"] as const).map(key => ({
+    title: publicPolicies.ko[key].title,
+    purpose: publicPolicies.ko[key].summary,
+    clauses: publicPolicies.ko[key].sections.map(section => section.paragraphs[0]),
+}));
 export const legalSources = [
-  { label: "민법 제398조", href: "https://www.law.go.kr/lsLinkProc.do?efYd=20151210&joNo=039800&lnkJoNo=undefined&lsClsCd=L&lsId=prec20151210&lsNm=%EB%AF%BC%EB%B2%95&mode=11" },
-  { label: "개인정보 보호법 제28조의8", href: "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lspttninfSeq=182205" },
-  { label: "직업안정법 제19조", href: "https://law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1024682579" },
-  { label: "전자금융거래법", href: "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lspttninfSeq=1026222563" },
+    { label: "민법 제398조", href: "https://www.law.go.kr/lsLinkProc.do?efYd=20151210&joNo=039800&lnkJoNo=undefined&lsClsCd=L&lsId=prec20151210&lsNm=%EB%AF%BC%EB%B2%95&mode=11" },
+    { label: "개인정보 보호법 제28조의8", href: "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lspttninfSeq=182205" },
+    { label: "직업안정법 제19조", href: "https://law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1024682579" },
+    { label: "전자금융거래법", href: "https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lspttninfSeq=1026222563" },
 ] as const;
-
 export const riskRules = [
-  { code: "CONTACT_PATTERN", label: "계약 전 연락처·SNS 패턴", action: "전송 경고 및 최소 메타데이터 감사기록" },
-  { code: "RELATIONSHIP_CANCELLED", label: "소개·프로젝트 취소", action: "반복 횟수와 양측 활동일 비교" },
-  { code: "DUAL_ACCOUNT_EXIT", label: "취소 직후 양측 계정 종료", action: "관리자 수동 검토" },
-  { code: "OUTCOME_CHECK_OVERDUE", label: "채용결과 확인 기한 초과", action: "기업·인재 확인 요청" },
+    { code: "CONTACT_PATTERN", label: "계약 전 연락처·SNS 패턴", action: "전송 경고 및 최소 메타데이터 감사기록" },
+    { code: "RELATIONSHIP_CANCELLED", label: "소개·프로젝트 취소", action: "반복 횟수와 양측 활동일 비교" },
+    { code: "DUAL_ACCOUNT_EXIT", label: "취소 직후 양측 계정 종료", action: "관리자 수동 검토" },
+    { code: "OUTCOME_CHECK_OVERDUE", label: "채용결과 확인 기한 초과", action: "기업·인재 확인 요청" },
 ] as const;
-
-export const privacyNotice =
-  "KONEXA는 계약 전 연락처 공유를 줄이고 플랫폼 안전을 확보하기 위해 메시지에서 전화번호·이메일·일부 SNS 식별자 패턴을 탐지합니다. 위험기록에는 원문을 복사하지 않고 패턴 종류와 관련 기록 ID만 남깁니다. 한국과 해외 간 개인정보 이전이 발생하는 경우 이전 국가·수탁자·목적·항목·보유기간·거부 방법을 개인정보처리방침과 별도 동의 화면에 표시해야 합니다.";
+export const privacyNotice = "KONEXA는 계약 전 연락처 공유를 줄이고 플랫폼 안전을 확보하기 위해 메시지에서 전화번호·이메일·일부 SNS 식별자 패턴을 탐지합니다. 위험기록에는 원문을 복사하지 않고 패턴 종류와 관련 기록 ID만 남깁니다. 한국과 해외 간 개인정보 이전이 발생하는 경우 이전 국가·수탁자·목적·항목·보유기간·거부 방법을 개인정보처리방침과 별도 동의 화면에 표시해야 합니다.";

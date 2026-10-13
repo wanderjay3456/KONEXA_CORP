@@ -1,3 +1,4 @@
+import { roleLabel } from '../../lib/talentTaxonomy';
 import React, { useEffect, useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { 
@@ -59,7 +60,7 @@ export default function ResumeBuilder() {
         const res = await fetch("/api/gemini/analyze-pdf", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pdfBase64: base64, role: "student" }),
+          body: JSON.stringify({ pdfBase64: base64, role: "student", locale }),
           signal: AbortSignal.timeout(55_000),
         });
         
@@ -69,12 +70,7 @@ export default function ResumeBuilder() {
         setPdfAnalysis(analysis);
         pdfHistory.reload();
         
-        if (analysis.extractedSkills?.length) {
-          const saved = await updateStudentProfile({ skills: Array.from(new Set([...(studentProfile?.skills || []), ...analysis.extractedSkills])) });
-          if (!saved) { info('PDF 분석 완료', '분석은 저장했지만 프로필 기술 업데이트는 실패했습니다. 결과를 확인한 뒤 다시 저장해 주세요.'); return; }
-        }
-        
-        success("PDF analysis saved", analysis.extractedSkills?.length ? "Extracted skills have been saved to your profile. Please review them for accuracy." : "Analysis was saved. No new skills were added to your profile.");
+        success(locale === 'ko' ? 'PDF 검토 저장' : 'PDF review saved', locale === 'ko' ? '분류와 원문 근거를 확인한 후 필요한 역량만 직접 반영하세요.' : 'Review the categories and source excerpts before adding skills to your profile.');
       } catch (err: any) {
         info("Analysis Failed", err.message);
       } finally {
@@ -115,7 +111,7 @@ export default function ResumeBuilder() {
         signal: AbortSignal.timeout(55_000),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "AI 이력서 검토를 완료하지 못했습니다.");
+      if (!response.ok) throw new Error(payload.error || "이력서 근거 검토를 완료하지 못했습니다.");
       setResumeScore(payload.score || 0);
       setFeedbackList([
         ...(payload.strengths || []).map((text: string) => ({ type: "strength", text })),
@@ -127,9 +123,9 @@ export default function ResumeBuilder() {
         ...prev
       ]);
       history.reload();
-      success("AI 이력서 검토 완료", "등록된 프로필 근거만 기준으로 검토했습니다.");
+      success("이력서 근거 검토 완료", "등록된 프로필 근거만 기준으로 검토했습니다.");
     } catch (cause) {
-      error("AI 이력서 검토 오류", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
+      error("이력서 근거 검토 오류", cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.");
     } finally {
       setOptimizing(false);
     }
@@ -143,10 +139,10 @@ export default function ResumeBuilder() {
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest block mb-1 bg-teal-50 border border-teal-100 px-2.5 py-0.5 rounded-md w-fit">
-            AI RESUME EVIDENCE REVIEW
+            RESUME EVIDENCE REVIEW
           </span>
           <h1 className="font-display font-black text-3xl text-neutral-900 tracking-tight">
-            AI Resume Builder
+            Resume & work evidence
           </h1>
           <p className="font-sans text-xs text-neutral-400 mt-1">
             Build global professional profiles. Switch between international styles, ATS parsers, academic CVs, or Korean formats instantly.
@@ -295,7 +291,7 @@ export default function ResumeBuilder() {
               <div className="text-xs font-sans min-w-0 flex-1">
                 <span className="font-bold text-neutral-800">현재 프로필 분석 결과</span>
                 <p className="text-[10px] text-neutral-400 mt-0.5 leading-relaxed">
-                  등록된 프로필과 이력서 내용을 바탕으로 산출한 AI 준비도 점수입니다. 실제 채용 합격률을 의미하지 않습니다.
+                  기재된 프로필 검토 항목의 비율입니다. 실제 실력, ATS 통과율 또는 채용 확률이 아닙니다.
                 </p>
               </div>
             </div>
@@ -306,13 +302,13 @@ export default function ResumeBuilder() {
               className="w-full py-2.5 bg-black hover:bg-neutral-800 disabled:bg-neutral-100 disabled:text-neutral-300 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-neutral-950/10 transition-all"
             >
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>{optimizing ? "Optimizing Keyword Vectors..." : "AI Keyword Optimization"}</span>
+              <span>{optimizing ? "Checking supplied fields..." : "Review profile evidence"}</span>
             </button>
           </div>
 
           {/* AI Review Diagnostics list */}
           <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xs space-y-4">
-            <h3 className="font-display font-bold text-sm text-neutral-900">AI Review Feedback</h3>
+            <h3 className="font-display font-bold text-sm text-neutral-900">Evidence review feedback</h3>
             
             <div className="space-y-3">
               {feedbackList.map((f, i) => (
@@ -332,8 +328,10 @@ export default function ResumeBuilder() {
           
           {pdfAnalysis && (
             <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-200/50 shadow-xs space-y-4">
-              <h3 className="font-display font-bold text-sm text-emerald-900">PDF Insight Extraction</h3>
+              <h3 className="font-display font-bold text-sm text-emerald-900">{locale==='ko'?'이력서 근거·직무 분류':'Resume evidence and categories'}</h3>
               <p className="text-[11px] text-emerald-800 leading-relaxed font-sans">{pdfAnalysis.recommendation}</p>
+              <p className="text-sm leading-7">{locale==='ko'?'제안 직무':'Suggested roles'}: {(pdfAnalysis.suggestedCategories || []).map((id: string)=>roleLabel(id,locale)).join(' · ') || '—'}</p>
+              <div className="space-y-3">{pdfAnalysis.skillEvidence?.map((item: any)=><label key={item.skill} className="block text-sm leading-7"><span className="font-semibold">{item.skill}</span><p className="text-neutral-600">{item.excerpt}</p><button type="button" className="min-h-11 underline" onClick={async()=>{const saved=await updateStudentProfile({skills:Array.from(new Set([...(studentProfile?.skills || []),item.skill]))});if(saved) success(locale==='ko'?'역량 반영':'Skill added',item.skill);else error(locale==='ko'?'저장 실패':'Save failed',locale==='ko'?'기존 프로필을 확인하고 다시 시도해 주세요.':'Check your profile and retry.');}}>{locale==='ko'?'근거 확인 후 프로필에 추가':'Confirm evidence and add to profile'}</button></label>)}</div>
               <div className="space-y-1">
                 <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest block">Extracted Skills</span>
                 <div className="flex flex-wrap gap-1">
@@ -354,7 +352,7 @@ export default function ResumeBuilder() {
                 <div key={v.id} className="p-3 bg-neutral-50/30 border border-neutral-200/30 rounded-xl flex justify-between items-center text-xs">
                   <div className="min-w-0">
                     <span className="font-bold text-neutral-800 block truncate">{v.templateName}</span>
-                    <span className="text-[9px] text-neutral-400 font-mono">ATS SCORE: {v.score}%</span>
+                    <span className="text-[9px] text-neutral-400 font-mono">PROFILE COVERAGE: {v.score}%</span>
                   </div>
                   <span className="text-[10px] font-mono text-neutral-400">{v.updatedAt}</span>
                 </div>
