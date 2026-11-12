@@ -22,7 +22,7 @@ export interface LandingCopy {
         language: string;
     };
     hero: {
-        pill: string;
+        eyebrow: string;
         /** One entry per visual line; each line slides up through its own mask. */
         title: Fragment[][];
         lead: string;
@@ -39,12 +39,10 @@ export interface LandingCopy {
         rows: Array<[label: string, state: string]>;
         escrowLabel: string;
         escrowState: string;
-        globeLabel: string;
     };
-    ticker: {
+    status: {
         label: string;
         items: Array<{ label: string; state: string; live: boolean }>;
-        notes: string[];
     };
     how: {
         title: string;
@@ -78,7 +76,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
         },
         nav: { how: "How it works", talent: "For talent", login: "Log in", post: "Post a project", primary: "Primary navigation", language: "Language" },
         hero: {
-            pill: "Early access · Remote projects",
+            eyebrow: "Early access · Remote projects",
             title: [[{ text: "Hire after" }], [{ text: "one real project.", strong: true }]],
             lead: "Scope one small remote task. Review real work every week. Decide with evidence — not a résumé.",
             postCta: "Post a project",
@@ -99,17 +97,15 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             ],
             escrowLabel: "Escrow payments",
             escrowState: "In preparation",
-            globeLabel: "Illustration of a wireframe globe connecting remote collaborators",
         },
-        ticker: {
+        status: {
             label: "Operating status",
             items: [
-                { label: "Company accounts", state: "live", live: true },
-                { label: "Project posts", state: "live", live: true },
-                { label: "Talent profiles", state: "live", live: true },
-                { label: "Escrow payments", state: "in preparation", live: false },
+                { label: "Company accounts", state: "Live", live: true },
+                { label: "Project posts", state: "Live", live: true },
+                { label: "Talent profiles", state: "Live", live: true },
+                { label: "Escrow payments", state: "In preparation", live: false },
             ],
-            notes: ["No fake listings", "No inflated numbers"],
         },
         how: {
             title: "One project ends the hiring gamble.",
@@ -145,7 +141,7 @@ export const landingCopy: Record<Locale, LandingCopy> = {
         },
         nav: { how: "진행 방식", talent: "인재 참여", login: "로그인", post: "프로젝트 등록하기", primary: "주요 메뉴", language: "언어" },
         hero: {
-            pill: "얼리 액세스 · 원격 프로젝트",
+            eyebrow: "얼리 액세스 · 원격 프로젝트",
             title: [[{ text: "이력서 말고," }], [{ text: "프로젝트 하나로", strong: true }], [{ text: "결정하세요." }]],
             lead: "작은 원격 업무 하나를 맡기고, 매주 실제 결과물을 확인하세요. 채용은 그다음에 결정해도 됩니다.",
             postCta: "프로젝트 등록하기",
@@ -166,9 +162,8 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             ],
             escrowLabel: "에스크로 결제",
             escrowState: "준비 중",
-            globeLabel: "원격 협업자를 잇는 와이어프레임 지구본 일러스트",
         },
-        ticker: {
+        status: {
             label: "운영 현황",
             items: [
                 { label: "기업 계정", state: "운영 중", live: true },
@@ -176,7 +171,6 @@ export const landingCopy: Record<Locale, LandingCopy> = {
                 { label: "인재 프로필", state: "운영 중", live: true },
                 { label: "에스크로 결제", state: "준비 중", live: false },
             ],
-            notes: ["가짜 공고 없음", "부풀린 숫자 없음"],
         },
         how: {
             title: "프로젝트 하나로 채용 도박을 끝내세요.",

@@ -13,8 +13,8 @@ interface AuthModalProps {
     initialTab?: "login" | "register" | "forgot" | "recovery";
     onSwitchToRegister: (role: UserRole) => void;
 }
-const inputClass = "h-12 w-full rounded-xl border border-neutral-300 bg-white px-4 text-base text-neutral-900 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 disabled:bg-neutral-100";
-const primaryClass = "flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#284e44] disabled:cursor-wait disabled:opacity-60";
+const inputClass = "h-12 w-full rounded-lg border border-neutral-300 bg-white px-4 text-base text-neutral-900 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/15 disabled:bg-neutral-100";
+const primaryClass = "flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#17342d] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#284e44] disabled:cursor-wait disabled:opacity-60";
 export default function AuthModal({ isOpen, onClose, onSuccess, initialTab = "login", onSwitchToRegister }: AuthModalProps) {
     const { loginUser, googleLogin, resetPassword } = useApp();
     const { locale, setLocale } = useLocale();
@@ -139,22 +139,22 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialTab = "lo
         }
     };
     return <div id="auth-modal-overlay" data-no-translate className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-5">
-    <div className="absolute inset-0 bg-neutral-950/45 backdrop-blur-md" onClick={onClose} aria-hidden="true"/>
-    <motion.div ref={panel} role="dialog" aria-modal="true" aria-labelledby="auth-title" aria-describedby="auth-description" tabIndex={-1} initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="relative max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-6 shadow-2xl outline-none sm:p-8">
+    <div className="absolute inset-0 bg-[#0f2621]/70" onClick={onClose} aria-hidden="true"/>
+    <motion.div ref={panel} role="dialog" aria-modal="true" aria-labelledby="auth-title" aria-describedby="auth-description" tabIndex={-1} initial={reduced ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="relative max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-xl border border-neutral-200 bg-white p-6 shadow-[0_18px_40px_rgba(0,0,0,.22)] outline-none sm:p-8">
       <div className="mb-6 flex items-center justify-between gap-2">
         <div className="flex flex-wrap gap-1" aria-label="Language">
-          {(["ko", "en"] as Locale[]).map(value => <button type="button" key={value} onClick={() => setLocale(value)} aria-pressed={value === locale} className={"rounded-lg px-2 py-2 text-xs font-semibold " + (value === locale ? "bg-emerald-50 text-emerald-900" : "text-neutral-600 hover:bg-neutral-100")}>{localeNames[value]}</button>)}
+          {(["ko", "en"] as Locale[]).map(value => <button type="button" key={value} onClick={() => setLocale(value)} aria-pressed={value === locale} className={"border-b-2 px-2 py-2 text-xs font-semibold transition " + (value === locale ? "border-[#17342d] text-[#17342d]" : "border-transparent text-neutral-600 hover:text-neutral-900")}>{localeNames[value]}</button>)}
         </div>
-        <button type="button" onClick={onClose} aria-label={t.close} className="rounded-full p-2 text-neutral-600 hover:bg-neutral-100"><X className="h-5 w-5"/></button>
+        <button type="button" onClick={onClose} aria-label={t.close} className="rounded-lg p-2 text-neutral-600 hover:bg-neutral-100"><X className="h-5 w-5"/></button>
       </div>
-      <h2 id="auth-title" className="break-keep text-2xl font-bold leading-snug tracking-tight text-neutral-900">{activeTab === "login" ? t.loginTitle : activeTab === "forgot" ? t.forgotTitle : t.recoveryTitle}</h2>
+      <h2 id="auth-title" className="break-keep font-display text-2xl font-medium leading-snug tracking-tight text-[#13201b]">{activeTab === "login" ? t.loginTitle : activeTab === "forgot" ? t.forgotTitle : t.recoveryTitle}</h2>
       <p id="auth-description" className="mt-3 text-sm leading-6 text-neutral-600">{activeTab === "login" ? t.loginLead : activeTab === "forgot" ? t.forgotLead : t.recoveryLead}</p>
       {activeTab === "login" && <div className="mt-6 space-y-4">
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-neutral-100 p-1" role="group" aria-label={t.roleLabel}>
-          {([UserRole.STUDENT, UserRole.COMPANY, UserRole.ADMIN] as const).map(value => <button type="button" key={value} disabled={isSubmitting} aria-pressed={role === value} onClick={() => setRole(value)} className={"rounded-lg px-1 py-2.5 text-sm font-semibold " + (role === value ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-600 hover:text-neutral-900")}>{value === UserRole.STUDENT ? t.student : value === UserRole.COMPANY ? t.company : t.admin}</button>)}
+        <div className="grid grid-cols-3 gap-1 rounded-lg bg-neutral-100 p-1" role="group" aria-label={t.roleLabel}>
+          {([UserRole.STUDENT, UserRole.COMPANY, UserRole.ADMIN] as const).map(value => <button type="button" key={value} disabled={isSubmitting} aria-pressed={role === value} onClick={() => setRole(value)} className={"rounded-md px-1 py-2.5 text-sm font-semibold " + (role === value ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-600 hover:text-neutral-900")}>{value === UserRole.STUDENT ? t.student : value === UserRole.COMPANY ? t.company : t.admin}</button>)}
         </div>
-        {role === UserRole.ADMIN && <p className="rounded-xl bg-amber-50 p-3 text-sm leading-6 text-amber-900">{t.adminNote}</p>}
-        <button type="button" onClick={handleGoogle} disabled={isSubmitting} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-neutral-300 px-3 py-3 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 disabled:opacity-60"><span aria-hidden="true" className="text-base font-bold text-blue-700">G</span>{t.google}</button>
+        {role === UserRole.ADMIN && <p className="rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-900">{t.adminNote}</p>}
+        <button type="button" onClick={handleGoogle} disabled={isSubmitting} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-lg border border-neutral-300 px-3 py-3 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 disabled:opacity-60"><span aria-hidden="true" className="text-base font-bold">G</span>{t.google}</button>
         <div className="flex items-center gap-3 text-xs text-neutral-500"><span className="h-px flex-1 bg-neutral-200"/>{t.divider}<span className="h-px flex-1 bg-neutral-200"/></div>
       </div>}
       <form onSubmit={submit} className="mt-5 space-y-4" aria-busy={isSubmitting}>
@@ -171,8 +171,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialTab = "lo
           <input id="auth-confirm" name="confirmPassword" type="password" required minLength={8} autoComplete="new-password" disabled={isSubmitting} value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} className={inputClass}/>
         </div>}
         {activeTab === "login" && <button type="button" disabled={isSubmitting} onClick={() => changeTab("forgot")} className="text-sm font-medium text-emerald-800 underline-offset-4 hover:underline">{t.forgot}</button>}
-        {(Boolean(failure) || passwordMismatch) && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm leading-6 text-red-800">{passwordMismatch ? t.invalidPassword : authErrorMessage(failure, locale)}</p>}
-        {notice && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm leading-6 text-emerald-900">{t[notice]}</p>}
+        {(Boolean(failure) || passwordMismatch) && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm leading-6 text-red-800">{passwordMismatch ? t.invalidPassword : authErrorMessage(failure, locale)}</p>}
+        {notice && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm leading-6 text-emerald-900">{t[notice]}</p>}
         <button type="submit" disabled={isSubmitting} className={primaryClass}>{isSubmitting ? t.busy : activeTab === "login" ? t.submit : activeTab === "forgot" ? t.send : t.update}{!isSubmitting && <ArrowRight className="h-4 w-4"/>}</button>
       </form>
       {activeTab === "login" ? <>

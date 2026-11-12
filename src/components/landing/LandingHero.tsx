@@ -9,7 +9,6 @@ import { type Locale, useLocale } from "../../i18n/LocaleContext";
 import LandingVisual from "./LandingVisual";
 import { CONTACT_EMAIL, type Fragment, type LandingCopy, landingCopy } from "./landingCopy";
 import { type LandingPhoto, landingPhotos } from "./landingPhotos";
-import { usePauseOffscreen } from "./usePauseOffscreen";
 import "./landing-v3.css";
 
 interface LandingHeroProps {
@@ -39,21 +38,13 @@ function Wordmark() {
     return <span className="lv3-wordmark" aria-label="KONEXA">KONE<b>X</b>A</span>;
 }
 
-/** Section content rises once as it scrolls into view. */
-function Reveal({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number; key?: React.Key }) {
-    const reduced = useReducedMotion();
-    if (reduced)
-        return <div className={className}>{children}</div>;
-    return <motion.div className={className} initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.8, delay, ease: EASE }}>{children}</motion.div>;
-}
-
 function Headline({ lines }: { lines: Fragment[][] }) {
     const reduced = useReducedMotion();
     return <h1 className="lv3-h1">
       {lines.map((line, index) => <React.Fragment key={index}>
         {index > 0 && " "}
         <span className={`lv3-line${line.some((part) => part.strong) ? " lv3-line-strong" : ""}`}>
-          <motion.span className="lv3-line-in" initial={reduced ? false : { y: "115%" }} animate={{ y: 0 }} transition={{ duration: 1, delay: 0.1 + index * LINE_STAGGER, ease: EASE }}>
+          <motion.span className="lv3-line-in" initial={reduced ? false : { y: "115%" }} animate={{ y: 0 }} transition={{ duration: 0.8, delay: 0.1 + index * LINE_STAGGER, ease: EASE }}>
             {line.map((part) => part.text).join("")}
           </motion.span>
         </span>
@@ -63,24 +54,25 @@ function Headline({ lines }: { lines: Fragment[][] }) {
 
 function Rise({ children, className, delay }: { children: React.ReactNode; className?: string; delay: number }) {
     const reduced = useReducedMotion();
-    return <motion.div className={className} initial={reduced ? false : { opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay, ease: EASE }}>{children}</motion.div>;
+    return <motion.div className={className} initial={reduced ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay, ease: EASE }}>{children}</motion.div>;
 }
 
 function FragmentText({ parts }: { parts: Fragment[] }) {
     return <>{parts.map((part) => part.strong ? <strong key={part.text}>{part.text}</strong> : <React.Fragment key={part.text}>{part.text}</React.Fragment>)}</>;
 }
 
-function Ticker({ copy }: { copy: LandingCopy["ticker"] }) {
-    const ref = usePauseOffscreen<HTMLElement>();
-    const set = (hidden: boolean) => <ul className="lv3-ticker-set" aria-hidden={hidden || undefined}>
-      {copy.items.map((item) => <li key={item.label} className="lv3-ticker-item">
-        <span className={`lv3-dot${item.live ? "" : " lv3-dot-off"}`} aria-hidden="true"/>
-        <span>{item.label}</span><span className="lv3-ticker-state">— {item.state}</span>
-      </li>)}
-      {copy.notes.map((note) => <li key={note} className="lv3-ticker-item lv3-ticker-note">{note}</li>)}
-    </ul>;
-    return <section ref={ref} className="lv3-ticker" aria-label={copy.label}>
-      <div className="lv3-ticker-track">{set(false)}{set(true)}</div>
+/** What is actually running today, stated once and without motion. */
+function StatusStrip({ copy }: { copy: LandingCopy["status"] }) {
+    return <section className="lv3-status" aria-label={copy.label}>
+      <div className="lv3-wrap lv3-status-row">
+        <p className="lv3-status-title">{copy.label}</p>
+        <ul className="lv3-status-list">
+          {copy.items.map((item) => <li key={item.label} className="lv3-status-item">
+            {item.label}
+            <span className="lv3-status-state"><span className={`lv3-dot${item.live ? "" : " lv3-dot-off"}`} aria-hidden="true"/>{item.state}</span>
+          </li>)}
+        </ul>
+      </div>
     </section>;
 }
 
@@ -94,14 +86,15 @@ function PhotoPanel({ id, tone, tag, title, cta, onClick, photo, locale }: {
     photo?: LandingPhoto;
     locale: Locale;
 }) {
-    const ref = usePauseOffscreen<HTMLElement>();
-    return <article ref={ref} id={id} className={`lv3-panel lv3-panel-${tone}`}>
-      {photo && <img className="lv3-photo" src={photo.src1600} srcSet={`${photo.src800} 800w, ${photo.src1600} 1600w`} sizes="(min-width: 800px) 50vw, 100vw" width={photo.width} height={photo.height} alt={photo.alt[locale]} loading="lazy" decoding="async"/>}
-      <div className="lv3-scrim" aria-hidden="true"/>
-      <span className="lv3-panel-tag">{tag}</span>
+    return <article id={id} className={`lv3-panel lv3-panel-${tone}${photo ? " lv3-panel-photo" : ""}`}>
+      {photo && <>
+        <img className="lv3-photo" src={photo.src1600} srcSet={`${photo.src800} 800w, ${photo.src1600} 1600w`} sizes="(min-width: 800px) 50vw, 100vw" width={photo.width} height={photo.height} alt={photo.alt[locale]} loading="lazy" decoding="async"/>
+        <div className="lv3-scrim" aria-hidden="true"/>
+      </>}
+      <p className="lv3-panel-tag">{tag}</p>
       <div className="lv3-panel-body">
         <h3>{title}</h3>
-        <button type="button" onClick={onClick} className="lv3-btn lv3-btn-primary">{cta}<ArrowRight aria-hidden="true"/></button>
+        <button type="button" onClick={onClick} className={`lv3-btn ${tone === "company" || photo ? "lv3-btn-primary" : "lv3-btn-dark"}`}>{cta}<ArrowRight aria-hidden="true"/></button>
       </div>
     </article>;
 }
@@ -151,7 +144,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
 
               <div className="lv3-hero-grid">
                 <div className="lv3-hero-copy">
-                  <Rise delay={0} className="lv3-pill-row"><span className="lv3-pill"><i aria-hidden="true"/>{t.hero.pill}</span></Rise>
+                  <Rise delay={0}><p className="lv3-eyebrow">{t.hero.eyebrow}</p></Rise>
                   <Headline lines={t.hero.title}/>
                   <Rise delay={afterTitle}><p className="lv3-lead">{t.hero.lead}</p></Rise>
                   <Rise delay={afterTitle + 0.12} className="lv3-cta-row">
@@ -165,38 +158,38 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
             </div>
           </section>
 
-          <Ticker copy={t.ticker}/>
+          <StatusStrip copy={t.status}/>
 
           <section id="how" className="lv3-section lv3-how">
-            <div className="lv3-wrap">
-              <Reveal><h2 className="lv3-h2">{t.how.title}</h2></Reveal>
+            <div className="lv3-wrap lv3-how-grid">
+              <h2 className="lv3-h2">{t.how.title}</h2>
               <ol className="lv3-steps">
-                {t.how.steps.map(([number, title, body], index) => <li key={number}><Reveal delay={index * 0.08} className="lv3-step">
-                  <span className="lv3-step-number">{number}</span>
+                {t.how.steps.map(([number, title, body]) => <li key={number} className="lv3-step">
+                  <span className="lv3-step-number" aria-hidden="true">{number}</span>
                   <h3>{title}</h3>
                   <p>{body}</p>
-                </Reveal></li>)}
+                </li>)}
               </ol>
             </div>
           </section>
 
           <section className="lv3-section lv3-split">
             <div className="lv3-wrap lv3-split-grid">
-              <Reveal><PhotoPanel tone="company" tag={t.split.company.tag} title={t.split.company.title} cta={t.split.company.cta} onClick={openCompany} photo={landingPhotos.company} locale={locale}/></Reveal>
-              <Reveal delay={0.1}><PhotoPanel id="talent" tone="talent" tag={t.split.talent.tag} title={t.split.talent.title} cta={t.split.talent.cta} onClick={openTalent} photo={landingPhotos.talent} locale={locale}/></Reveal>
+              <PhotoPanel tone="company" tag={t.split.company.tag} title={t.split.company.title} cta={t.split.company.cta} onClick={openCompany} photo={landingPhotos.company} locale={locale}/>
+              <PhotoPanel id="talent" tone="talent" tag={t.split.talent.tag} title={t.split.talent.title} cta={t.split.talent.cta} onClick={openTalent} photo={landingPhotos.talent} locale={locale}/>
             </div>
           </section>
 
           <section className="lv3-final">
-            <div className="lv3-wrap">
-              <Reveal className="lv3-final-inner">
-                <h2 className="lv3-final-title"><FragmentText parts={t.final.title}/></h2>
+            <div className="lv3-wrap lv3-final-grid">
+              <h2 className="lv3-final-title"><FragmentText parts={t.final.title}/></h2>
+              <div className="lv3-final-side">
                 <p>{t.final.body}</p>
-                <div className="lv3-cta-row lv3-cta-center">
+                <div className="lv3-cta-row">
                   <button type="button" onClick={openCompany} className="lv3-btn lv3-btn-primary">{t.final.post}<ArrowRight aria-hidden="true"/></button>
                   <a href={`mailto:${CONTACT_EMAIL}`} className="lv3-btn lv3-btn-ghost">{t.final.email}</a>
                 </div>
-              </Reveal>
+              </div>
             </div>
           </section>
         </main>

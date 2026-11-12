@@ -30,7 +30,7 @@ test("landing copy has the same structure and no empty text in Korean and Englis
     for (const locale of ["ko", "en"] as const) {
         assert.equal(landingCopy[locale].how.steps.length, 3);
         assert.equal(landingCopy[locale].record.rows.length, 4);
-        assert.equal(landingCopy[locale].ticker.items.length, 4);
+        assert.equal(landingCopy[locale].status.items.length, 4);
     }
     for (const locale of ["ko", "en"] as const)
         assert.ok(strings(landingCopy[locale]).every(text => text.trim().length > 0), `${locale} copy has an empty string`);
@@ -56,9 +56,9 @@ test("landing copy makes no unsupported statistic, testimonial, ranking or guara
 
 test("escrow is described as in preparation, never as live", () => {
     for (const locale of ["ko", "en"] as const) {
-        const escrow = landingCopy[locale].ticker.items.find(item => item.live === false);
+        const escrow = landingCopy[locale].status.items.find(item => item.live === false);
         assert.ok(escrow, `${locale} has an in-preparation item`);
-        assert.equal(landingCopy[locale].ticker.items.filter(item => item.live).length, 3);
+        assert.equal(landingCopy[locale].status.items.filter(item => item.live).length, 3);
     }
     assert.equal(CONTACT_EMAIL, "konexa.corp@gmail.com");
 });

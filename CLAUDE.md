@@ -18,16 +18,16 @@
 | 토큰 | 값 | 용도 |
 | --- | --- | --- |
 | ink | `#13201B` | 본문·밝은 면 위 글자 |
-| deep forest | `#0F2621` | 히어로·최종 CTA 배경 |
-| forest | `#17342D` | 티커·패널 배경 |
+| deep forest | `#0F2621` | 히어로·운영 현황·최종 CTA 배경 |
+| forest | `#17342D` | 기업 패널 배경, 밝은 면 위 버튼 hover |
 | cream | `#F5F3EE` | 밝은 섹션 배경 |
+| paper | `#ECE9E1` | 인재 패널, 예시 칩 배경 |
 | line | `#E2DED5` | 구분선 |
 | mint | `#B9F4D0` | 강조(헤드라인 강조 줄, 주요 버튼) |
-| violet | `#5847C9` | 숫자(01·02·03) |
-| success | `#1F6B4F` / `#E6F2EC` | 완료 상태 |
+| success | `#1F6B4F` / `#E6F2EC` | 완료 상태, 단계 번호(01·02·03), 밝은 면 위 라벨 |
 | amber chip | `#7A4E0E` / `#FBF1DF` | 준비 중 상태 |
 
-헤드라인은 weight 500, 자간 -0.045em(EN) / -0.04em(KO). 폰트는 기존 스택(`--font-sans`, `--font-display`)을 유지한다. 반복 모션은 transform·opacity만 쓴다(지구본 아크의 stroke-dash 드로잉만 예외).
+헤드라인은 weight 500, 자간 -0.045em(EN) / -0.04em(KO). 폰트는 기존 스택(`--font-sans`, `--font-display`)을 유지하고, 단계 번호만 `--font-mono`를 쓴다. 모서리는 버튼·입력 8px, 카드·패널 12px로 통일한다(알약형 버튼·배지 금지). 강조색은 mint 하나다. 반복(무한) 모션·스크롤 등장 효과·그라디언트·글로우·블러 배경은 쓰지 않는다. 모션은 히어로 진입과 프로젝트 기록 1회 채움뿐이며 transform·opacity만 쓴다.
 
 ## 검증 명령
 

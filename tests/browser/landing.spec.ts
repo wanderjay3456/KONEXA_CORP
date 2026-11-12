@@ -108,9 +108,29 @@ test('reduced motion freezes repeating animation and shows content immediately',
   expect(animated).toBe(0);
   const lead = await page.locator('.lv3-lead').evaluate(node => getComputedStyle(node.parentElement!).opacity);
   expect(lead).toBe('1');
-  await expect(page.locator('.lv3-ticker-set[aria-hidden="true"]')).toBeHidden();
   expect(errors).toEqual([]);
   await context.close();
+});
+
+test('nothing on the landing page animates in a loop', async ({ page }) => {
+  const errors: string[] = [];
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, 'en', errors);
+  const looping = await page.evaluate(() => [...document.querySelectorAll('.lv3, .lv3 *')].flatMap(node =>
+    [node, [node, '::before'], [node, '::after']].map(target => Array.isArray(target) ? getComputedStyle(target[0] as Element, target[1] as string) : getComputedStyle(target as Element))
+      .filter(style => style.animationName !== 'none' && style.animationIterationCount.includes('infinite')).map(style => style.animationName)));
+  expect(looping).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('operating status lists every item with its state and keeps escrow as not live', async ({ page }) => {
+  const errors: string[] = [];
+  await open(page, 'en', errors);
+  const status = page.getByRole('region', { name: 'Operating status' });
+  await expect(status.getByRole('listitem')).toHaveCount(4);
+  await expect(status.getByRole('listitem').filter({ hasText: 'Escrow payments' })).toContainText('In preparation');
+  await expect(status.getByRole('listitem').filter({ hasText: /Live/ })).toHaveCount(3);
+  expect(errors).toEqual([]);
 });
 
 test('landing text makes no numeric, testimonial or guarantee claims', async ({ page }) => {

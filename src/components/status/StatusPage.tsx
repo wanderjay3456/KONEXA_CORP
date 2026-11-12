@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Check, Clock3, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Check, Clock3, RefreshCw } from "lucide-react";
 
 interface ServiceConfiguration {
   supabaseAdmin: boolean;
@@ -66,25 +66,19 @@ export function StatusPage() {
     : null;
 
   return (
-    <main className="min-h-dvh bg-[#f6f8f3] px-5 py-8 text-neutral-950 sm:px-8 sm:py-12">
+    <main className="min-h-dvh bg-[#f5f3ee] px-5 py-8 text-neutral-950 sm:px-8 sm:py-12">
       <div className="mx-auto max-w-4xl">
-        <header className="mb-12 flex items-center justify-between gap-4">
+        <header className="mb-10 flex items-center justify-between gap-4 border-b border-[#13201b]/15 pb-4">
           <a href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-600 transition hover:text-neutral-950">
             <ArrowLeft aria-hidden="true" className="size-4" />
             KONEXA로 돌아가기
           </a>
-          <span className="rounded-full border border-black/10 bg-white/70 px-3 py-1.5 text-[11px] font-bold tracking-[0.18em] text-neutral-500">
-            SYSTEM STATUS
-          </span>
+          <span className="text-sm font-medium text-neutral-600">서비스 상태</span>
         </header>
 
-        <section className="overflow-hidden rounded-[2rem] border border-black/8 bg-white shadow-[0_28px_90px_rgba(41,58,37,0.10)]">
+        <section className="overflow-hidden rounded-xl border border-[#13201b]/15 bg-white">
           <div className="border-b border-black/8 px-6 py-9 sm:px-10 sm:py-11">
-            <div className="mb-6 flex size-12 items-center justify-center rounded-2xl bg-[#173f2b] text-white">
-              <ShieldCheck aria-hidden="true" className="size-6" />
-            </div>
-            <p className="mb-3 text-xs font-bold tracking-[0.18em] text-[#417355]">KONEXA SERVICE HEALTH</p>
-            <h1 className="max-w-2xl text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
+            <h1 className="max-w-2xl font-display text-3xl font-medium tracking-[-0.04em] sm:text-4xl">
               {loadState.kind === "loading" && "서비스 상태를 확인하고 있습니다."}
               {loadState.kind === "error" && "상태 정보를 불러오지 못했습니다."}
               {isHealthy && "서버와 데이터 연결을 확인했습니다."}
@@ -96,9 +90,9 @@ export function StatusPage() {
 
           <div className="px-6 py-7 sm:px-10 sm:py-9">
             {loadState.kind === "error" ? (
-              <div className="flex flex-col items-start gap-5 rounded-2xl bg-amber-50 p-6">
+              <div className="flex flex-col items-start gap-5 rounded-lg bg-amber-50 p-6">
                 <p className="text-sm leading-6 text-amber-950">잠시 후 다시 시도해 주세요. 문제가 계속되면 KONEXA 운영팀에 알려주세요.</p>
-                <button type="button" onClick={() => setRefreshKey((value) => value + 1)} className="inline-flex items-center gap-2 rounded-full bg-neutral-950 px-4 py-2.5 text-xs font-bold text-white">
+                <button type="button" onClick={() => setRefreshKey((value) => value + 1)} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#17342d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#284e44]">
                   <RefreshCw aria-hidden="true" className="size-3.5" />
                   다시 확인
                 </button>
@@ -111,10 +105,10 @@ export function StatusPage() {
                   return (
                     <div key={service.key} className="grid gap-3 py-5 first:pt-0 last:pb-0 sm:grid-cols-[1fr_auto] sm:items-center">
                       <div>
-                        <h2 className="text-sm font-bold sm:text-base">{service.label}</h2>
+                        <h2 className="text-sm font-semibold sm:text-base">{service.label}</h2>
                         <p className="mt-1 text-xs leading-5 text-neutral-500 sm:text-sm">{service.description}</p>
                       </div>
-                      <span className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold ${isPending ? "bg-neutral-100 text-neutral-500" : enabled ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
+                      <span className={`inline-flex w-fit items-center gap-2 rounded px-2.5 py-1.5 text-xs font-semibold ${isPending ? "bg-neutral-100 text-neutral-500" : enabled ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
                         {isPending ? <Clock3 aria-hidden="true" className="size-3.5" /> : <Check aria-hidden="true" className="size-3.5" />}
                         {loadState.kind === "loading" ? "확인 중" : isPending ? service.pendingLabel : enabled ? "연결 설정 확인됨" : "점검 필요"}
                       </span>

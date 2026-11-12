@@ -1,23 +1,27 @@
-/* Landing v3 — short, impact, motion.
-   Everything is scoped to .lv3. Repeating motion uses transform/opacity only,
-   except the three globe arcs, which draw with stroke-dashoffset by design. */
+/* Landing v3.1 — the page reads like a project record: flat surfaces, hairlines,
+   one accent. Everything is scoped to .lv3. Motion is limited to the one-time
+   hero entry and the record filling in once; nothing loops. */
 
 .lv3 {
   --ink: #13201B;
   --deep: #0F2621;
   --forest: #17342D;
   --cream: #F5F3EE;
+  --paper: #ECE9E1;
   --line: #E2DED5;
+  --rule: rgba(245, 243, 238, .14);
   --mint: #B9F4D0;
-  --violet: #5847C9;
   --ok: #1F6B4F;
   --ok-bg: #E6F2EC;
   --amber: #7A4E0E;
   --amber-bg: #FBF1DF;
   --muted: #46544E;
+  --soft: rgba(245, 243, 238, .8);
   --ease: cubic-bezier(.22, 1, .36, 1);
   --gutter: clamp(16px, 5vw, 48px);
   --wrap: 1200px;
+  --radius: 8px;
+  --radius-lg: 12px;
   position: relative;
   overflow-x: clip;
   background: var(--cream);
@@ -35,6 +39,12 @@ html[lang="ko"] .lv3 {
   outline-offset: 3px;
 }
 
+/* Mint disappears on cream, so light surfaces get an ink ring. */
+.lv3-how :focus-visible,
+.lv3-panel-talent:not(.lv3-panel-photo) :focus-visible {
+  outline-color: var(--ink);
+}
+
 .lv3-wrap {
   width: min(100% - 2 * var(--gutter), var(--wrap));
   margin-inline: auto;
@@ -48,24 +58,23 @@ html[lang="ko"] .lv3 {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 0 26px;
+  padding: 0 24px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius);
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.2;
   text-align: center;
   cursor: pointer;
-  transition: transform .35s var(--ease), background-color .2s, border-color .2s;
+  transition: background-color .2s, border-color .2s, color .2s;
 }
 
 .lv3-btn svg {
   width: 18px;
   height: 18px;
-  transition: transform .35s var(--ease);
+  transition: transform .3s var(--ease);
 }
 
-.lv3-btn:hover { transform: translateY(-2px); }
 .lv3-btn:hover svg { transform: translateX(3px); }
 
 .lv3-btn-primary {
@@ -73,24 +82,26 @@ html[lang="ko"] .lv3 {
   color: var(--ink);
 }
 
-.lv3-btn-primary:hover { background: #cdf8de; }
+.lv3-btn-primary:hover { background: #D3F9E2; }
 
 .lv3-btn-ghost {
   border-color: rgba(245, 243, 238, .4);
   color: var(--cream);
 }
 
-.lv3-btn-ghost:hover { border-color: var(--cream); background: rgba(245, 243, 238, .08); }
+.lv3-btn-ghost:hover { border-color: var(--cream); background: rgba(245, 243, 238, .06); }
+
+.lv3-btn-dark {
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.lv3-btn-dark:hover { background: var(--forest); }
 
 /* ---------- Hero ---------- */
 
 .lv3-hero {
-  position: relative;
-  isolation: isolate;
-  overflow: clip;
-  background:
-    radial-gradient(52rem 38rem at 82% 18%, rgba(185, 244, 208, .1), transparent 62%),
-    var(--deep);
+  background: var(--deep);
   color: var(--cream);
 }
 
@@ -99,7 +110,8 @@ html[lang="ko"] .lv3 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-block: 14px;
+  padding-block: 12px;
+  border-bottom: 1px solid var(--rule);
 }
 
 .lv3-brand {
@@ -135,17 +147,18 @@ html[lang="ko"] .lv3 {
   min-height: 44px;
   align-items: center;
   padding: 0 14px;
-  border-radius: 999px;
-  color: rgba(245, 243, 238, .82);
+  border-radius: var(--radius);
+  color: var(--soft);
   font-size: .92rem;
   font-weight: 500;
-  transition: color .2s, background-color .2s;
+  text-underline-offset: 6px;
+  transition: color .2s;
 }
 
 .lv3-nav a:hover,
 .lv3-login:hover {
-  background: rgba(245, 243, 238, .08);
   color: var(--cream);
+  text-decoration: underline;
 }
 
 .lv3-actions {
@@ -154,33 +167,31 @@ html[lang="ko"] .lv3 {
   gap: 6px;
 }
 
-.lv3-lang {
-  display: inline-flex;
-  border: 1px solid rgba(245, 243, 238, .22);
-  border-radius: 999px;
-}
+.lv3-lang { display: inline-flex; }
 
 .lv3-lang button {
   min-width: 44px;
   min-height: 44px;
-  border-radius: 999px;
-  color: rgba(245, 243, 238, .78);
-  font-size: .78rem;
-  font-weight: 700;
+  border-bottom: 2px solid transparent;
+  color: rgba(245, 243, 238, .66);
+  font-size: .8rem;
+  font-weight: 600;
   letter-spacing: .06em;
-  transition: color .2s, background-color .2s;
+  transition: color .2s;
 }
 
+.lv3-lang button:hover { color: var(--cream); }
+
 .lv3-lang button[aria-pressed="true"] {
-  background: var(--cream);
-  color: var(--ink);
+  border-bottom-color: var(--mint);
+  color: var(--cream);
 }
 
 .lv3-header-cta {
   display: none;
   min-height: 44px;
-  margin-left: 6px;
-  padding: 0 20px;
+  margin-left: 10px;
+  padding: 0 18px;
   font-size: .92rem;
 }
 
@@ -194,15 +205,15 @@ html[lang="ko"] .lv3 {
 
 .lv3-hero-grid {
   display: grid;
-  align-items: center;
   gap: 48px;
-  padding-block: clamp(28px, 5vw, 64px) clamp(56px, 8vw, 112px);
+  padding-block: clamp(40px, 7vw, 96px) clamp(48px, 7vw, 96px);
 }
 
 @media (min-width: 960px) {
   .lv3-hero-grid {
-    grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
-    gap: 40px;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr);
+    align-items: end;
+    gap: 64px;
   }
 }
 
@@ -211,35 +222,19 @@ html[lang="ko"] .lv3 {
   container-type: inline-size;
 }
 
-.lv3-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  border: 1px solid rgba(185, 244, 208, .34);
-  border-radius: 999px;
+.lv3-eyebrow {
+  margin: 0;
   color: var(--mint);
-  font-size: .72rem;
-  font-weight: 600;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-}
-
-html[lang="ko"] .lv3-pill { letter-spacing: .06em; }
-
-.lv3-pill i {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--mint);
-  animation: lv3-blink 1.8s ease-in-out infinite;
+  font-size: .95rem;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .lv3-h1 {
-  margin: 26px 0 0;
+  margin: 20px 0 0;
   /* Fallback first: browsers without container query units ignore the second line. */
   font-size: clamp(2.3rem, 8vw, 4.4rem);
-  font-size: clamp(2.3rem, 11.4cqw, 4.5rem);
+  font-size: clamp(2.3rem, 10.6cqw, 4.5rem);
   font-family: var(--font-display);
   font-weight: 500;
   line-height: 1.04;
@@ -249,7 +244,7 @@ html[lang="ko"] .lv3-pill { letter-spacing: .06em; }
 
 html[lang="ko"] .lv3-h1 {
   font-size: clamp(2.3rem, 8.4vw, 4.2rem);
-  font-size: clamp(2.3rem, 12.4cqw, 4.4rem);
+  font-size: clamp(2.3rem, 11.6cqw, 4.4rem);
   line-height: 1.14;
   letter-spacing: -.04em;
 }
@@ -272,8 +267,8 @@ html[lang="ko"] .lv3-h1 {
 .lv3-lead {
   max-width: 34rem;
   margin: 28px 0 0;
-  color: rgba(245, 243, 238, .82);
-  font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+  color: var(--soft);
+  font-size: clamp(1.05rem, 1.5vw, 1.2rem);
   line-height: 1.6;
 }
 
@@ -292,105 +287,31 @@ html[lang="ko"] .lv3-h1 {
 
 .lv3-note {
   max-width: 32rem;
-  margin: 22px 0 0;
+  margin: 24px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
   color: rgba(245, 243, 238, .74);
   font-size: .92rem;
   line-height: 1.6;
 }
 
-/* ---------- Hero visual ---------- */
+/* ---------- Project record (hero illustration) ---------- */
 
 .lv3-visual {
-  position: relative;
   width: 100%;
-  max-width: 560px;
-  margin-inline: auto;
-}
-
-.lv3-globe {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1;
-}
-
-.lv3-grid ellipse {
-  stroke: rgba(185, 244, 208, .24);
-  stroke-width: 1;
-}
-
-.lv3-globe-edge {
-  stroke: rgba(185, 244, 208, .55);
-  stroke-width: 1.5;
-}
-
-.lv3-meridian {
-  transform-box: fill-box;
-  transform-origin: center;
-  transform: scaleX(var(--s));
-  animation: lv3-meridian 14s linear infinite;
-  animation-delay: calc(var(--i) * -2.3333s);
-}
-
-.lv3-arc {
-  stroke: var(--mint);
-  stroke-width: 2.4;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 0;
-  animation: lv3-arc 7s ease-in-out infinite backwards;
-  animation-delay: calc(var(--i) * 2.3s);
-}
-
-.lv3-node {
-  fill: var(--deep);
-  stroke: var(--mint);
-  stroke-width: 2.5;
-}
-
-.lv3-pulse {
-  fill: none;
-  stroke: var(--mint);
-  stroke-width: 2;
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: lv3-pulse 2.8s ease-out infinite;
-  animation-delay: calc(var(--i) * .7s);
-}
-
-.lv3-card {
-  position: relative;
-  overflow: hidden;
-  width: calc(100% - 24px);
-  max-width: 400px;
-  margin: -84px 0 0 auto;
-  padding: 20px;
-  border-radius: 24px;
-  background: var(--cream);
-  color: var(--ink);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, .38), 0 0 0 1px rgba(255, 255, 255, .05);
-  animation: lv3-breathe 7s ease-in-out infinite alternate;
-}
-
-.lv3-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .38) 50%, transparent 62%);
-  transform: translateX(-120%);
-  animation: lv3-sheen 6s ease-in-out infinite;
+  max-width: 440px;
 }
 
 @media (min-width: 960px) {
-  .lv3-card {
-    position: absolute;
-    right: -3%;
-    bottom: 3%;
-    width: 66%;
-    max-width: none;
-    margin: 0;
-  }
+  .lv3-visual { justify-self: end; }
+}
+
+.lv3-card {
+  padding: 22px 22px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .06), 0 18px 40px rgba(0, 0, 0, .22);
 }
 
 .lv3-card-head {
@@ -398,29 +319,28 @@ html[lang="ko"] .lv3-h1 {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ink);
 }
 
 .lv3-card-label {
-  color: var(--muted);
-  font-size: .72rem;
-  font-weight: 700;
-  letter-spacing: .12em;
-  text-transform: uppercase;
+  color: var(--ink);
+  font-size: .82rem;
+  font-weight: 600;
 }
 
 .lv3-chip {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: .72rem;
-  font-weight: 700;
-  letter-spacing: .04em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: .74rem;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .lv3-chip-illustration {
-  background: #ECE9E1;
+  background: var(--paper);
   color: var(--muted);
 }
 
@@ -430,9 +350,9 @@ html[lang="ko"] .lv3-h1 {
 }
 
 .lv3-card-title {
-  margin: 14px 0 0;
+  margin: 16px 0 0;
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 600;
   letter-spacing: -.02em;
   line-height: 1.25;
@@ -446,44 +366,42 @@ html[lang="ko"] .lv3-h1 {
 }
 
 .lv3-progress {
-  height: 6px;
+  height: 3px;
   margin-top: 16px;
   overflow: hidden;
-  border-radius: 999px;
   background: var(--line);
 }
 
 .lv3-progress span {
   display: block;
   height: 100%;
-  border-radius: inherit;
   background: var(--ok);
   transform: scaleX(.75);
   transform-origin: left;
-  animation: lv3-progress 8s ease-in-out infinite;
+  animation: lv3-progress-in 1.8s var(--ease) 1.1s backwards;
 }
 
 .lv3-rows {
-  margin: 10px 0 0;
+  margin: 6px 0 0;
   padding: 0;
   list-style: none;
 }
 
 .lv3-rows li {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 10px 0;
-  border-top: 1px solid var(--line);
-  font-size: .9rem;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: .92rem;
 }
 
 .lv3-row-label { font-weight: 600; }
 
 .lv3-row-state {
   color: var(--ok);
-  font-size: .8rem;
+  font-size: .82rem;
   font-weight: 600;
   text-align: right;
 }
@@ -493,8 +411,8 @@ html[lang="ko"] .lv3-h1 {
 .lv3-tick {
   position: relative;
   display: grid;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   place-items: center;
   border: 1.5px solid #C9C4B8;
   border-radius: 50%;
@@ -510,164 +428,207 @@ html[lang="ko"] .lv3-h1 {
 
 .lv3-tick svg {
   position: relative;
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
   color: #fff;
 }
 
-/* The last row is the open decision, so at rest it stays an empty ring. */
-.lv3-rows li:last-child .lv3-tick::before,
-.lv3-rows li:last-child .lv3-tick svg { opacity: 0; }
-
+/* The rows check off once, in order, then stay put. */
 .lv3-tick::before,
 .lv3-tick svg {
   transform-origin: center;
-  animation: var(--tick) 8s ease-out infinite backwards;
+  animation: lv3-tick-in .45s var(--ease) backwards;
+  animation-delay: calc(1.2s + var(--r) * .45s);
 }
 
-.lv3-rows li:nth-child(1) { --tick: lv3-tick-0; }
-.lv3-rows li:nth-child(2) { --tick: lv3-tick-1; }
-.lv3-rows li:nth-child(3) { --tick: lv3-tick-2; }
-.lv3-rows li:nth-child(4) { --tick: lv3-tick-3; }
+/* The last row is the open decision, so it stays an empty ring. */
+.lv3-rows li:last-child .lv3-tick::before,
+.lv3-rows li:last-child .lv3-tick svg {
+  opacity: 0;
+  animation: none;
+}
 
 .lv3-escrow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-top: 6px;
   padding-top: 14px;
-  border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: .86rem;
   font-weight: 600;
 }
 
-/* ---------- Status ticker ---------- */
+/* ---------- Operating status ---------- */
 
-.lv3-ticker {
-  overflow: hidden;
-  border-block: 1px solid rgba(185, 244, 208, .14);
-  background: var(--forest);
+.lv3-status {
+  border-top: 1px solid var(--rule);
+  background: var(--deep);
   color: var(--cream);
 }
 
-.lv3-ticker-track {
-  display: flex;
-  width: max-content;
-  animation: lv3-ticker 36s linear infinite;
+.lv3-status-row {
+  display: grid;
+  gap: 4px 32px;
+  padding-block: 20px;
 }
 
-.lv3-ticker-set {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
+.lv3-status-title {
+  margin: 0;
+  padding-block: 8px;
+  color: rgba(245, 243, 238, .74);
+  font-size: .86rem;
+  font-weight: 500;
+}
+
+.lv3-status-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.lv3-ticker-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 18px 28px;
+.lv3-status-item {
+  padding-block: 10px;
+  border-top: 1px solid var(--rule);
   font-size: .92rem;
-  font-weight: 500;
-  white-space: nowrap;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
-.lv3-ticker-state { color: rgba(245, 243, 238, .78); }
-
-.lv3-ticker-note {
-  color: rgba(245, 243, 238, .78);
-  font-style: italic;
+.lv3-status-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  color: rgba(245, 243, 238, .74);
+  font-size: .84rem;
+  font-weight: 400;
 }
 
 .lv3-dot {
-  width: 9px;
-  height: 9px;
+  flex: none;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--mint);
 }
 
 .lv3-dot-off {
-  border: 2px solid rgba(245, 243, 238, .75);
+  border: 1.5px solid rgba(245, 243, 238, .75);
   background: transparent;
+}
+
+@media (min-width: 900px) {
+  .lv3-status-row {
+    grid-template-columns: 180px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .lv3-status-title { padding-block: 0; }
+
+  .lv3-status-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  .lv3-status-item {
+    padding-block: 0;
+    padding-left: 20px;
+    border-top: 0;
+    border-left: 1px solid var(--rule);
+  }
 }
 
 /* ---------- Shared section type ---------- */
 
-.lv3-section { padding-block: clamp(72px, 10vw, 136px); }
+.lv3-section { padding-block: clamp(64px, 9vw, 120px); }
 
 .lv3-h2 {
-  max-width: 15em;
+  max-width: 12em;
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2rem, 5.4vw, 3.7rem);
+  font-size: clamp(1.9rem, 4.4vw, 3rem);
   font-weight: 500;
-  line-height: 1.08;
-  letter-spacing: -.045em;
+  line-height: 1.1;
+  letter-spacing: -.04em;
 }
 
 html[lang="ko"] .lv3-h2 {
-  line-height: 1.2;
-  letter-spacing: -.04em;
+  line-height: 1.22;
+  letter-spacing: -.035em;
 }
 
 /* ---------- How it works ---------- */
 
 .lv3-how { background: var(--cream); }
 
-.lv3-steps {
+.lv3-how-grid {
   display: grid;
-  gap: 0;
-  margin: clamp(40px, 6vw, 72px) 0 0;
-  padding: 0;
-  list-style: none;
+  gap: clamp(32px, 5vw, 48px);
 }
 
-@media (min-width: 760px) {
-  .lv3-steps {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 32px;
+@media (min-width: 900px) {
+  .lv3-how-grid {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 64px;
   }
 }
 
+.lv3-steps {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--ink);
+  list-style: none;
+}
+
 .lv3-step {
-  height: 100%;
-  padding-block: 28px 32px;
-  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  gap: 4px 12px;
+  padding-block: 22px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+@media (min-width: 640px) {
+  .lv3-step {
+    grid-template-columns: 3.5rem minmax(0, 11rem) minmax(0, 1fr);
+    align-items: baseline;
+    gap: 24px;
+  }
 }
 
 .lv3-step-number {
-  display: block;
-  color: var(--violet);
-  font-family: var(--font-display);
-  font-size: 2.6rem;
+  color: var(--ok);
+  font-family: var(--font-mono);
+  font-size: .9rem;
   font-variant-numeric: tabular-nums;
   font-weight: 500;
-  letter-spacing: -.04em;
-  line-height: 1;
+  line-height: 1.6;
 }
 
 .lv3-step h3 {
-  margin: 28px 0 0;
+  margin: 0;
   font-family: var(--font-display);
-  font-size: 1.45rem;
+  font-size: 1.3rem;
   font-weight: 600;
-  letter-spacing: -.03em;
+  letter-spacing: -.02em;
+  line-height: 1.3;
 }
 
 .lv3-step p {
-  max-width: 22rem;
-  margin: 12px 0 0;
+  grid-column: 2;
+  max-width: 30rem;
+  margin: 0;
   color: var(--muted);
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   line-height: 1.65;
 }
 
-/* ---------- Photo split ---------- */
+@media (min-width: 640px) {
+  .lv3-step p { grid-column: auto; }
+}
+
+/* ---------- For companies / for talent ---------- */
 
 .lv3-split {
   padding-top: 0;
@@ -681,7 +642,8 @@ html[lang="ko"] .lv3-h2 {
 
 @media (min-width: 800px) {
   .lv3-split-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* Companies are the primary audience, so their panel is the wider one. */
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
     gap: 20px;
   }
 }
@@ -691,23 +653,41 @@ html[lang="ko"] .lv3-h2 {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 48px;
   overflow: hidden;
-  height: 340px;
+  height: 100%;
+  min-height: 280px;
   padding: 24px;
-  border-radius: 28px;
-  color: var(--cream);
+  border-radius: var(--radius-lg);
   isolation: isolate;
 }
 
 @media (min-width: 800px) {
   .lv3-panel {
-    height: 540px;
+    min-height: 340px;
     padding: 32px;
   }
 }
 
-.lv3-panel-company { background: var(--forest); }
-.lv3-panel-talent { background: var(--ink); }
+.lv3-panel-company {
+  background: var(--forest);
+  color: var(--cream);
+}
+
+.lv3-panel-talent {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* With a photo the panel becomes a tall image with the text on a bottom scrim. */
+.lv3-panel-photo {
+  min-height: 340px;
+  color: var(--cream);
+}
+
+@media (min-width: 800px) {
+  .lv3-panel-photo { min-height: 540px; }
+}
 
 .lv3-photo {
   position: absolute;
@@ -716,7 +696,6 @@ html[lang="ko"] .lv3-h2 {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  animation: lv3-kenburns 16s ease-in-out infinite alternate;
 }
 
 .lv3-scrim {
@@ -727,42 +706,54 @@ html[lang="ko"] .lv3-h2 {
 }
 
 .lv3-panel-tag {
-  align-self: flex-start;
-  padding: 6px 14px;
-  border: 1px solid rgba(185, 244, 208, .4);
-  border-radius: 999px;
-  color: var(--mint);
-  font-size: .76rem;
-  font-weight: 700;
-  letter-spacing: .1em;
-  text-transform: uppercase;
+  margin: 0;
+  font-size: .9rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
+
+.lv3-panel-company .lv3-panel-tag,
+.lv3-panel-photo .lv3-panel-tag { color: var(--mint); }
+
+.lv3-panel-talent:not(.lv3-panel-photo) .lv3-panel-tag { color: var(--ok); }
 
 .lv3-panel-body h3 {
-  max-width: 16em;
-  margin: 0 0 20px;
+  max-width: 15em;
+  margin: 0 0 24px;
   font-family: var(--font-display);
-  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  font-size: clamp(1.55rem, 2.9vw, 2.1rem);
   font-weight: 500;
-  line-height: 1.12;
-  letter-spacing: -.04em;
+  line-height: 1.14;
+  letter-spacing: -.035em;
 }
 
-html[lang="ko"] .lv3-panel-body h3 { line-height: 1.25; }
+html[lang="ko"] .lv3-panel-body h3 { line-height: 1.28; }
 
 /* ---------- Final CTA + footer ---------- */
 
 .lv3-final {
   background: var(--deep);
-  padding-block: clamp(80px, 11vw, 150px);
+  padding-block: clamp(64px, 9vw, 120px);
   color: var(--cream);
-  text-align: center;
+}
+
+.lv3-final-grid {
+  display: grid;
+  gap: 28px;
+}
+
+@media (min-width: 900px) {
+  .lv3-final-grid {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: end;
+    gap: 64px;
+  }
 }
 
 .lv3-final-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2.3rem, 8vw, 4.6rem);
+  font-size: clamp(2.2rem, 6vw, 4rem);
   font-weight: 500;
   line-height: 1.06;
   letter-spacing: -.045em;
@@ -775,21 +766,21 @@ html[lang="ko"] .lv3-final-title {
 
 .lv3-final-title strong {
   color: var(--mint);
-  font-weight: 700;
+  font-weight: inherit;
 }
 
-.lv3-final p {
-  max-width: 30rem;
-  margin: 24px auto 0;
-  color: rgba(245, 243, 238, .82);
-  font-size: 1.15rem;
+.lv3-final-side p {
+  max-width: 28rem;
+  margin: 0;
+  color: var(--soft);
+  font-size: 1.1rem;
   line-height: 1.6;
 }
 
-.lv3-cta-center { justify-content: center; }
+.lv3-final-side .lv3-cta-row { margin-top: 24px; }
 
 .lv3-footer {
-  border-top: 1px solid rgba(185, 244, 208, .14);
+  border-top: 1px solid var(--rule);
   background: var(--deep);
   color: rgba(245, 243, 238, .78);
   font-size: .9rem;
@@ -816,11 +807,16 @@ html[lang="ko"] .lv3-final-title {
   min-height: 44px;
   align-items: center;
   padding: 0 12px;
-  border-radius: 8px;
+  border-radius: var(--radius);
+  text-underline-offset: 6px;
   transition: color .2s;
 }
 
-.lv3-footer a:hover { color: var(--cream); }
+.lv3-footer a:hover {
+  color: var(--cream);
+  text-decoration: underline;
+}
+
 .lv3-footer p { margin: 0; }
 
 /* ---------- Mobile sticky CTA ---------- */
@@ -833,7 +829,7 @@ html[lang="ko"] .lv3-final-title {
   z-index: 30;
   display: none;
   padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(185, 244, 208, .2);
+  border-top: 1px solid var(--rule);
   background: var(--deep);
 }
 
@@ -846,90 +842,12 @@ html[lang="ko"] .lv3-final-title {
 
 /* ---------- Keyframes ---------- */
 
-@keyframes lv3-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .25; }
+@keyframes lv3-progress-in {
+  from { transform: scaleX(.04); }
 }
 
-@keyframes lv3-meridian {
-  0%, 100% { transform: scaleX(1); }
-  12.5%, 87.5% { transform: scaleX(.92); }
-  25%, 75% { transform: scaleX(.71); }
-  37.5%, 62.5% { transform: scaleX(.38); }
-  50% { transform: scaleX(.02); }
-}
-
-@keyframes lv3-arc {
-  0% { stroke-dashoffset: 1; opacity: 1; }
-  38%, 80% { stroke-dashoffset: 0; opacity: 1; }
-  100% { stroke-dashoffset: 0; opacity: 0; }
-}
-
-@keyframes lv3-pulse {
-  0% { transform: scale(1); opacity: .75; }
-  100% { transform: scale(4.2); opacity: 0; }
-}
-
-@keyframes lv3-breathe {
-  from { transform: translateY(-12px); }
-  to { transform: translateY(12px); }
-}
-
-@keyframes lv3-sheen {
-  0%, 45% { transform: translateX(-120%); }
-  75%, 100% { transform: translateX(120%); }
-}
-
-@keyframes lv3-progress {
-  0%, 6% { transform: scaleX(.04); }
-  14% { transform: scaleX(.25); }
-  30% { transform: scaleX(.5); }
-  46% { transform: scaleX(.75); }
-  62%, 88% { transform: scaleX(1); }
-  96%, 100% { transform: scaleX(.04); }
-}
-
-@keyframes lv3-tick-0 {
-  0%, 8% { opacity: 0; transform: scale(.4); }
-  14%, 88% { opacity: 1; transform: scale(1); }
-  95%, 100% { opacity: 0; transform: scale(.4); }
-}
-
-@keyframes lv3-tick-1 {
-  0%, 24% { opacity: 0; transform: scale(.4); }
-  30%, 88% { opacity: 1; transform: scale(1); }
-  95%, 100% { opacity: 0; transform: scale(.4); }
-}
-
-@keyframes lv3-tick-2 {
-  0%, 40% { opacity: 0; transform: scale(.4); }
-  46%, 88% { opacity: 1; transform: scale(1); }
-  95%, 100% { opacity: 0; transform: scale(.4); }
-}
-
-@keyframes lv3-tick-3 {
-  0%, 56% { opacity: 0; transform: scale(.4); }
-  62%, 88% { opacity: 1; transform: scale(1); }
-  95%, 100% { opacity: 0; transform: scale(.4); }
-}
-
-@keyframes lv3-ticker {
-  to { transform: translateX(-50%); }
-}
-
-@keyframes lv3-kenburns {
-  from { transform: scale(1); }
-  to { transform: scale(1.07); }
-}
-
-/* ---------- Pause and reduced motion ---------- */
-
-/* usePauseOffscreen flags blocks that are outside the viewport. */
-.lv3 [data-paused="true"],
-.lv3 [data-paused="true"] *,
-.lv3 [data-paused="true"] *::before,
-.lv3 [data-paused="true"] *::after {
-  animation-play-state: paused !important;
+@keyframes lv3-tick-in {
+  from { opacity: 0; transform: scale(.4); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -939,14 +857,4 @@ html[lang="ko"] .lv3-final-title {
     animation: none !important;
     transition: none !important;
   }
-
-  /* A frozen marquee would hide most of its items, so lay them out as a static list. */
-  .lv3-ticker-track {
-    width: auto;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .lv3-ticker-set { flex-wrap: wrap; justify-content: center; }
-  .lv3-ticker-set[aria-hidden="true"] { display: none; }
 }

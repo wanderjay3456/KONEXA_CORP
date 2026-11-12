@@ -13,7 +13,7 @@ export interface LandingPhoto {
  * Photos for the "For companies" / "For talent" panels.
  *
  * Both are unset on purpose: no licensed photo has been added yet, so the panels
- * render as solid colour. To add one, put the WebP files in public/images/landing/,
+ * render as text-only panels. To add one, put the WebP files in public/images/landing/,
  * record the source in docs/design/photo-credits.md, then fill in the entry below.
  */
 export const landingPhotos: { company?: LandingPhoto; talent?: LandingPhoto } = {};

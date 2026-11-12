@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, ArrowRight, GraduationCap, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mail } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useLocale } from "../../i18n/LocaleContext";
 import { StudentProfile, UserRole } from "../../types";
@@ -11,10 +11,10 @@ interface StudentRegisterFormProps {
 }
 const copy = {
     ko: {
-        eyebrow: "1분 계정 만들기",
+        eyebrow: "인재 가입",
         title: "계정부터 빠르게 만들고, 프로필은 로그인 후 완성하세요.",
         lead: "가입 단계에서는 계정에 필요한 정보만 받습니다. 학교·이력서·희망 주급·증빙 서류는 로그인 직후 안내에 따라 작성합니다.",
-        google: "Google로 바로 시작",
+        google: "Google로 계속하기",
         googleHelp: "기존 계정은 바로 로그인됩니다. 처음이라면 Google 인증 후 계정 유형과 필수 동의만 확인합니다.",
         divider: "또는 이메일로 계정 만들기",
         name: "이름",
@@ -38,10 +38,10 @@ const copy = {
         safety: "미완성 프로필은 대시보드에 진입할 수 없으며, 필요한 항목을 순서대로 안내합니다.",
     },
     en: {
-        eyebrow: "Create an account in 1 minute",
+        eyebrow: "Talent sign-up",
         title: "Create your account now, then complete your profile after sign-in.",
         lead: "We only ask for account essentials here. Add your education, resume, preferred weekly pay, and proof documents in the guided profile setup.",
-        google: "Start instantly with Google",
+        google: "Continue with Google",
         googleHelp: "Existing members sign in immediately. New members confirm their account type and required agreements after Google verification.",
         divider: "or create an account with email",
         name: "Name",
@@ -138,59 +138,59 @@ export default function StudentRegisterForm({ onCancel, onSuccess }: StudentRegi
     };
     if (emailConfirmationRequired) {
         return (<main className="grid min-h-screen place-items-center bg-[#f7f6f1] px-5">
-        <section className="w-full max-w-lg rounded-[2rem] border border-[#17342d]/10 bg-white p-8 text-center shadow-[0_30px_90px_rgba(23,52,45,.1)] sm:p-12">
-          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#dff8ea] text-[#23644e]"><Mail className="h-6 w-6"/></span>
-          <h1 className="mt-6 break-keep font-display text-3xl font-bold tracking-[-.04em] text-[#17342d]">{t.confirmationTitle}</h1>
+        <section className="w-full max-w-lg rounded-xl border border-[#17342d]/15 bg-white p-8 sm:p-12">
+          <Mail aria-hidden="true" className="h-6 w-6 text-[#1f6b4f]"/>
+          <h1 className="mt-5 break-keep font-display text-3xl font-medium tracking-[-.04em] text-[#17342d]">{t.confirmationTitle}</h1>
           <p className="mt-4 leading-7 text-[#557069]">{t.confirmationBody}</p>
-          <button type="button" onClick={onCancel} className="mt-8 rounded-full bg-[#17342d] px-6 py-3 text-sm font-bold text-white">{t.login}</button>
+          <button type="button" onClick={onCancel} className="mt-8 inline-flex min-h-12 items-center rounded-lg bg-[#17342d] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#284e44]">{t.login}</button>
         </section>
       </main>);
     }
     return (<main data-no-translate className="min-h-screen bg-[#f7f6f1] px-4 py-6 sm:px-8 sm:py-10">
       <div className="mx-auto max-w-4xl">
         <div className="flex items-center justify-between gap-4">
-          <button type="button" onClick={onCancel} className="inline-flex items-center gap-2 text-sm font-bold text-[#48645d]"><ArrowLeft className="h-4 w-4"/>{t.back}</button>
-          <div role="group" aria-label="Language" className="flex rounded-full border border-[#17342d]/10 bg-white p-1">
-            {(["ko", "en"] as const).map((item) => <button key={item} type="button" aria-pressed={locale === item} onClick={() => setLocale(item)} className={`rounded-full px-3 py-1.5 text-[11px] font-black uppercase ${locale === item ? "bg-[#17342d] text-white" : "text-[#647a74]"}`}>{item}</button>)}
+          <button type="button" onClick={onCancel} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#48645d] transition hover:text-[#17342d]"><ArrowLeft className="h-4 w-4"/>{t.back}</button>
+          <div role="group" aria-label="Language" className="flex">
+            {(["ko", "en"] as const).map((item) => <button key={item} type="button" aria-pressed={locale === item} onClick={() => setLocale(item)} className={`min-h-11 min-w-11 border-b-2 text-xs font-semibold uppercase tracking-[.06em] transition ${locale === item ? "border-[#17342d] text-[#17342d]" : "border-transparent text-[#647a74] hover:text-[#17342d]"}`}>{item}</button>)}
           </div>
         </div>
 
-        <section className="mt-5 overflow-hidden rounded-[2rem] border border-[#17342d]/10 bg-white shadow-[0_30px_90px_rgba(23,52,45,.09)]">
+        <section className="mt-5 overflow-hidden rounded-xl border border-[#17342d]/15 bg-white">
           <div className="grid lg:grid-cols-[300px_minmax(0,1fr)]">
             <aside className="bg-[#17342d] p-7 text-white sm:p-10">
-              <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[.12em] text-[#b9f4d0]"><Sparkles className="h-4 w-4"/>{t.eyebrow}</span>
-              <h1 className="mt-5 break-keep font-display text-3xl font-bold leading-tight tracking-[-.04em]">{t.title}</h1>
+              <p className="text-sm font-medium text-[#b9f4d0]">{t.eyebrow}</p>
+              <h1 className="mt-4 break-keep font-display text-[1.75rem] font-medium leading-tight tracking-[-.04em]">{t.title}</h1>
               <p className="mt-5 text-sm leading-7 text-white/75">{t.lead}</p>
-              <p className="mt-8 flex items-start gap-2 text-xs leading-5 text-white/65"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#b9f4d0]"/>{t.safety}</p>
+              <p className="mt-8 border-t border-white/15 pt-4 text-xs leading-5 text-white/70">{t.safety}</p>
             </aside>
 
             <div className="p-6 sm:p-10">
-              <button type="button" disabled={googleBusy || isSubmitting} onClick={() => void handleGoogle()} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-[#4361ee]/30 bg-[#eef1ff] px-4 py-3.5 text-sm font-black text-[#324fc0] disabled:cursor-wait disabled:opacity-60">
-                <span aria-hidden="true" className="text-base font-black">G</span>{googleBusy ? t.googleBusy : t.google}
+              <button type="button" disabled={googleBusy || isSubmitting} onClick={() => void handleGoogle()} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-lg border border-[#17342d]/25 bg-white px-4 py-3.5 text-sm font-semibold text-[#17342d] transition hover:bg-[#f5f3ee] disabled:cursor-wait disabled:opacity-60">
+                <span aria-hidden="true" className="text-base font-bold">G</span>{googleBusy ? t.googleBusy : t.google}
               </button>
               <p className="mt-2 text-center text-xs leading-5 text-[#6e817b]">{t.googleHelp}</p>
 
-              <div className="my-6 flex items-center gap-3 text-xs font-semibold text-[#81918c]"><span className="h-px flex-1 bg-[#17342d]/10"/>{t.divider}<span className="h-px flex-1 bg-[#17342d]/10"/></div>
+              <div className="my-6 flex items-center gap-3 text-xs text-[#6e817b]"><span className="h-px flex-1 bg-[#17342d]/10"/>{t.divider}<span className="h-px flex-1 bg-[#17342d]/10"/></div>
 
               <form onSubmit={submitEmail} className="space-y-5">
-                <label className="block"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.name} *</span><input autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder={t.namePlaceholder} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]"/></label>
-                <label className="block"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.email} *</span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]"/></label>
-                <label className="block"><span className="mb-2 block text-sm font-bold text-[#27483f]">{t.password} *</span><input type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.passwordHint} className="w-full rounded-xl border border-[#17342d]/15 px-4 py-3 outline-none focus:border-[#4361ee]"/></label>
+                <label className="block"><span className="mb-2 block text-sm font-semibold text-[#27483f]">{t.name} *</span><input autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder={t.namePlaceholder} className="w-full rounded-lg border border-[#17342d]/25 px-4 py-3 outline-none transition focus:border-[#17342d] focus:ring-2 focus:ring-[#17342d]/15"/></label>
+                <label className="block"><span className="mb-2 block text-sm font-semibold text-[#27483f]">{t.email} *</span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-lg border border-[#17342d]/25 px-4 py-3 outline-none transition focus:border-[#17342d] focus:ring-2 focus:ring-[#17342d]/15"/></label>
+                <label className="block"><span className="mb-2 block text-sm font-semibold text-[#27483f]">{t.password} *</span><input type="password" minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.passwordHint} className="w-full rounded-lg border border-[#17342d]/25 px-4 py-3 outline-none transition focus:border-[#17342d] focus:ring-2 focus:ring-[#17342d]/15"/></label>
 
-                <div className="space-y-3 rounded-2xl bg-[#f5f7f2] p-4">
+                <div className="space-y-3 border-y border-[#17342d]/10 py-4">
                   {([
             ["terms", t.terms, true],
             ["transaction", t.transaction, true],
             ["privacy", t.privacy, true],
             ["marketing", t.marketing, false],
-        ] as const).map(([key, label, required]) => <label key={key} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#3f5d55]"><input type="checkbox" checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#17342d]"/><span>{label}{required && <strong className="ml-1 text-[#4361ee]">*</strong>}</span></label>)}
+        ] as const).map(([key, label, required]) => <label key={key} className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#3f5d55]"><input type="checkbox" checked={agreements[key]} onChange={(event) => setAgreements((current) => ({ ...current, [key]: event.target.checked }))} className="mt-1 h-4 w-4 accent-[#17342d]"/><span>{label}{required && <span aria-hidden="true" className="ml-1 font-semibold text-[#17342d]">*</span>}</span></label>)}
                 </div>
 
-                <button type="submit" disabled={isSubmitting || googleBusy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#17342d] px-5 py-3.5 text-sm font-black text-white disabled:cursor-wait disabled:opacity-60">
+                <button type="submit" disabled={isSubmitting || googleBusy} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#17342d] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#284e44] disabled:cursor-wait disabled:opacity-60">
                   {isSubmitting ? t.submitting : t.submit}{!isSubmitting && <ArrowRight className="h-4 w-4"/>}
                 </button>
               </form>
-              <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#6b7d78]"><GraduationCap className="h-4 w-4"/>{t.next}</p>
+              <p className="mt-4 text-center text-xs text-[#6b7d78]">{t.next}</p>
             </div>
           </div>
         </section>
