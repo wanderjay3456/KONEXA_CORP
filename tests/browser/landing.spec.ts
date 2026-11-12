@@ -133,6 +133,21 @@ test('operating status lists every item with its state and keeps escrow as not l
   expect(errors).toEqual([]);
 });
 
+test('header stays reachable while scrolling and every image is described and loads', async ({ page }) => {
+  const errors: string[] = [];
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, 'en', errors);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect(page.locator('.lv3-top').getByRole('button', { name: 'Post a project' })).toBeInViewport();
+  await page.waitForTimeout(600);
+  // No photo is required, but any that is present must have alt text, intrinsic size and real pixels.
+  const broken = await page.locator('.lv3 img').evaluateAll(images => (images as HTMLImageElement[])
+    .filter(image => !image.alt.trim() || !image.getAttribute('width') || !image.getAttribute('height') || !(image.complete && image.naturalWidth > 0))
+    .map(image => image.currentSrc || image.src));
+  expect(broken).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
 test('landing text makes no numeric, testimonial or guarantee claims', async ({ page }) => {
   const errors: string[] = [];
   for (const locale of locales) {

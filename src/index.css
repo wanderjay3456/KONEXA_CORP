@@ -1,7 +1,10 @@
 @import "tailwindcss";
+/* Pretendard (SIL OFL 1.1), self-hosted from public/fonts/pretendard. The file is
+   sliced by unicode-range, so a page only downloads the slices its text uses. */
+@import "./pretendard.css";
 @theme {
-  --font-sans: "Segoe UI Variable", "Apple SD Gothic Neo", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Segoe UI Variable Display", "Segoe UI Variable", "Apple SD Gothic Neo", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI Variable", "Noto Sans KR", "Malgun Gothic", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI Variable Display", "Noto Sans KR", "Malgun Gothic", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Cascadia Mono", "SFMono-Regular", Consolas, ui-monospace, monospace;
   --color-brand-50: #f0fdfa;
   --color-brand-100: #ccfbf1;

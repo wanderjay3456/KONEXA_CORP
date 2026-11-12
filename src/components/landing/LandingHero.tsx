@@ -8,7 +8,7 @@ import CompanyRegisterForm from "../auth/CompanyRegisterForm";
 import { type Locale, useLocale } from "../../i18n/LocaleContext";
 import LandingVisual from "./LandingVisual";
 import { CONTACT_EMAIL, type Fragment, type LandingCopy, landingCopy } from "./landingCopy";
-import { type LandingPhoto, landingPhotos } from "./landingPhotos";
+import { type LandingPhoto, landingPhotos, photoSrcSet } from "./landingPhotos";
 import "./landing-v3.css";
 
 interface LandingHeroProps {
@@ -88,7 +88,7 @@ function PhotoPanel({ id, tone, tag, title, cta, onClick, photo, locale }: {
 }) {
     return <article id={id} className={`lv3-panel lv3-panel-${tone}${photo ? " lv3-panel-photo" : ""}`}>
       {photo && <>
-        <img className="lv3-photo" src={photo.src1600} srcSet={`${photo.src800} 800w, ${photo.src1600} 1600w`} sizes="(min-width: 800px) 50vw, 100vw" width={photo.width} height={photo.height} alt={photo.alt[locale]} loading="lazy" decoding="async"/>
+        <img className="lv3-photo" src={photo.src} srcSet={photoSrcSet(photo)} sizes="(min-width: 800px) 50vw, 100vw" width={photo.width} height={photo.height} alt={photo.alt[locale]} loading="lazy" decoding="async"/>
         <div className="lv3-scrim" aria-hidden="true"/>
       </>}
       <p className="lv3-panel-tag">{tag}</p>
@@ -124,24 +124,26 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
                 : <CompanyRegisterForm onCancel={() => setActiveRegisterRole(null)} onSuccess={() => onEnterApp(UserRole.COMPANY)}/>}
         </motion.main>
       </motion.div> : <motion.div key="landing" className="lv3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+        <header className="lv3-top">
+          <div className="lv3-wrap lv3-header">
+            <button type="button" onClick={() => window.scrollTo({ top: 0 })} className="lv3-brand" aria-label="KONEXA"><Wordmark /></button>
+            <nav className="lv3-nav" aria-label={t.nav.primary}>
+              <a href="#how">{t.nav.how}</a>
+              <a href="#talent">{t.nav.talent}</a>
+            </nav>
+            <div className="lv3-actions">
+              <button type="button" onClick={() => setIsAuthModalOpen(true)} className="lv3-login">{t.nav.login}</button>
+              <div className="lv3-lang" role="group" aria-label={t.nav.language}>
+                {(["ko", "en"] as Locale[]).map((item) => <button key={item} type="button" onClick={() => setLocale(item)} aria-pressed={locale === item} lang={item}>{item.toUpperCase()}</button>)}
+              </div>
+              <button type="button" onClick={openCompany} className="lv3-btn lv3-btn-primary lv3-header-cta">{t.nav.post}</button>
+            </div>
+          </div>
+        </header>
+
         <main>
           <section className="lv3-hero">
             <div className="lv3-wrap">
-              <header className="lv3-header">
-                <button type="button" onClick={() => window.scrollTo({ top: 0 })} className="lv3-brand" aria-label="KONEXA"><Wordmark /></button>
-                <nav className="lv3-nav" aria-label={t.nav.primary}>
-                  <a href="#how">{t.nav.how}</a>
-                  <a href="#talent">{t.nav.talent}</a>
-                </nav>
-                <div className="lv3-actions">
-                  <button type="button" onClick={() => setIsAuthModalOpen(true)} className="lv3-login">{t.nav.login}</button>
-                  <div className="lv3-lang" role="group" aria-label={t.nav.language}>
-                    {(["ko", "en"] as Locale[]).map((item) => <button key={item} type="button" onClick={() => setLocale(item)} aria-pressed={locale === item} lang={item}>{item.toUpperCase()}</button>)}
-                  </div>
-                  <button type="button" onClick={openCompany} className="lv3-btn lv3-btn-primary lv3-header-cta">{t.nav.post}</button>
-                </div>
-              </header>
-
               <div className="lv3-hero-grid">
                 <div className="lv3-hero-copy">
                   <Rise delay={0}><p className="lv3-eyebrow">{t.hero.eyebrow}</p></Rise>
@@ -153,7 +155,7 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
                   </Rise>
                   <Rise delay={afterTitle + 0.24}><p className="lv3-note">{t.hero.note}</p></Rise>
                 </div>
-                <LandingVisual copy={t.record}/>
+                <LandingVisual copy={t.record} photo={landingPhotos.hero} locale={locale}/>
               </div>
             </div>
           </section>
@@ -195,13 +197,29 @@ export default function LandingHero({ onEnterApp }: LandingHeroProps) {
         </main>
 
         <footer className="lv3-footer">
-          <div className="lv3-wrap lv3-footer-row">
-            <nav aria-label="Legal">
-              <a href={legalHref("KONEXA Terms of Service request")} title={t.footer.legalRequest}>{t.footer.terms}</a>
-              <a href={legalHref("KONEXA Privacy Policy request")} title={t.footer.legalRequest}>{t.footer.privacy}</a>
-              <a href="/status">{t.footer.status}</a>
-            </nav>
-            <p>© {new Date().getFullYear()} {t.footer.rights}</p>
+          <div className="lv3-wrap">
+            <div className="lv3-footer-top">
+              <div className="lv3-footer-brand">
+                <Wordmark />
+                <p>{t.hero.title.map((line) => line.map((part) => part.text).join("")).join(" ")}</p>
+              </div>
+              <nav aria-label={t.nav.primary}>
+                <a href="#how">{t.nav.how}</a>
+                <a href="#talent">{t.nav.talent}</a>
+                <a href="/status">{t.footer.status}</a>
+              </nav>
+              <div className="lv3-footer-contact">
+                <p>{t.footer.contact}</p>
+                <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+              </div>
+            </div>
+            <div className="lv3-footer-row">
+              <nav aria-label={t.footer.legal}>
+                <a href={legalHref("KONEXA Terms of Service request")} title={t.footer.legalRequest}>{t.footer.terms}</a>
+                <a href={legalHref("KONEXA Privacy Policy request")} title={t.footer.legalRequest}>{t.footer.privacy}</a>
+              </nav>
+              <p>© {new Date().getFullYear()} {t.footer.rights}</p>
+            </div>
           </div>
         </footer>
 

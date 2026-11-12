@@ -27,7 +27,7 @@
 | success | `#1F6B4F` / `#E6F2EC` | 완료 상태, 단계 번호(01·02·03), 밝은 면 위 라벨 |
 | amber chip | `#7A4E0E` / `#FBF1DF` | 준비 중 상태 |
 
-헤드라인은 weight 500, 자간 -0.045em(EN) / -0.04em(KO). 폰트는 기존 스택(`--font-sans`, `--font-display`)을 유지하고, 단계 번호만 `--font-mono`를 쓴다. 모서리는 버튼·입력 8px, 카드·패널 12px로 통일한다(알약형 버튼·배지 금지). 강조색은 mint 하나다. 반복(무한) 모션·스크롤 등장 효과·그라디언트·글로우·블러 배경은 쓰지 않는다. 모션은 히어로 진입과 프로젝트 기록 1회 채움뿐이며 transform·opacity만 쓴다.
+헤드라인은 weight 500, 자간 -0.045em(EN) / -0.04em(KO). 서체는 Pretendard Variable(SIL OFL 1.1, `public/fonts/pretendard/`에 자체 호스팅, `src/pretendard.css`가 unicode-range로 나눠 필요한 조각만 받는다)이며 `--font-sans`·`--font-display`의 첫 번째 값이다. 단계 번호만 `--font-mono`를 쓴다. 모서리는 버튼·입력 8px, 카드·패널 12px로 통일한다(알약형 버튼·배지 금지). 강조색은 mint 하나다. 반복(무한) 모션·스크롤 등장 효과·그라디언트·글로우·블러 배경은 쓰지 않는다. 모션은 히어로 진입과 프로젝트 기록 1회 채움뿐이며 transform·opacity만 쓴다.
 
 ## 검증 명령
 

@@ -1,13 +1,19 @@
 import type { CSSProperties } from "react";
 import { Check } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
+import type { Locale } from "../../i18n/LocaleContext";
 import type { LandingCopy } from "./landingCopy";
+import { type LandingPhoto, photoSrcSet } from "./landingPhotos";
 
-/** Hero illustration: one Project Record, the thing a company actually reviews.
- * It is plain markup, labelled as an illustration, so the hero never waits on an image. */
-export default function LandingVisual({ copy }: { copy: LandingCopy["record"] }) {
+/** Hero visual: one Project Record, the thing a company actually reviews, labelled as
+ * an illustration. With a hero photo the record overlaps the photo's lower-left corner;
+ * without one it stands alone, so the hero never depends on an image. */
+export default function LandingVisual({ copy, photo, locale }: { copy: LandingCopy["record"]; photo?: LandingPhoto; locale: Locale }) {
     const reduced = useReducedMotion();
-    return <motion.div className="lv3-visual" initial={reduced ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}>
+    return <motion.div className={`lv3-visual${photo ? " lv3-visual-photo" : ""}`} initial={reduced ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}>
+      {photo && <div className="lv3-hero-photo">
+        <img src={photo.src} srcSet={photoSrcSet(photo)} sizes="(min-width: 960px) 480px, 100vw" width={photo.width} height={photo.height} alt={photo.alt[locale]} fetchPriority="high" decoding="async"/>
+      </div>}
       <div className="lv3-card">
         <div className="lv3-card-head">
           <span className="lv3-card-label">{copy.label}</span>

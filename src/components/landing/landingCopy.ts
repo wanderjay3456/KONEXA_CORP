@@ -64,6 +64,8 @@ export interface LandingCopy {
         status: string;
         rights: string;
         legalRequest: string;
+        contact: string;
+        legal: string;
     };
     mobileCta: string;
 }
@@ -131,6 +133,8 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             status: "Status",
             rights: "KONEXA",
             legalRequest: "Request a copy by email",
+            contact: "Contact",
+            legal: "Legal",
         },
         mobileCta: "Post a project",
     },
@@ -196,6 +200,8 @@ export const landingCopy: Record<Locale, LandingCopy> = {
             status: "서비스 상태",
             rights: "KONEXA",
             legalRequest: "이메일로 사본 요청하기",
+            contact: "문의",
+            legal: "약관",
         },
         mobileCta: "프로젝트 등록하기",
     },

@@ -8,15 +8,16 @@ v3.1 (2026-11-12): 대표 요청으로 "AI가 만든 템플릿처럼 보이는 �
 
 페이지 전체가 "프로젝트 기록" 한 장처럼 읽히도록 한다. 평평한 면, 가는 구분선, 표처럼 정렬된 행, 강조색 하나(mint). 장식은 정보가 있을 때만 쓴다.
 
-## 구성 (5개 섹션)
+## 구성
 
 | # | 섹션 | 배경 | 요점 |
 | --- | --- | --- | --- |
-| 1 | Hero | deep forest(단색) | 워드마크 `KONE[X]A`, 헤더(How it works · For talent · Log in · KO/EN · Post a project), 한 줄 라벨 "Early access · Remote projects", H1, 부제, CTA 2개, 노트, Project Record 카드(Illustration/예시 라벨) |
+| 0 | 헤더 | deep forest | 상단 고정(sticky). 워드마크 `KONE[X]A`, How it works · For talent · Log in · KO/EN · Post a project |
+| 1 | Hero | deep forest(단색) | 한 줄 라벨 "Early access · Remote projects", H1, 부제, CTA 2개, 노트, Project Record 카드(Illustration/예시 라벨). 히어로 사진이 있으면 사진(4:5) 왼쪽 아래에 카드가 겹친다 |
 | 2 | 운영 현황 | deep forest | 정적 목록. Company accounts / Project posts / Talent profiles — Live, Escrow payments — In preparation |
 | 3 | How it works | cream | 좌측 H2 "One project ends the hiring gamble.", 우측 번호 행 3개(01·02·03, 구분선) |
 | 4 | 기업 / 인재 패널 | cream | 7:5 비대칭. 기업 = forest 면 + mint 버튼, 인재 = paper 면 + ink 버튼. 사진이 있으면 사진 + 하단 스크림 패널(높이 540px, 모바일 340px)로 바뀐다 |
-| 5 | Final CTA + 푸터 | deep forest | 좌측 "Start with one project.", 우측 본문 + Post a project · Email KONEXA. 푸터 Terms · Privacy · Status · © KONEXA |
+| 5 | Final CTA + 푸터 | deep forest | 좌측 "Start with one project.", 우측 본문 + Post a project · Email KONEXA. 푸터: 워드마크 + 한 줄 소개, 메뉴(How it works · For talent · Status), 문의 이메일, 하단 Terms · Privacy · © KONEXA |
 
 모바일: 하단 고정 CTA(프로젝트 등록하기). FAQ·리뷰·얼리버드·파트너·공개 공고 미리보기는 랜딩에서 제외했다(컴포넌트 파일은 유지).
 
@@ -57,24 +58,28 @@ v3.1 (2026-11-12): 대표 요청으로 "AI가 만든 템플릿처럼 보이는 �
 
 ## 디자인 토큰
 
-`CLAUDE.md` 표 참고. 폰트는 기존 스택 유지(웹폰트 추가 없음 → 성능 영향 없음).
+`CLAUDE.md` 표 참고.
+
+서체는 Pretendard Variable이다(SIL OFL 1.1, npm `pretendard` 1.3.9의 dynamic subset 92개 조각을 `public/fonts/pretendard/`에 복사, 라이선스 전문 동봉). 이전에는 시스템 폰트 스택이라 Windows에서 한글이 맑은 고딕으로 보였다. `font-display: swap`이고, 라틴·자주 쓰는 한글 조각 하나만 `index.html`에서 preload한다. 의존성(`package.json`)은 추가하지 않았다.
 
 ## 사진
 
-`landingPhotos.ts`가 비어 있으면 텍스트 패널(forest / paper)로 렌더링한다. 사진을 넣으면 해당 패널만 사진 패널로 바뀐다. 추가 절차와 출처 기록은 `photo-credits.md`.
+슬롯은 `hero`, `company`, `talent` 세 개다. `landingPhotos.ts`가 비어 있으면 히어로는 카드만, 패널은 텍스트 패널(forest / paper)로 렌더링한다. 사진을 넣으면 해당 슬롯만 사진 레이아웃으로 바뀐다(사진 위에는 forest 14% 톤을 얹어 출처가 다른 사진도 한 팔레트로 보이게 한다). 히어로 사진은 `fetchpriority="high"`, 패널 사진은 `loading="lazy"`. 추가 절차와 출처 기록은 `photo-credits.md`.
 
 ## 수용 기준 확인 방법
 
 - `npm run lint` · `npm test` · `npm run build` · `npx playwright test`
-- `tests/browser/landing.spec.ts`: 360·390·768·1440px × EN/KO에서 가로 스크롤 0, 터치 타깃 ≥44px, 콘솔 에러 0, CTA→가입 폼, KO/EN 전환·메타, 모바일 CTA, reduced-motion, 무한 반복 애니메이션 0, 운영 현황 항목, 근거 없는 수치 없음.
+- `tests/browser/landing.spec.ts`: 360·390·768·1440px × EN/KO에서 가로 스크롤 0, 터치 타깃 ≥44px, 콘솔 에러 0, CTA→가입 폼, KO/EN 전환·메타, 모바일 CTA, reduced-motion, 무한 반복 애니메이션 0, 운영 현황 항목, 스크롤 후 헤더 유지, 이미지 alt·크기·로드, 근거 없는 수치 없음.
 - 배포 후: `/` 와 `/api/health/ready`.
 
 ## 알려진 제한
 
-- 사진 미추가 — 이 작업 환경에서 Unsplash/Pexels가 네트워크 정책으로 막혀 있다. 텍스트 패널로 배포.
+- 사진 미추가 — `photo-credits.md`의 "현재 상태" 참고. 사진 슬롯 3개는 준비되어 있고, 파일만 넣으면 된다.
 - 공개 Terms/Privacy 페이지가 저장소에 없다. 푸터의 Terms·Privacy는 `konexa.corp@gmail.com` 으로 사본을 요청하는 메일 링크다. 정식 페이지가 생기면 `LandingHero.tsx`의 `legalHref` 를 해당 경로로 교체한다.
 - 대시보드(로그인 후 화면)는 이번 정리 범위가 아니다. `rounded-3xl`·`rounded-2xl` 카드가 많이 남아 있어 별도 작업으로 다룬다.
 
 ## 전후 캡처
 
-`docs/design/landing-v3.1/` — `before-en-1440.png`, `before-ko-390.png`, `after-en-1440.png`, `after-ko-390.png`, `after-company-form-en-1440.png`, `after-status-1440.png`.
+`docs/design/landing-v3.1/` — `before-en-1440.png`, `before-ko-390.png`, `after-en-1440.png`, `after-ko-1440.png`, `after-ko-390.png`, `after-company-form-en-1440.png`, `after-status-1440.png`.
+
+`photo-layout-test-en-1440.png` 은 사진 슬롯 3개의 배치만 확인한 화면이다. 안에 보이는 흐린 색면은 로컬에서 만든 레이아웃 확인용 임시 이미지이며 저장소·배포본에는 들어 있지 않다.

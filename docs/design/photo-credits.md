@@ -1,24 +1,33 @@
 # 랜딩 사진 출처
 
-랜딩 v3의 "For companies / For talent" 패널용 사진 기록. 사진은 상업 이용이 가능한 Unsplash 또는 Pexels 이미지만 쓴다.
+랜딩의 히어로와 "For companies / For talent" 패널용 사진 기록. 사진은 KONEXA가 직접 촬영·보유한 사진이거나, 상업 이용이 가능한 Unsplash 또는 Pexels 이미지만 쓴다.
 
-## 현재 상태 (2026-10-09)
+## 현재 상태 (2026-11-12)
 
-**사진이 아직 추가되지 않았습니다.** 작업 환경의 네트워크 정책이 `unsplash.com`, `images.unsplash.com`, `pexels.com`, `images.pexels.com` 연결을 403으로 차단해 다운로드할 수 없었습니다. 출처를 확인하지 못한 이미지를 쓰지 않기 위해, 두 패널은 사진 없이 텍스트 패널로 배포됩니다(`src/components/landing/landingPhotos.ts`가 비어 있음).
+**사진이 아직 추가되지 않았습니다.** 슬롯 3개(`hero`, `company`, `talent`)와 레이아웃은 준비되어 있고 `src/components/landing/landingPhotos.ts`가 비어 있어 사진 없이 렌더링됩니다.
+
+- 네트워크 허용 목록에 Unsplash·Pexels를 추가한 환경(`konexa-corp`)에서 다시 시도했지만, 두 사이트가 자동화 클라이언트를 봇 확인으로 막는다. `unsplash.com`(검색·사진 페이지)은 봇 확인 페이지로 리다이렉트되고 `www.pexels.com`은 Cloudflare 확인(403)을 띄운다. 이미지 CDN(`images.unsplash.com`)만 열린다.
+- 봇 확인을 우회하지 않았고, 미러·다른 스톡 사이트·AI 생성 이미지·임시 이미지를 쓰지 않았다.
+- 따라서 사진 선택(또는 파일 제공)은 사람이 브라우저에서 해야 한다. 아래 "사진을 추가하는 방법" 참고.
 
 ## 사진을 추가하는 방법
 
-1. 아래 요구에 맞는 사진을 고른다.
-   - (A) 밝은 사무실에서 노트북으로 결과물을 검토하는 팀 리더, 얕은 심도 → "For companies"
-   - (B) 밝은 코워킹 데스크에서 일하는 젊은 전문가, 자연광, 자연스러운 순간 → "For talent"
-   - 특정 국적을 강조하거나 빈곤을 연출한 이미지는 쓰지 않는다.
-2. `public/images/landing/` 에 WebP 1600w·800w를 넣는다(각 200KB 이하). 예: `company-1600.webp`, `company-800.webp`.
-3. `src/components/landing/landingPhotos.ts` 의 `landingPhotos.company` / `landingPhotos.talent` 를 채운다(`width`, `height`, KO/EN `alt`). 이미지는 `loading="lazy"`로 렌더링되며, 사진이 들어간 패널은 사진 + 하단 스크림 패널(모션 없음)로 바뀐다.
-4. 아래 표에 기록한다.
+1. 사진을 고른다. 직접 찍은 사진(대표·팀·사무실·실제 작업 장면)이 가장 좋다. 스톡이라면 한 번의 촬영처럼 보이도록 자연광, 차분한 중성 톤(따뜻한 회색·녹색·나무), 자연스러운 순간으로 맞춘다.
+   - `hero` — 책상에서 노트북으로 결과물을 검토하는 한 사람(카메라를 보지 않음), 얕은 심도. 세로 4:5. 프로젝트 기록 카드가 **왼쪽 아래** 약 45%×40%를 덮으므로 얼굴·손·노트북은 위쪽과 오른쪽에 있어야 한다.
+   - `company` — 밝은 사무실에서 결과물을 검토하는 팀 리더(또는 동료 2명). 가로 3:2. 제목과 버튼이 **아래 45%** 어두운 스크림 위에 올라가므로 인물은 가운데~위쪽.
+   - `talent` — 밝은 책상·코워킹 테이블에서 일하는 젊은 전문가, 자연광. 세로 4:5. 아래 45% 규칙 동일.
+   - 쓰지 않는 것: 악수·하이파이브·차트 가리키기 같은 연출 포즈, 읽히는 브랜드 로고나 화면 속 글자, 특정 국적·인종을 강조하거나 빈곤을 연출한 이미지, Unsplash+ 등 유료 표시가 있는 사진.
+2. `public/images/landing/` 에 WebP로 넣는다(각 200KB 이하, 색 보정·오버레이 없이).
+   - `hero-1200.webp`(1200×1500), `hero-640.webp`(640×800)
+   - `company-1600.webp`(1600×1067), `company-800.webp`(800×533)
+   - `talent-1200.webp`(1200×1500), `talent-640.webp`(640×800)
+3. `src/components/landing/landingPhotos.ts` 의 `hero` / `company` / `talent` 를 채운다(`src`, `srcSmall`, `width`, `height`, `smallWidth`, KO/EN `alt` — 보이는 장면을 묘사하는 문장).
+4. 아래 표에 기록하고 `npm run build && npx playwright test tests/browser/landing.spec.ts` 를 돌린다(이미지 alt·크기·로드를 검사한다).
 
 ## 기록
 
 | 용도 | 파일 | 원본 URL | 작가 | 라이선스 | 다운로드일 |
 | --- | --- | --- | --- | --- | --- |
+| Hero | — | — | — | — | — |
 | For companies | — | — | — | — | — |
 | For talent | — | — | — | — | — |
